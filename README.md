@@ -1,0 +1,7 @@
+# Molly - Deep observability of your macOS usage
+
+Molly is a macOS application that observes your usage of your macOS system in minute detail in order to provide you with insights into your habits, productivity, system performance, and more. It collects data on application usage, window focus, system events, memory, cpu, disk I/O, and other relevant metrics to help you understand how you interact with your computer. It specifically does not capture keystrokes or any sensitive personal information, ensuring your privacy while still providing valuable insights.
+
+Molly publishes all collected data to a configurable Prometheus endpoint, allowing you to visualize and analyze your macOS usage data using tools like Grafana. This enables you to create custom dashboards and alerts based on your usage patterns. By default, Molly runs as a background service and uses a local, Docker-based Prometheus instance to store the collected data, but it can also be configured to send data to a remote Prometheus server if desired. In the local Prometheus instances all data is loaded from a local folder mounted as a volume, so you can easily backup or move your data to another machine.
+
+Molly always labels the collected data with the current user and hostname, allowing you to differentiate between multiple users or machines if you are running Molly on more than one system. This makes it easy to analyze usage patterns across different environments.
