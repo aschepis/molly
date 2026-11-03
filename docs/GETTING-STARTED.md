@@ -71,6 +71,13 @@ and the latest insights report, Run Doctor (logs each failing check and, from
 Molly.app, posts a notification with the summary), Reload Config, and Launch
 at Login.
 
+### The Settings window
+
+Choose Settings… from the menu (⌘, while it is open) instead of hand-editing
+`config.json`: it has a tab per area (collectors, privacy policies, server and
+links, insights and MCP, maintenance), validates like `molly validate`, backs
+up the file, and reloads the daemon on Apply. See [SETTINGS.md](SETTINGS.md).
+
 ### Installing Molly.app and starting at login
 
 ```sh
