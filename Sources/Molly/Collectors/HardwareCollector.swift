@@ -14,6 +14,80 @@ enum DockState {
     }
 }
 
+/// Electrical state of the internal battery, from AppleSmartBattery.
+struct BatteryDetail: Equatable {
+    var temperatureCelsius: Double?
+    var voltageVolts: Double?
+    var currentAmperes: Double?
+    var currentMAh: Double?
+    var maxMAh: Double?
+    var designMAh: Double?
+    var fullyCharged: Bool?
+    var adapter: AdapterDetail?
+
+    var powerWatts: Double? {
+        guard let voltageVolts, let currentAmperes else { return nil }
+        return voltageVolts * currentAmperes
+    }
+}
+
+struct AdapterDetail: Equatable {
+    var name: String
+    var description: String
+    var voltageVolts: Double?
+}
+
+enum BatteryDetailParser {
+    static let maxLabelLength = 64
+    private static let milli = 1000.0
+    private static let hundredths = 100.0
+
+    /// Nil when the dictionary has no battery data (desktop Mac).
+    static func parse(_ props: [String: Any]) -> BatteryDetail? {
+        guard props["Voltage"] != nil || props["Temperature"] != nil || props["DesignCapacity"] != nil else { return nil }
+        var detail = BatteryDetail()
+        detail.temperatureCelsius = double(props["Temperature"]).map { $0 / hundredths }
+        detail.voltageVolts = double(props["Voltage"]).map { $0 / milli }
+        let amps = signed(props["InstantAmperage"]) ?? signed(props["Amperage"])
+        detail.currentAmperes = amps.map { $0 / milli }
+        detail.currentMAh = double(props["AppleRawCurrentCapacity"])
+        detail.maxMAh = double(props["AppleRawMaxCapacity"])
+        detail.designMAh = double(props["DesignCapacity"])
+        detail.fullyCharged = (props["FullyCharged"] as? NSNumber)?.boolValue
+        detail.adapter = adapter(props["AppleRawAdapterDetails"])
+        return detail
+    }
+
+    /// Amperage is signed, but IOKit sometimes hands back the two's complement
+    /// of a negative value as a huge unsigned integer (32 or 64 bit).
+    static func signed(_ value: Any?) -> Double? {
+        guard let number = value as? NSNumber else { return nil }
+        let raw = number.uint64Value
+        if raw > UInt64(Int32.max) && raw <= UInt64(UInt32.max) {
+            return Double(Int32(truncatingIfNeeded: raw))
+        }
+        return Double(Int64(bitPattern: raw))
+    }
+
+    static func sanitize(_ text: String) -> String {
+        let cleaned = text.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) }
+        let trimmed = String(String.UnicodeScalarView(cleaned)).trimmingCharacters(in: .whitespaces)
+        return String(trimmed.prefix(maxLabelLength))
+    }
+
+    private static func double(_ value: Any?) -> Double? { (value as? NSNumber)?.doubleValue }
+
+    private static func adapter(_ raw: Any?) -> AdapterDetail? {
+        let dict = (raw as? [String: Any]) ?? (raw as? [[String: Any]])?.first
+        guard let dict else { return nil }
+        let name = sanitize(dict["Name"] as? String ?? "")
+        let description = sanitize(dict["Description"] as? String ?? "")
+        guard !name.isEmpty || !description.isEmpty else { return nil }
+        return AdapterDetail(name: name, description: description,
+                             voltageVolts: double(dict["AdapterVoltage"]).map { $0 / milli })
+    }
+}
+
 struct AudioDeviceSummary: Equatable {
     var inputs = 0
     var outputs = 0
@@ -54,6 +128,15 @@ final class HardwareCollector: Collector {
     private var docked: Gauge?
     private var adapterWatts: Gauge?
     private var lidClosed: Gauge?
+    private var clamshellCausesSleep: Gauge?
+    private var batteryTemperature: Gauge?
+    private var batteryVoltage: Gauge?
+    private var batteryCurrent: Gauge?
+    private var batteryPower: Gauge?
+    private var batteryCapacity: Gauge?
+    private var batteryFullyCharged: Gauge?
+    private var adapterInfo: Gauge?
+    private var adapterVoltage: Gauge?
     private var skipped: Set<String> = []
 
     init(settings: CollectorSettings) throws {
@@ -72,6 +155,15 @@ final class HardwareCollector: Collector {
         docked = r.gauge("molly_docked", help: "1 when at least dockedMinExternalDisplays external displays are attached.")
         adapterWatts = r.gauge("molly_power_adapter_watts", help: "Rated watts of the connected power adapter, -1 when none or unknown.")
         lidClosed = r.gauge("molly_lid_closed", help: "1 when the clamshell is closed.")
+        clamshellCausesSleep = r.gauge("molly_clamshell_causes_sleep", help: "1 when closing the lid puts the Mac to sleep (0 in clamshell mode).")
+        batteryTemperature = r.gauge("molly_battery_temperature_celsius", help: "Battery temperature in degrees Celsius.")
+        batteryVoltage = r.gauge("molly_battery_voltage_volts", help: "Battery voltage.")
+        batteryCurrent = r.gauge("molly_battery_current_amperes", help: "Battery current, positive when charging and negative when discharging.")
+        batteryPower = r.gauge("molly_battery_power_watts", help: "Battery voltage times current, positive when charging and negative when discharging.")
+        batteryCapacity = r.gauge("molly_battery_capacity_mah", help: "Battery capacity in mAh by kind: current, max, design.", labels: ["kind"])
+        batteryFullyCharged = r.gauge("molly_battery_fully_charged", help: "1 when the battery reports fully charged.")
+        adapterInfo = r.gauge("molly_power_adapter_info", help: "1 for the connected power adapter, labelled by its name and description.", labels: ["name", "description"])
+        adapterVoltage = r.gauge("molly_power_adapter_voltage_volts", help: "Negotiated voltage of the connected power adapter.")
     }
 
     func collect() throws {
@@ -79,6 +171,7 @@ final class HardwareCollector: Collector {
         collectAudio()
         collectDisplays()
         collectPowerAdapter()
+        collectBatteryDetail()
         collectLid()
     }
 
@@ -125,7 +218,31 @@ final class HardwareCollector: Collector {
         adapterWatts?.set(watts)
     }
 
+    private func collectBatteryDetail() {
+        let detail = IOKitProbe.smartBatteryProperties().flatMap(BatteryDetailParser.parse)
+        for gauge in [batteryTemperature, batteryVoltage, batteryCurrent, batteryPower, batteryCapacity,
+                      batteryFullyCharged, adapterInfo, adapterVoltage] { gauge?.reset() }
+        guard let detail else { return skip("battery", "no AppleSmartBattery (desktop Mac)") }
+        if let v = detail.temperatureCelsius { batteryTemperature?.set(v) }
+        if let v = detail.voltageVolts { batteryVoltage?.set(v) }
+        if let v = detail.currentAmperes { batteryCurrent?.set(v) }
+        if let v = detail.powerWatts { batteryPower?.set(v) }
+        if let v = detail.currentMAh { batteryCapacity?.set(v, labels: ["kind": "current"]) }
+        if let v = detail.maxMAh { batteryCapacity?.set(v, labels: ["kind": "max"]) }
+        if let v = detail.designMAh { batteryCapacity?.set(v, labels: ["kind": "design"]) }
+        if let full = detail.fullyCharged { batteryFullyCharged?.set(full ? 1 : 0) }
+        if let adapter = detail.adapter {
+            adapterInfo?.set(1, labels: ["name": adapter.name, "description": adapter.description])
+            if let v = adapter.voltageVolts { adapterVoltage?.set(v) }
+        }
+    }
+
     private func collectLid() {
+        if let causes = IOKitProbe.rootDomainFlag("AppleClamshellCausesSleep") {
+            clamshellCausesSleep?.set(causes ? 1 : 0)
+        } else {
+            clamshellCausesSleep?.reset()
+        }
         guard let closed = IOKitProbe.clamshellClosed() else {
             lidClosed?.reset()
             return skip("lid", "AppleClamshellState not available")
@@ -162,11 +279,23 @@ enum IOKitProbe {
         return names
     }
 
-    static func clamshellClosed() -> Bool? {
+    static func clamshellClosed() -> Bool? { rootDomainFlag("AppleClamshellState") }
+
+    static func rootDomainFlag(_ key: String) -> Bool? {
         let root = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPMrootDomain"))
         guard root != 0 else { return nil }
         defer { IOObjectRelease(root) }
-        return property(root, "AppleClamshellState") as? Bool
+        return property(root, key) as? Bool
+    }
+
+    /// All properties of the AppleSmartBattery object; nil when the Mac has none.
+    static func smartBatteryProperties() -> [String: Any]? {
+        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
+        guard service != 0 else { return nil }
+        defer { IOObjectRelease(service) }
+        var props: Unmanaged<CFMutableDictionary>?
+        guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS else { return nil }
+        return props?.takeRetainedValue() as? [String: Any]
     }
 
     private static func property(_ entry: io_registry_entry_t, _ key: String) -> Any? {

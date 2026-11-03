@@ -82,6 +82,48 @@ final class ClipboardClassificationTests: XCTestCase {
 }
 
 final class HardwareLogicTests: XCTestCase {
+    private let batteryFixture: [String: Any] = [
+        "Temperature": 3062, "Voltage": 13128,
+        "InstantAmperage": UInt64(bitPattern: -1500), "Amperage": 0,
+        "AppleRawCurrentCapacity": 4000, "AppleRawMaxCapacity": 5000, "DesignCapacity": 5200,
+        "FullyCharged": false,
+        "AppleRawAdapterDetails": ["Watts": 140, "Name": "140W USB-C\u{0}Power Adapter\n",
+                                   "Description": "pd charger", "AdapterVoltage": 28000] as [String: Any],
+    ]
+
+    func testBatteryDetailParsesUnitsAndNegativeAmperage() throws {
+        let d = try XCTUnwrap(BatteryDetailParser.parse(batteryFixture))
+        XCTAssertEqual(try XCTUnwrap(d.temperatureCelsius), 30.62, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(d.voltageVolts), 13.128, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(d.currentAmperes), -1.5, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(d.powerWatts), -19.692, accuracy: 0.001)
+        XCTAssertEqual(d.currentMAh, 4000)
+        XCTAssertEqual(d.maxMAh, 5000)
+        XCTAssertEqual(d.designMAh, 5200)
+        XCTAssertEqual(d.fullyCharged, false)
+        XCTAssertEqual(d.adapter?.name, "140W USB-CPower Adapter")
+        XCTAssertEqual(try XCTUnwrap(d.adapter?.voltageVolts), 28, accuracy: 0.0001)
+    }
+
+    func testBatteryAmperageHandlesPositiveAndThirtyTwoBitComplement() {
+        XCTAssertEqual(BatteryDetailParser.signed(2000), 2000)
+        XCTAssertEqual(BatteryDetailParser.signed(-300), -300)
+        XCTAssertEqual(BatteryDetailParser.signed(UInt32(bitPattern: -750)), -750)
+    }
+
+    func testBatteryDetailFallsBackToAmperageAndNilWithoutBattery() throws {
+        var props = batteryFixture
+        props["InstantAmperage"] = nil
+        props["Amperage"] = 900
+        XCTAssertEqual(try XCTUnwrap(BatteryDetailParser.parse(props)?.currentAmperes), 0.9, accuracy: 0.0001)
+        XCTAssertNil(BatteryDetailParser.parse([:]))
+    }
+
+    func testAdapterNameIsCapped() {
+        let long = String(repeating: "x", count: 500)
+        XCTAssertEqual(BatteryDetailParser.sanitize(long).count, BatteryDetailParser.maxLabelLength)
+    }
+
     func testDockedNeedsEnoughExternalDisplays() {
         XCTAssertTrue(DockState.docked(externalDisplays: 1, minExternalDisplays: 1))
         XCTAssertTrue(DockState.docked(externalDisplays: 2, minExternalDisplays: 1))

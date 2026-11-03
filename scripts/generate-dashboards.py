@@ -161,7 +161,7 @@ def today_stat(d, title, expr, unit="short", w=4, h=4, decimals=0, desc=""):
 
 def timeseries(d, title, items, unit="short", w=12, h=8, stack=False, bars=False,
                min_=None, max_=None, desc="", color=None, fill=10, th=None, decimals=None,
-               right_axis=None):
+               right_axis=None, zero_line=False):
     """right_axis: {legend name: unit} for series drawn against a second y axis."""
     custom = {
         "drawStyle": "bars" if bars else "line", "lineWidth": 2,
@@ -181,6 +181,9 @@ def timeseries(d, title, items, unit="short", w=12, h=8, stack=False, bars=False
         defaults["decimals"] = decimals
     if th:
         defaults["thresholds"] = thresholds(th)
+    if zero_line:
+        defaults["thresholds"] = thresholds([(None, GRAY), (0, GRAY)])
+        custom["thresholdsStyle"] = {"mode": "line"}
     n = len(items)
     overrides = [{"matcher": {"id": "byName", "options": name},
                   "properties": [{"id": "custom.axisPlacement", "value": "right"},
@@ -489,6 +492,10 @@ def system():
     state_timeline(d, "Power source", [(m("molly_battery_on_ac"), "AC power"), (m("molly_battery_charging"), "charging")],
                    mappings=YESNO("yes"), w=8, h=8)
     state_timeline(d, "Thermal state", [(m("molly_thermal_state"), "{{host}}")], mappings=THERMAL_MAP, w=8, h=8)
+    timeseries(d, "Battery power (W)", [(m("molly_battery_power_watts"), "{{host}}")], unit="watt", w=8,
+               desc="Positive while charging, negative while discharging.", zero_line=True)
+    timeseries(d, "Battery temperature", [(m("molly_battery_temperature_celsius"), "{{host}}")], unit="celsius", w=8)
+    state_timeline(d, "Lid", [(m("molly_lid_closed"), "lid closed")], mappings=YESNO("closed", SERIOUS), w=8, h=8)
     stat(d, "Battery health", m("molly_battery_health_ratio"), unit="percentunit", w=6, h=3, spark=False, decimals=0, instant=True)
     stat(d, "Cycle count", m("molly_battery_cycle_count"), w=6, h=3, spark=False, decimals=0, instant=True)
     stat(d, "Time remaining", m("molly_battery_time_remaining_seconds"), unit="s", w=6, h=3, spark=False,

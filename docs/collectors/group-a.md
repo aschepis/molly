@@ -280,6 +280,14 @@ Adapter watts come from `IOPSCopyExternalPowerAdapterDetails`; lid state from
 | `molly_docked` | gauge | external displays >= `dockedMinExternalDisplays` |
 | `molly_power_adapter_watts` | gauge | -1 when on battery or unknown |
 | `molly_lid_closed` | gauge | absent when the property is unreadable |
+| `molly_clamshell_causes_sleep` | gauge | `IOPMrootDomain.AppleClamshellCausesSleep`; absent when unreadable |
+| `molly_battery_temperature_celsius` | gauge | AppleSmartBattery `Temperature` / 100; battery series are absent on desktop Macs |
+| `molly_battery_voltage_volts` | gauge | `Voltage` / 1000 |
+| `molly_battery_current_amperes` / `molly_battery_power_watts` | gauge | `InstantAmperage` (falls back to `Amperage`), two's complement handled; positive charging, negative discharging. Power is voltage times current |
+| `molly_battery_capacity_mah{kind}` | gauge | `current` AppleRawCurrentCapacity, `max` AppleRawMaxCapacity, `design` DesignCapacity |
+| `molly_battery_fully_charged` | gauge | `FullyCharged` |
+| `molly_power_adapter_info{name,description}` | gauge | from `AppleRawAdapterDetails`; control characters stripped, 64 character cap |
+| `molly_power_adapter_voltage_volts` | gauge | `AdapterVoltage` / 1000 |
 
 Config keys: `enabled` (`true`), `interval` (`30`), `dockedMinExternalDisplays` (`1`),
 `devices` (policy; default disabled, denylist, maxCardinality 20).

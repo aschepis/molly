@@ -77,6 +77,12 @@ No policies except `wifi`. Details: [group A](collectors/group-a.md#system-inter
 | `molly_battery_time_remaining_seconds` | gauge | | seconds | to empty, or to full while charging; -1 unknown |
 | `molly_battery_cycle_count` | gauge | | cycles | charge cycles |
 | `molly_battery_health_ratio` | gauge | | ratio | max capacity over design capacity |
+| `molly_battery_temperature_celsius` | gauge | | celsius | AppleSmartBattery Temperature (hundredths of a degree) |
+| `molly_battery_voltage_volts` | gauge | | volts | battery voltage |
+| `molly_battery_current_amperes` | gauge | | amperes | signed: positive charging, negative discharging |
+| `molly_battery_power_watts` | gauge | | watts | voltage times current, signed like the current |
+| `molly_battery_capacity_mah` | gauge | `kind` (`current`, `max`, `design`) | mAh | raw battery capacities |
+| `molly_battery_fully_charged` | gauge | | bool | battery reports fully charged |
 | `molly_displays` | gauge | | count | active displays |
 | `molly_display_info` | gauge | `display`, `width`, `height`, `scale` | info | always 1; one series per display, size in points |
 | `molly_dark_mode` | gauge | | bool | system appearance is dark |
@@ -212,7 +218,10 @@ Policy `devices` governs `name`. Details: [group A](collectors/group-a.md#hardwa
 | `molly_external_displays` | gauge | | count | displays that are not built in |
 | `molly_docked` | gauge | | bool | external displays >= `dockedMinExternalDisplays` |
 | `molly_power_adapter_watts` | gauge | | watts | connected adapter rating, -1 when none |
+| `molly_power_adapter_info` | gauge | `name`, `description` | info | 1 for the connected adapter; names are a fixed vocabulary, control characters stripped, capped at 64 characters |
+| `molly_power_adapter_voltage_volts` | gauge | | volts | negotiated adapter voltage; absent without an adapter |
 | `molly_lid_closed` | gauge | | bool | clamshell closed; absent when unreadable |
+| `molly_clamshell_causes_sleep` | gauge | | bool | closing the lid sleeps the Mac (0 in clamshell mode); absent when unreadable |
 
 ## browser (interval 60s)
 
