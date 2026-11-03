@@ -8,6 +8,7 @@ final class CollectorManager {
         let name: String
         let interval: TimeInterval
         var runs: Int = 0
+        /// Failed runs. A source that is absent (`CollectorUnavailable`) is not an error.
         var errors: Int = 0
         var lastError: String?
         var lastSuccess: Date?
@@ -32,6 +33,7 @@ final class CollectorManager {
 
     private let runsTotal: Counter
     private let errorsTotal: Counter
+    private let unavailableGauge: Gauge
     private let duration: Gauge
     private let lastSuccess: Gauge
     private let enabled: Gauge
@@ -41,6 +43,7 @@ final class CollectorManager {
         self.registry = registry
         runsTotal = registry.counter("molly_collector_runs_total", help: "Collector runs.", labels: ["collector"])
         errorsTotal = registry.counter("molly_collector_errors_total", help: "Collector runs that failed.", labels: ["collector"])
+        unavailableGauge = registry.gauge("molly_collector_unavailable", help: "1 while the collector's source is absent or lacks a permission; not an error.", labels: ["collector"])
         duration = registry.gauge("molly_collector_duration_seconds", help: "Wall time of the last collector run.", labels: ["collector"])
         lastSuccess = registry.gauge("molly_collector_last_success_timestamp_seconds", help: "Unix time of the last successful run.", labels: ["collector"])
         enabled = registry.gauge("molly_collector_enabled", help: "1 when the collector is started.", labels: ["collector"])
@@ -55,6 +58,7 @@ final class CollectorManager {
             entries.append(Entry(collector: collector,
                                  queue: DispatchQueue(label: "molly.collector.\(collector.name)", qos: .utility)))
             statuses[collector.name] = Status(name: collector.name, interval: collector.interval)
+            unavailableGauge.set(0, labels: ["collector": collector.name])
         }
     }
 
@@ -157,10 +161,10 @@ final class CollectorManager {
         status.runs += 1
         status.lastDuration = elapsed
         if let error {
-            status.errors += 1
             status.lastError = String(describing: error)
             let wasUnavailable = status.unavailable
             status.unavailable = error is CollectorUnavailable
+            if !status.unavailable { status.errors += 1 }
             if status.unavailable {
                 status.unavailableSince = status.unavailableSince ?? Date()
             } else {
@@ -168,7 +172,8 @@ final class CollectorManager {
             }
             statuses[name] = status
             lock.unlock()
-            errorsTotal.inc(labels: labels)
+            unavailableGauge.set(status.unavailable ? 1 : 0, labels: labels)
+            if !status.unavailable { errorsTotal.inc(labels: labels) }
             // An unavailable source is a one-time note, not a log flood.
             if !(error is CollectorUnavailable) || !wasUnavailable {
                 Log.warn("collector \(name): \(error)")
@@ -179,6 +184,7 @@ final class CollectorManager {
             status.unavailableSince = nil
             statuses[name] = status
             lock.unlock()
+            unavailableGauge.set(0, labels: labels)
             lastSuccess.set(Date().timeIntervalSince1970, labels: labels)
         }
     }

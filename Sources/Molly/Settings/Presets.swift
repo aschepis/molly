@@ -392,7 +392,9 @@ enum Presets {
       "enabled": true,
       "historyFile": "~/.claude/history.jsonl",
       "interval": 60,
-      "pricing": {},
+      "pricing": {
+        "mode": "list"
+      },
       "projects": {
         "enabled": true,
         "hash": false,

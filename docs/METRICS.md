@@ -37,9 +37,10 @@ Published by the collector manager and the `process` collector (interval 30s).
 | `molly_self_series_total` | gauge | | count | series across all families (what `/metrics` renders) |
 | `molly_self_series` | gauge | `family` | count | series in each of the 20 largest families; reset every run |
 | `molly_collector_runs_total` | counter | `collector` | runs | collector runs |
-| `molly_collector_errors_total` | counter | `collector` | runs | runs that failed (unavailable sources are logged once but also count) |
+| `molly_collector_errors_total` | counter | `collector` | runs | runs that failed. A source that is absent or lacks a permission (`CollectorUnavailable`) is not an error and is counted by `molly_collector_unavailable` instead |
 | `molly_collector_duration_seconds` | gauge | `collector` | seconds | wall time of the last run |
 | `molly_collector_last_success_timestamp_seconds` | gauge | `collector` | seconds (unix) | last successful run |
+| `molly_collector_unavailable` | gauge | `collector` | bool | 1 while the collector's source is absent or lacks a permission (for example codex without `~/.codex`), 0 otherwise. Published as 0 for every collector so the series always exists; logged once, never an error |
 | `molly_collector_enabled` | gauge | `collector` | bool | 1 when the collector started; 0 when it failed to start or was stopped |
 | `molly_privacy_label_decisions_total` | counter | `dimension` (`<collector>.<key>`), `outcome` (passed, other, redacted, hashed) | decisions | what each label policy did with the raw values it saw; see [PRIVACY.md](PRIVACY.md) |
 
@@ -344,7 +345,8 @@ Policy `projects` governs `project` on three metrics. When it is disabled,
 | `molly_claude_messages_total` | counter | `role` (user, assistant), `project` **policy** `projects` | messages | counted once per message id |
 | `molly_claude_tool_calls_total` | counter | `tool`, `project` **policy** `projects` | calls | tool_use blocks, by tool name |
 | `molly_claude_tokens_total` | counter | `model`, `kind` (input, output, cache_read, cache_creation) | tokens | token usage |
-| `molly_claude_estimated_cost_usd_total` | counter | `model` | USD | estimate from list prices, not a bill; unknown models cost 0 |
+| `molly_claude_estimated_cost_usd_total` | counter | `model` | USD | tokens at list prices, never a bill; under `pricing.mode` `subscription` it is a list-price equivalent, not spend. Unknown models cost 0 and log one warning |
+| `molly_claude_pricing_mode` | gauge | `mode` | bool | 1 for the configured `collectors.claude_code.pricing.mode` (`list` or `subscription`), 0 for the other. The `HighClaudeSpend` alert stays silent while `subscription` is 1 |
 | `molly_claude_subagent_messages_total` | counter | | messages | the sidechain subset of messages |
 | `molly_claude_prompts_total` | counter | | prompts | lines in history.jsonl; text is never read |
 | `molly_claude_session_duration_seconds_total` | counter | `project` **policy** `projects` | seconds | active session time, gaps over `sessionGapSeconds` excluded |

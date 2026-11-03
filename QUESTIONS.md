@@ -5,10 +5,14 @@ could continue; change the default and the code will follow.
 
 ## Claude pricing table
 `collectors.claude_code.pricing` ships built-in per-million-token prices for
-opus/sonnet/haiku rows that are plausible list prices and a `claude-fable`
-row that is a guess (15 in / 75 out / 1.5 cache read / 18.75 cache write).
-`molly_claude_estimated_cost_usd_total` is only as good as this table.
-Default: documented as an estimate; override in config.
+opus/sonnet/haiku rows that are plausible list prices. The guessed
+`claude-fable` row (15/75) is gone: a model with no row now costs 0 and logs
+one warning naming the model, so a wrong price can no longer pass as data.
+New `collectors.claude_code.pricing.mode` is `list` (default) or `subscription`.
+Under `subscription` the series keeps its name but the dashboards and digest
+call it a list-price equivalent and `HighClaudeSpend` stays silent.
+Still open: set `mode` to `subscription` if that is how you pay, and add a row
+for the fable model once you have its list price.
 
 ## Codex session format
 No `~/.codex/sessions` on this machine, so the `codex` collector's parser was

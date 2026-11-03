@@ -250,7 +250,9 @@
       "historyFile": "~/.claude/history.jsonl",
       "activeWindowSeconds": 300,
       "sessionGapSeconds": 1800,
-      "pricing": {},
+      "pricing": {
+        "mode": "list"
+      },
       "projects": {
         "enabled": true,
         "mode": "denylist",

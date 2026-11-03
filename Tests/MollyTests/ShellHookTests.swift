@@ -12,6 +12,14 @@ final class ShellEventTests: XCTestCase {
         return (collector, registry)
     }
 
+    private func makeRepoCwd() throws -> String {
+        let repo = FileManager.default.temporaryDirectory
+            .appendingPathComponent("molly-shell-\(UUID().uuidString)/github.com/aschepis/molly")
+        try FileManager.default.createDirectory(at: repo.appendingPathComponent(".git"), withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: repo.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()) }
+        return repo.path
+    }
+
     private func prompt(shell: String = "zsh", exit: Int = 0, cwd: String? = "/Users/me/src/github.com/aschepis/molly") -> Data {
         var o: [String: JSONValue] = ["source": .string("shell"), "event": .string("prompt"),
                                       "shell": .string(shell), "exit": .number(Double(exit))]
@@ -21,9 +29,10 @@ final class ShellEventTests: XCTestCase {
 
     func testShellPromptCountsAndReportsProject() throws {
         let (c, r) = try make()
-        XCTAssertEqual(c.handle(body: prompt(), authorization: nil), .accepted)
-        XCTAssertEqual(c.handle(body: prompt(exit: 1), authorization: nil), .accepted)
-        XCTAssertEqual(c.handle(body: prompt(shell: "fish", exit: 127), authorization: nil), .accepted)
+        let cwd = try makeRepoCwd()
+        XCTAssertEqual(c.handle(body: prompt(cwd: cwd), authorization: nil), .accepted)
+        XCTAssertEqual(c.handle(body: prompt(exit: 1, cwd: cwd), authorization: nil), .accepted)
+        XCTAssertEqual(c.handle(body: prompt(shell: "fish", exit: 127, cwd: cwd), authorization: nil), .accepted)
         let prompts = r.counter("molly_shell_prompts_total", help: "", labels: ["shell"])
         XCTAssertEqual(prompts.value(labels: ["shell": "zsh"]), 2)
         XCTAssertEqual(prompts.value(labels: ["shell": "fish"]), 1)

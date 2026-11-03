@@ -100,7 +100,31 @@ final class CollectorManagerTests: XCTestCase {
         _ = manager.collectAll()
         _ = manager.collectAll()
         XCTAssertTrue(manager.allStatuses[0].unavailable)
-        XCTAssertEqual(manager.allStatuses[0].errors, 2)
+        XCTAssertEqual(manager.allStatuses[0].errors, 0)
+        XCTAssertNotNil(manager.allStatuses[0].lastError)
+        manager.stopAll()
+    }
+
+    func testUnavailableIsAGaugeNotAnError() {
+        let registry = MetricsRegistry()
+        let absent = FakeCollector(name: "absent")
+        absent.failWith = CollectorUnavailable(reason: "no such folder")
+        let fine = FakeCollector(name: "fine")
+        let manager = CollectorManager(registry: registry, collectors: [absent, fine])
+        manager.startAll()
+        let unavailable = registry.gauge("molly_collector_unavailable", help: "", labels: ["collector"])
+        let errors = registry.counter("molly_collector_errors_total", help: "", labels: ["collector"])
+        XCTAssertEqual(unavailable.value(labels: ["collector": "fine"]), 0)
+        XCTAssertEqual(unavailable.value(labels: ["collector": "absent"]), 0)
+        _ = manager.collectAll()
+        _ = manager.collectAll()
+        XCTAssertEqual(unavailable.value(labels: ["collector": "absent"]), 1)
+        XCTAssertEqual(unavailable.value(labels: ["collector": "fine"]), 0)
+        XCTAssertEqual(errors.value(labels: ["collector": "absent"]), 0)
+
+        absent.failWith = nil
+        _ = manager.collectAll()
+        XCTAssertEqual(unavailable.value(labels: ["collector": "absent"]), 0)
         manager.stopAll()
     }
 }

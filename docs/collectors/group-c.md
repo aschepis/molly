@@ -114,15 +114,16 @@ Notes:
   decoded to `/`, which is lossy). Paths under `.../github.com/<owner>/<repo>`
   become `owner/repo`, anything else is the last path component.
 - Cost is an **estimate**: tokens times the list prices below, not your bill.
-  Unknown models cost 0. Built-in defaults (USD per million tokens; `claude-fable`
-  is a guess for a flagship tier, check it):
+  Unknown models cost 0 and log one warning; add a row under `pricing` to price
+  them. `pricing.mode` (`list` or `subscription`) says whether the number is read
+  as an API estimate or a list-price equivalent. Built-in defaults (USD per
+  million tokens):
 
 | model substring | input | output | cacheRead | cacheWrite |
 |---|---|---|---|---|
 | `claude-opus` | 5 | 25 | 0.5 | 6.25 |
 | `claude-sonnet` | 3 | 15 | 0.3 | 3.75 |
 | `claude-haiku` | 1 | 5 | 0.1 | 1.25 |
-| `claude-fable` | 15 | 75 | 1.5 | 18.75 |
 
 | key | default | |
 |---|---|---|
@@ -130,7 +131,7 @@ Notes:
 | `historyFile` | `~/.claude/history.jsonl` | |
 | `activeWindowSeconds` | `300` | |
 | `sessionGapSeconds` | `1800` | longest gap counted as active |
-| `pricing` | `{}` | `{"<model substring>": {"input", "output", "cacheRead", "cacheWrite"}}`. Overrides are checked before the defaults, in alphabetical order of the pattern; the first substring match wins, so a short pattern shadows a longer one that extends it. A missing price field counts as 0. |
+| `pricing` | `{}` | `mode` (`list` or `subscription`, default `list`) plus `{"<model substring>": {"input", "output", "cacheRead", "cacheWrite"}}`. Overrides are checked before the defaults, in alphabetical order of the pattern; the first substring match wins, so a short pattern shadows a longer one that extends it. A missing price field counts as 0. |
 | `projects` | enabled, denylist, `maxCardinality` 30 | policy |
 | `interval` | `60` | |
 

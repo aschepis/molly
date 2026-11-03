@@ -222,7 +222,10 @@ groups:
           description: macOS is at critical memory pressure for 5 minutes. Expect swapping and stalls.
 
       - alert: HighClaudeSpend
-        expr: sum by (user, host) (increase(molly_claude_estimated_cost_usd_total[1d])) > scalar(molly:claude_spend_threshold_usd)
+        # Silent under a subscription, where the series is a list-price equivalent and not spend.
+        expr: >
+          (sum by (user, host) (increase(molly_claude_estimated_cost_usd_total[1d])) > scalar(molly:claude_spend_threshold_usd))
+          unless on (user, host) (molly_claude_pricing_mode{mode="subscription"} == 1)
         labels:
           severity: info
         annotations:
@@ -249,7 +252,8 @@ groups:
           description: "{{ $value | humanizePercentage }} of the data volume is free."
 
       - alert: CollectorFailing
-        expr: increase(molly_collector_errors_total{collector!="codex"}[30m]) > 5
+        # Unavailable sources are a separate gauge and never counted here.
+        expr: increase(molly_collector_errors_total[30m]) > 5
         labels:
           severity: info
         annotations:

@@ -24,6 +24,9 @@ struct InsightsDigest: Codable, Equatable {
     var errors: [String: String] = [:]
 
     var isEmpty: Bool { scalars.isEmpty && breakdowns.isEmpty }
+
+    /// True when the user pays a flat subscription, so Claude cost is not spend.
+    var claudeIsSubscription: Bool { scalars["claude_pricing_subscription"] == 1 }
 }
 
 /// One PromQL query in the digest. `{s}` is the user/host selector and `{r}`
@@ -117,7 +120,9 @@ enum DigestQueries {
         .scalar("cpu_max", "CPU utilization (max)", "ratio", "max(max_over_time(molly_cpu_utilization_ratio{s}[{r}]))"),
         .scalar("memory_pressure_max", "Memory pressure level (max; 1 ok, 2 warn, 4 critical)", "", "max(max_over_time(molly_memory_pressure_level{s}[{r}]))"),
         .scalar("battery_min_percent", "Battery minimum", "%", "min(min_over_time(molly_battery_percent{s}[{r}]))"),
-        .scalar("molly_collector_errors", "Molly collector errors", "", "sum(increase(molly_collector_errors_total{s}[{r}]))"),
+        .scalar("molly_collector_errors", "Molly collector run errors (sources that are merely absent are not counted)", "", "sum(increase(molly_collector_errors_total{s}[{r}]))"),
+        .breakdown("collectors_unavailable", "Collectors with no source on this machine (expected, not a malfunction)", "", by: "collector", "max by (collector) (max_over_time(molly_collector_unavailable{s}[{r}])) == 1"),
+        .scalar("claude_pricing_subscription", "Claude pricing mode is subscription (1 = yes)", "", "max(max_over_time(molly_claude_pricing_mode{s,mode=\"subscription\"}[{r}]))"),
     ]
 
     /// Thresholds for the coarse health buckets; nothing finer reaches the
@@ -259,18 +264,19 @@ extension InsightsDigest {
         var out = "## Digest: \(kind == .day ? "day" : "week of") \(date) (\(user)@\(host))\n"
         out += "Window: \(Self.timestamp(from)) to \(Self.timestamp(to))\n\n"
         for query in queries {
+            let title = displayTitle(query)
             switch query.shape {
             case .scalar:
                 guard let value = scalars[query.key] else { continue }
-                out += "- \(query.title): \(Self.number(value))\(Self.unitSuffix(query.unit))\n"
+                out += "- \(title): \(Self.number(value))\(Self.unitSuffix(query.unit))\n"
             case .bucket(let labels):
                 guard let value = scalars[query.key], labels.indices.contains(Int(value)) else { continue }
-                out += "- \(query.title): \(labels[Int(value)])\n"
+                out += "- \(title): \(labels[Int(value)])\n"
             case .breakdown:
                 guard let values = breakdowns[query.key], !values.isEmpty else { continue }
                 let ranked = values.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }
                 let parts = ranked.map { "\($0.key.isEmpty ? "(none)" : $0.key) \(Self.number($0.value))\(Self.unitSuffix(query.unit))" }
-                out += "- \(query.title): " + parts.joined(separator: ", ") + "\n"
+                out += "- \(title): " + parts.joined(separator: ", ") + "\n"
             }
         }
         if !missing.isEmpty {
@@ -280,6 +286,12 @@ extension InsightsDigest {
             out += "\nQuery errors: " + errors.keys.sorted().joined(separator: ", ") + "\n"
         }
         return out
+    }
+
+    /// Under a subscription the cost series is a list-price equivalent, never spend.
+    private func displayTitle(_ query: DigestQuery) -> String {
+        guard claudeIsSubscription, query.key.hasPrefix("claude_cost") else { return query.title }
+        return query.title.replacingOccurrences(of: "estimated cost", with: "list-price equivalent (subscription, not spend)")
     }
 
     func json() throws -> Data {
