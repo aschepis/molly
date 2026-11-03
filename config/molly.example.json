@@ -401,6 +401,19 @@
         "maxCardinality": 100
       }
     },
+    "sensors": {
+      "enabled": false,
+      "interval": 30,
+      "sources": ["hid", "smc", "display", "lid_angle"],
+      "sensors": {
+        "enabled": true,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 40
+      }
+    },
     "events": {
       "enabled": true,
       "interval": 60,

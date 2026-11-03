@@ -694,6 +694,24 @@ enum Presets {
         "salt": ""
       }
     },
+    "sensors": {
+      "enabled": false,
+      "interval": 30,
+      "sensors": {
+        "enabled": true,
+        "hash": false,
+        "maxCardinality": 40,
+        "mode": "denylist",
+        "patterns": [],
+        "salt": ""
+      },
+      "sources": [
+        "hid",
+        "smc",
+        "display",
+        "lid_angle"
+      ]
+    },
     "shell": {
       "bashHistory": "~/.bash_history",
       "commands": {

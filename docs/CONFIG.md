@@ -637,6 +637,27 @@ title and the collector reports unavailable. `molly doctor` checks this when
 titles still let a dashboard rank "which documents got the most time" without
 naming them; keep the default unless you have a denylist you trust.
 
+### sensors
+
+Interval 30s, **disabled by default**. Temperatures, ambient light, fans, power,
+display brightness and lid angle on Apple Silicon Macs.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `sources` | array of strings | `["hid", "smc", "display", "lid_angle"]` | which sources to read: `hid` (temperatures, ambient light), `smc` (fans, power), `display` (brightness), `lid_angle` |
+| `sensors` | policy | on, denylist, max 40 | the `sensor` label on `molly_sensor_temperature_celsius`; names are hardware strings, not personal |
+
+Private-API caveat: `hid`, `smc` and `display` use undocumented Apple
+interfaces (IOHIDEventSystemClient, the AppleSMC user client, DisplayServices).
+Every private symbol is resolved with `dlsym` at runtime and never linked, so a
+macOS update that removes one makes that source report unavailable
+(`molly_sensor_source_available{source}` 0, reason in the log) instead of
+breaking the app. Their behaviour may change between macOS releases, and a
+crash inside Apple's code cannot be caught, which is why the collector is
+opt-in. `lid_angle` uses the public IOHIDManager API on an undocumented device.
+Permissions: none. Privacy: hardware readings only; the sensors policy exists
+to cap cardinality.
+
 ### events
 
 Interval 60s, enabled by default. Receives `POST /event`, the target of

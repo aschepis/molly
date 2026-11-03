@@ -506,6 +506,22 @@ def system():
     timeseries(d, "Container memory", [(m("molly_docker_container_memory_bytes"), "{{name}}")], unit="bytes", w=8, min_=0,
                desc="Needs collectors.docker.stats = true.")
     table(d, "Containers", [m("molly_docker_container_info")], {"name": "Container", "image": "Image"}, h=7, exclude=["Value"])
+    d.row("Sensors (opt-in)")
+    temp = m("molly_sensor_temperature_celsius")
+    timeseries(d, "Temperatures (10 hottest in range)", [(
+        temp + " and on (user, host, sensor) topk(10, max_over_time(" + temp + "[$__range]))", "{{sensor}}")],
+        unit="celsius", w=16, h=9, fill=0, desc="Needs the sensors collector (opt-in, private Apple interfaces).")
+    stat(d, "Max temperature", m("molly_sensor_temperature_max_celsius"), unit="celsius", w=4, h=9, decimals=0,
+         th=[(None, GOOD), (80, WARN), (95, CRIT)], desc="Hottest valid sensor right now.")
+    stat(d, "System power", m("molly_sensor_system_power_watts"), unit="watt", w=4, h=9, decimals=1,
+         desc="SMC key PSTR.")
+    timeseries(d, "Fans", [(m("molly_sensor_fan_rpm"), "fan {{fan}}")], unit="rpm", w=8, min_=0, decimals=0)
+    timeseries(d, "System power", [(m("molly_sensor_system_power_watts"), "system"),
+                                   (m("molly_sensor_power_watts"), "{{rail}}")], unit="watt", w=8, min_=0)
+    timeseries(d, "Display brightness", [(m("molly_display_brightness_ratio"), "{{host}}")], unit="percentunit",
+               w=4, min_=0, max_=1, desc="Main display; absent with an external main display or a closed lid.")
+    timeseries(d, "Lid angle", [(m("molly_lid_angle_degrees"), "{{host}}")], unit="degree", w=4, min_=0, max_=180,
+               desc="0 with the lid closed.")
     return d
 
 
