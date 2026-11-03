@@ -1150,7 +1150,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "unit": "none",
           "color": {
             "mode": "palette-classic-by-name"
           },
@@ -1169,6 +1169,7 @@
             "gradientMode": "none"
           },
           "mappings": [],
+          "min": 0,
           "decimals": 1
         },
         "overrides": [
@@ -2105,7 +2106,7 @@
     {
       "type": "stat",
       "title": "Last post",
-      "description": "Time since the phone last posted. Green under 2 hours; the Shortcut should run hourly.",
+      "description": "Time since the phone last posted. Amber after 2 hours, red after a day; the Shortcut should run hourly.",
       "targets": [
         {
           "refId": "A",
@@ -2126,11 +2127,12 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "noValue": "never",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "#0ca30c",
+                "color": "#2a78d6",
                 "value": null
               },
               {

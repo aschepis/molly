@@ -30,21 +30,39 @@ struct CollectorsTab: View {
                     }
                 }
             }
-            List {
-                Section("Collectors") {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    SectionHeader(title: "Collectors")
                     ForEach(visible.filter { !$0.isOptIn }) { info in
                         CollectorRow(info: info, now: tick)
+                        Divider()
                     }
-                }
-                Section("Needs extra permission") {
+                    SectionHeader(title: "Needs extra permission")
                     ForEach(visible.filter { $0.isOptIn }) { info in
                         CollectorRow(info: info, now: tick)
+                        Divider()
                     }
                 }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 16)
             }
+            .scrollIndicators(.visible)
             .frame(minHeight: 300)
         }
         .onReceive(clock) { tick = $0 }
+    }
+}
+
+/// A plain header on the window background; List section headers get their own band.
+struct SectionHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.headline)
+            .foregroundColor(.secondary)
+            .padding(.top, 12)
+            .padding(.bottom, 4)
     }
 }
 
@@ -72,7 +90,7 @@ private struct CollectorRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             Toggle("", isOn: model.collectorEnabledBinding(info.name))
                 .labelsHidden()
                 .toggleStyle(.switch)
@@ -97,7 +115,7 @@ private struct CollectorRow: View {
                         .foregroundColor(.secondary)
                 }
             }
-            Spacer()
+            Spacer(minLength: 8)
             HStack(spacing: 4) {
                 TextField("", value: interval, format: .number)
                     .labelsHidden()
@@ -108,11 +126,12 @@ private struct CollectorRow: View {
                 Text("s")
                     .foregroundColor(.secondary)
             }
+            .frame(width: 130, alignment: .trailing)
             .disabled(!enabled)
             StatusPill(pill: pill)
                 .frame(width: 120, alignment: .trailing)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
         .opacity(enabled ? 1 : 0.6)
     }
 }

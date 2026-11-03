@@ -22,19 +22,22 @@ struct PrivacyTab: View {
                 Button("Refresh") { fetchAudit() }
                     .controlSize(.small)
             }
-            List {
-                ForEach(groups) { info in
-                    Section {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(groups) { info in
+                        SectionHeader(title: model.collectorEnabled(info.name) ? info.title : "\(info.title) (collector off)")
                         ForEach(PrivacyCatalog.dimensions(for: info.name)) { dimension in
                             PolicyRow(dimension: dimension,
                                       collectorOn: model.collectorEnabled(info.name),
                                       counts: audit[dimension.id])
+                            Divider()
                         }
-                    } header: {
-                        Text(model.collectorEnabled(info.name) ? info.title : "\(info.title) (collector off)")
                     }
                 }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 16)
             }
+            .scrollIndicators(.visible)
             .frame(minHeight: 280)
         }
         .onAppear { fetchAudit() }
@@ -97,7 +100,7 @@ private struct PolicyRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top) {
+            HStack(alignment: .center) {
                 Toggle("Record actual values", isOn: model.policyEnabledBinding(dimension))
                     .toggleStyle(.switch)
                     .labelsHidden()
@@ -141,21 +144,44 @@ private struct PolicyEditor: View {
             set: { model.setPolicyMaxCardinality(dimension, max(0, $0)) })
     }
 
+    private var isDomainDimension: Bool { dimension.key == "domains" }
+
+    private var patternHelp: String {
+        let base = "Patterns, one per line. `*` matches anything."
+        return isDomainDimension ? base + " A bare `example.com` also matches its subdomains." : base
+    }
+
+    private var patternPlaceholder: String { isDomainDimension ? "example.com" : "one pattern per line, e.g. Slack*" }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Picker("Mode", selection: model.policyModeBinding(dimension)) {
-                Text("Denylist: record everything except the patterns").tag(LabelPolicy.Mode.denylist)
-                Text("Allowlist: record only the patterns").tag(LabelPolicy.Mode.allowlist)
+            LabeledContent("Mode") {
+                Picker("Mode", selection: model.policyModeBinding(dimension)) {
+                    Text("Denylist: all except patterns").tag(LabelPolicy.Mode.denylist)
+                    Text("Allowlist: only patterns").tag(LabelPolicy.Mode.allowlist)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(maxWidth: 380)
             }
-            .pickerStyle(.radioGroup)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Patterns, one per line. `*` matches anything; a bare `example.com` also matches its subdomains.")
+                Text(patternHelp)
                     .font(.caption)
                     .foregroundColor(.secondary)
                 TextEditor(text: $patternDraft)
                     .font(.system(.body, design: .monospaced))
                     .frame(minHeight: 48, maxHeight: 96)
                     .border(Color.secondary.opacity(0.3))
+                    .overlay(alignment: .topLeading) {
+                        if patternDraft.isEmpty {
+                            Text(patternPlaceholder)
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(.secondary.opacity(0.6))
+                                .padding(.leading, 6)
+                                .padding(.top, 1)
+                                .allowsHitTesting(false)
+                        }
+                    }
             }
             HStack(spacing: 12) {
                 Toggle("Hash values", isOn: model.policyHashBinding(dimension))
@@ -168,6 +194,7 @@ private struct PolicyEditor: View {
                 }
                 Spacer()
                 Text("Limit")
+                    .foregroundColor(.secondary)
                 TextField("", value: limit, format: .number)
                     .labelsHidden()
                     .frame(width: 56)

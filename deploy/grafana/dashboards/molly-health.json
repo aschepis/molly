@@ -769,7 +769,8 @@
         "defaults": {
           "unit": "short",
           "color": {
-            "mode": "thresholds"
+            "mode": "fixed",
+            "fixedColor": "#898781"
           },
           "mappings": [
             {
@@ -791,15 +792,6 @@
           "custom": {
             "fillOpacity": 80,
             "lineWidth": 0
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#898781",
-                "value": null
-              }
-            ]
           }
         },
         "overrides": []
@@ -810,7 +802,7 @@
         "alignValue": "left",
         "rowHeight": 0.8,
         "legend": {
-          "showLegend": true,
+          "showLegend": false,
           "displayMode": "list",
           "placement": "bottom"
         },
@@ -870,7 +862,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "#0ca30c",
+                "color": "#2a78d6",
                 "value": null
               },
               {
@@ -1295,7 +1287,7 @@
             "type": "prometheus",
             "uid": "molly-prometheus"
           },
-          "expr": "molly_collector_enabled{user=~\"$user\",host=~\"$host\"}",
+          "expr": "max by (collector) (molly_collector_enabled{user=~\"$user\",host=~\"$host\"})",
           "legendFormat": "__auto",
           "instant": true,
           "range": false,
@@ -1307,7 +1299,7 @@
             "type": "prometheus",
             "uid": "molly-prometheus"
           },
-          "expr": "time() - molly_collector_last_success_timestamp_seconds{user=~\"$user\",host=~\"$host\"}",
+          "expr": "max by (collector) (time() - molly_collector_last_success_timestamp_seconds{user=~\"$user\",host=~\"$host\"})",
           "legendFormat": "__auto",
           "instant": true,
           "range": false,
@@ -1343,7 +1335,7 @@
             "type": "prometheus",
             "uid": "molly-prometheus"
           },
-          "expr": "molly_collector_duration_seconds{user=~\"$user\",host=~\"$host\"}",
+          "expr": "max by (collector) (molly_collector_duration_seconds{user=~\"$user\",host=~\"$host\"})",
           "legendFormat": "__auto",
           "instant": true,
           "range": false,
@@ -1355,7 +1347,7 @@
             "type": "prometheus",
             "uid": "molly-prometheus"
           },
-          "expr": "molly_collector_unavailable{user=~\"$user\",host=~\"$host\"}",
+          "expr": "max by (collector) (molly_collector_unavailable{user=~\"$user\",host=~\"$host\"})",
           "legendFormat": "__auto",
           "instant": true,
           "range": false,
@@ -1809,7 +1801,8 @@
           "color": {
             "mode": "fixed",
             "fixedColor": "#2a78d6"
-          }
+          },
+          "noValue": "none"
         },
         "overrides": [
           {
@@ -1867,7 +1860,7 @@
         "x": 0,
         "y": 64,
         "w": 24,
-        "h": 8
+        "h": 4
       },
       "datasource": {
         "type": "prometheus",
@@ -1887,22 +1880,37 @@
           },
           "expr": "ALERTS{alertstate=\"firing\"}",
           "legendFormat": "{{alertname}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "label_replace(0 * absent(ALERTS{alertstate=\"firing\"}), \"alertname\", \"none firing\", \"\", \"\")",
+          "legendFormat": "{{alertname}}"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
           "color": {
-            "mode": "thresholds"
+            "mode": "fixed",
+            "fixedColor": "#898781"
           },
           "mappings": [
             {
               "type": "value",
               "options": {
+                "0": {
+                  "text": "none",
+                  "color": "#898781",
+                  "index": 0
+                },
                 "1": {
                   "text": "firing",
                   "color": "#fab219",
-                  "index": 0
+                  "index": 1
                 }
               }
             }
@@ -1910,15 +1918,6 @@
           "custom": {
             "fillOpacity": 80,
             "lineWidth": 0
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#898781",
-                "value": null
-              }
-            ]
           }
         },
         "overrides": []
@@ -1929,7 +1928,7 @@
         "alignValue": "left",
         "rowHeight": 0.8,
         "legend": {
-          "showLegend": true,
+          "showLegend": false,
           "displayMode": "list",
           "placement": "bottom"
         },
@@ -1940,7 +1939,7 @@
       "id": 30,
       "gridPos": {
         "x": 0,
-        "y": 72,
+        "y": 68,
         "w": 24,
         "h": 7
       },

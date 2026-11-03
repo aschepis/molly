@@ -125,8 +125,10 @@ def thresholds(steps):
 
 def stat(d, title, expr, unit="short", w=4, h=4, decimals=None, time_from=None,
          spark=True, color=None, th=None, text_mode="auto", legend="", desc="",
-         mappings=None, min_=None, max_=None, instant=False):
+         mappings=None, min_=None, max_=None, instant=False, no_value=None):
     defaults = {"unit": unit, "color": color or fixed(), "mappings": mappings or []}
+    if no_value:
+        defaults["noValue"] = no_value
     if decimals is not None:
         defaults["decimals"] = decimals
     if th:
@@ -199,7 +201,7 @@ def timeseries(d, title, items, unit="short", w=12, h=8, stack=False, bars=False
 
 
 def bargauge(d, title, items, unit="short", w=12, h=8, desc="", th=None, min_=0, max_=None,
-             color=None, decimals=None, no_value=None):
+             color=None, decimals=None, no_value=None, name_placement="left"):
     defaults = {"unit": unit, "color": color or fixed(), "min": min_, "mappings": []}
     if no_value:
         defaults["noValue"] = no_value
@@ -217,7 +219,7 @@ def bargauge(d, title, items, unit="short", w=12, h=8, desc="", th=None, min_=0,
         "options": {
             "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
             "orientation": "horizontal", "displayMode": "basic", "valueMode": "color",
-            "showUnfilled": True, "namePlacement": "left", "sizing": "auto", "minVizHeight": 16,
+            "showUnfilled": True, "namePlacement": name_placement, "sizing": "auto", "minVizHeight": 16,
         },
     }, w, h)
 
@@ -243,21 +245,20 @@ def mapping(pairs):
     return [{"type": "value", "options": opts}]
 
 
-def state_timeline(d, title, items, mappings=None, w=24, h=6, desc="", color=None, unit="short"):
+def state_timeline(d, title, items, mappings=None, w=24, h=6, desc="", color=None, unit="short", legend=None):
     defaults = {
         "unit": unit, "color": color or PALETTE, "mappings": mappings or [],
         "custom": {"fillOpacity": 80, "lineWidth": 0},
     }
     if mappings:
-        defaults["color"] = {"mode": "thresholds"}
-        defaults["thresholds"] = thresholds([(None, GRAY)])
+        defaults["color"] = fixed(GRAY)
     d.add({
         "type": "state-timeline", "title": title, "description": desc,
         "targets": targets(items),
         "fieldConfig": {"defaults": defaults, "overrides": []},
         "options": {
             "mergeValues": True, "showValue": "auto", "alignValue": "left", "rowHeight": 0.8,
-            "legend": {"showLegend": bool(mappings), "displayMode": "list", "placement": "bottom"},
+            "legend": {"showLegend": legend if legend is not None else bool(mappings) and len(items) > 1, "displayMode": "list", "placement": "bottom"},
             "tooltip": {"mode": "single"},
         },
     }, w, h)
@@ -341,7 +342,7 @@ def add_annotations(d):
         annotation(d, name, **ANNOTATIONS[name])
 
 
-def table(d, title, items, renames, w=24, h=9, desc="", units=None, exclude=None, sort_by=None):
+def table(d, title, items, renames, w=24, h=9, desc="", units=None, exclude=None, sort_by=None, no_value=None):
     """items: instant queries sharing a label set; merged into one row per series."""
     exclude = {k: True for k in (exclude or [])}
     exclude.update({"Time": True, "user": True, "host": True, "job": True, "instance": True,
@@ -354,7 +355,8 @@ def table(d, title, items, renames, w=24, h=9, desc="", units=None, exclude=None
         "type": "table", "title": title, "description": desc,
         "targets": targets(items, instant=True, fmt="table"),
         "fieldConfig": {"defaults": {"custom": {"align": "auto", "cellOptions": {"type": "auto"}},
-                                     "color": {"mode": "fixed", "fixedColor": BLUE}},
+                                     "color": {"mode": "fixed", "fixedColor": BLUE},
+                                     **({"noValue": no_value} if no_value else {})},
                         "overrides": overrides},
         "options": {"showHeader": True, "cellHeight": "sm",
                     "sortBy": [{"displayName": sort_by, "desc": True}] if sort_by else []},
@@ -384,19 +386,19 @@ def overview():
     stat(d, "Focused app now", m("molly_focus_app"), w=4, h=5, text_mode="name", spark=False,
          legend="{{app}}", desc="The frontmost application.", instant=True)
     today_stat(d, "Active hours", "sum(increase(" + m("molly_active_seconds_total") + "[$__range])) / 3600",
-               unit="h", decimals=1, h=5, desc="Hours of active use since local midnight.")
-    today_stat(d, "Focus switches", "sum(increase(" + m("molly_focus_switches_total") + "[$__range]))", h=5)
-    stat(d, "Commits", "sum(" + m("molly_git_commits_today") + ")", w=4, h=5, spark=False, decimals=0,
+               unit="h", decimals=1, w=3, h=5, desc="Hours of active use since local midnight.")
+    today_stat(d, "Focus switches", "sum(increase(" + m("molly_focus_switches_total") + "[$__range]))", w=3, h=5)
+    stat(d, "Commits", "sum(" + m("molly_git_commits_today") + ")", w=3, h=5, spark=False, decimals=0,
          desc="Commits today across tracked repos.", instant=True)
     today_stat(d, "Claude tokens", "sum(increase(" + m("molly_claude_tokens_total") + "[$__range]))",
-               unit="short", h=5, desc="Input, output and cache tokens since midnight.")
+               unit="short", w=3, h=5, desc="Input, output and cache tokens since midnight.")
     stat(d, "Anomalies firing", 'count(ALERTS{alertstate="firing", severity="info", alertname!="MollyDown"}) or vector(0)',
          w=4, h=5, spark=False, decimals=0, instant=True, th=[(None, GOOD), (1, WARN)],
          desc="Informational alerts currently firing (see Health > Alerts). Built-in series; not filtered by user/host.")
     d.row("Alerts")
     table(d, "Firing alerts", [(m("molly_alert_active") + " == 1", "A")],
-          {"alertname": "Alert", "severity": "Severity", "Value": "Firing"}, h=6,
-          exclude=["Value"],
+          {"alertname": "Alert", "severity": "Severity", "Value": "Firing"}, h=4,
+          exclude=["Value"], no_value="none",
           desc="Alerts Molly saw firing on its last poll. Empty means nothing is firing, or the alerts collector is off.")
     d.row("Output today")
     stat(d, "Messages sent", "sum(" + m("molly_messages_today", 'direction="sent"') + ")", w=6, h=4, spark=False,
@@ -518,13 +520,13 @@ def focus():
              unit="s", w=12, h=10, desc="Frontmost time while active and unlocked.")
     bargauge(d, "App usage per knowledgeC (selected range)",
              [("topk(15, sum by (app) (increase(" + m("molly_knowledge_app_usage_seconds_total") + "[$__range])))", "{{app}}")],
-             unit="s", w=12, h=10, color=fixed(ORANGE),
+             unit="s", w=12, h=10, color=fixed(ORANGE), name_placement="top",
              desc="macOS's own usage log, keyed by bundle id. Counts time Molly was not running.")
     state_timeline(d, "Focused app", [(m("molly_focus_app"), "{{app}}")], h=9)
     timeseries(d, "Focus vs system usage log (hours per hour)", [
         ("sum(increase(" + m("molly_focus_seconds_total") + "[1h])) / 3600", "Molly focus"),
         ("sum(increase(" + m("molly_knowledge_app_usage_seconds_total") + "[1h])) / 3600", "knowledgeC usage")],
-        unit="h", w=12, min_=0, fill=0, desc="Large gaps mean Molly was off or knowledgeC counts background apps.")
+        unit="h", w=12, min_=0, fill=0, decimals=2, desc="Large gaps mean Molly was off or knowledgeC counts background apps.")
     timeseries(d, "Focus switches per hour", [("sum(increase(" + m("molly_focus_switches_total") + "[1h]))", "switches")],
                w=12, bars=True, min_=0, desc="Rolling 1h; a proxy for context switching.")
     d.row("Flow")
@@ -568,7 +570,11 @@ def focus():
           ["topk(15, sum by (app, title) (increase(" + m("molly_focus_window_seconds_total") + "[$__range])))"],
           {"app": "App", "title": "Title", "Value": "Seconds"}, h=9, units={"Seconds": "s"}, sort_by="Seconds",
           desc="Needs the titles collector (Screen Recording). Titles are hashed unless titles.titles.hash is false.")
-    state_timeline(d, "Now playing", [(m("molly_media_playing"), "{{app}}")], mappings=YESNO("playing"), h=3,
+    state_timeline(d, "Now playing", [
+        (m("molly_media_playing"), "{{app}}"),
+        # Without the media collector the query is empty and the panel errors; a zero row says nothing is playing.
+        ('label_replace(0 * absent(' + m("molly_media_playing") + '), "app", "nothing playing", "", "")', "{{app}}")],
+        mappings=YESNO("playing"), h=3, legend=False,
                    desc="Needs the media collector (Automation permission for Music/Spotify).")
     return d
 
@@ -733,7 +739,7 @@ def health():
     state_timeline(d, "Molly up (history)", [(m("molly_up"), "molly")], mappings=mapping([(0, "down", CRIT), (1, "up", GOOD)]), h=3)
     d.row("Registry size")
     stat(d, "Series", m("molly_self_series_total"), w=4, h=6, decimals=0,
-         th=[(None, GOOD), (3000, WARN), (5000, CRIT)],
+         th=[(None, BLUE), (3000, WARN), (5000, CRIT)],
          desc="Series across all metric families. `molly tune` warns above 5000.")
     stat(d, "Metric families", m("molly_self_metric_families"), w=4, h=6, decimals=0)
     stat(d, "Unavailable collectors", "sum(" + m("molly_collector_unavailable") + ")", w=4, h=6, decimals=0,
@@ -751,13 +757,14 @@ def health():
         w=8, bars=True, stack=True, min_=0, decimals=0)
     timeseries(d, "Collector run duration", [(m("molly_collector_duration_seconds"), "{{collector}}")],
                unit="s", w=8, min_=0, fill=0)
+    # Every column aggregates to the same {collector} label set so the merge yields one row per collector.
     table(d, "Collector status", [
-        m("molly_collector_enabled"),
-        "time() - " + m("molly_collector_last_success_timestamp_seconds"),
+        "max by (collector) (" + m("molly_collector_enabled") + ")",
+        "max by (collector) (time() - " + m("molly_collector_last_success_timestamp_seconds") + ")",
         "sum by (collector) (" + m("molly_collector_runs_total") + ")",
         "sum by (collector) (" + m("molly_collector_errors_total") + ")",
-        m("molly_collector_duration_seconds"),
-        m("molly_collector_unavailable")],
+        "max by (collector) (" + m("molly_collector_duration_seconds") + ")",
+        "max by (collector) (" + m("molly_collector_unavailable") + ")"],
         {"collector": "Collector", "Value #A": "Enabled", "Value #B": "Last success age",
          "Value #C": "Runs", "Value #D": "Errors", "Value #E": "Last duration", "Value #F": "Unavailable"},
         units={"Last success age": "s", "Last duration": "s"}, h=12, sort_by="Last success age",
@@ -784,10 +791,13 @@ def health():
         '(ALERTS{alertstate="firing"} * on (alertname, user, host) group_left () (time() - ALERTS_FOR_STATE)) '
         'or (ALERTS{alertstate="firing"} * 0)'],
         {"alertname": "Alert", "severity": "Severity", "collector": "Collector", "Value": "Active for"},
-        units={"Active for": "s"}, exclude=["alertstate"], h=8, sort_by="Active for",
+        units={"Active for": "s"}, exclude=["alertstate"], h=4, sort_by="Active for", no_value="none",
         desc="Every alert currently firing, from deploy/prometheus/rules/molly.yml. All are informational.")
-    state_timeline(d, "Alert history", [('ALERTS{alertstate="firing"}', "{{alertname}}")],
-                   mappings=mapping([(1, "firing", WARN)]), h=7,
+    state_timeline(d, "Alert history", [
+        ('ALERTS{alertstate="firing"}', "{{alertname}}"),
+        # An empty result makes the panel error with "no time field"; a zero row reads as none firing.
+        ('label_replace(0 * absent(ALERTS{alertstate="firing"}), "alertname", "none firing", "", "")', "{{alertname}}")],
+        mappings=mapping([(0, "none", GRAY), (1, "firing", WARN)]), h=7, legend=False,
                    desc="When each alert was firing over the selected range. Built-in series; not filtered by user/host.")
     return d
 
@@ -1009,7 +1019,7 @@ def body():
     rolling = lambda expr: "avg_over_time((" + expr + ")[7d:1h])"
     timeseries(d, "Resting HR vs meeting hours", [(rolling(hday("resting_heart_rate_bpm")), "resting HR bpm"),
                                                   ("avg_over_time(" + m("molly:meeting_hours:1d") + "[7d])", "meeting hours/day")],
-               decimals=1, right_axis={"meeting hours/day": "h"},
+               decimals=1, min_=0, unit="none", right_axis={"meeting hours/day": "h"},
                desc="A rising resting heart rate with a heavy meeting week is worth noticing. Seven day averages; meeting hours on the right axis.")
     timeseries(d, "HRV vs interruptions", [(rolling(hday("hrv_ms")), "HRV ms"),
                                            ("avg_over_time(" + m("molly:interruptions:increase1h") + "[7d])", "interruptions/h")],
@@ -1029,8 +1039,8 @@ def body():
 
     d.row("Pipeline")
     stat(d, "Last post", "time() - max(" + m("molly_health_last_post_timestamp_seconds") + ")", unit="s", w=6, h=4,
-         spark=False, instant=True, th=[(None, GOOD), (7200, WARN), (86400, CRIT)],
-         desc="Time since the phone last posted. Green under 2 hours; the Shortcut should run hourly.")
+         spark=False, instant=True, th=[(None, BLUE), (7200, WARN), (86400, CRIT)], no_value="never",
+         desc="Time since the phone last posted. Amber after 2 hours, red after a day; the Shortcut should run hourly.")
     timeseries(d, "Samples accepted (per hour)", [("sum by (type) (increase(" + m("molly_health_samples_total") + "[1h]))", "{{type}}")],
                w=9, h=4, bars=True, stack=True, min_=0, decimals=0)
     timeseries(d, "Samples rejected (per hour)", [("sum by (reason) (increase(" + m("molly_health_samples_rejected_total") + "[1h]))", "{{reason}}")],

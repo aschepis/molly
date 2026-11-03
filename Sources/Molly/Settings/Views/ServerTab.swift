@@ -20,6 +20,9 @@ struct ServerTab: View {
             loggingSection
         }
         .formStyle(.grouped)
+        .textFieldStyle(.roundedBorder)
+        .multilineTextAlignment(.trailing)
+        .scrollIndicators(.visible)
     }
 
     private var endpointSection: some View {
@@ -31,7 +34,6 @@ struct ServerTab: View {
                     .foregroundColor(.orange)
             }
             TextField("Port", value: model.binding(\.serverPort), formatter: portFormatter)
-                .frame(maxWidth: 200)
             HStack {
                 Text(metricsURL)
                     .font(.system(.body, design: .monospaced))
@@ -90,13 +92,16 @@ struct ServerTab: View {
                         .font(.system(.body, design: .monospaced))
                         .frame(minWidth: 120, alignment: .leading)
                     TextField("value", text: labelValueBinding(name))
+                        .labelsHidden()
                     Button("Remove") { model.setExtraLabel(name, nil) }
                 }
             }
             HStack {
-                TextField("name", text: $newLabelName)
+                TextField("name", text: $newLabelName, prompt: Text("name"))
+                    .labelsHidden()
                     .frame(minWidth: 120)
-                TextField("value", text: $newLabelValue)
+                TextField("value", text: $newLabelValue, prompt: Text("value"))
+                    .labelsHidden()
                 Button("Add") { addLabel() }
                     .disabled(newLabelName.isEmpty || newLabelError != nil)
             }
@@ -135,7 +140,6 @@ struct ServerTab: View {
             Picker("Log level", selection: model.binding(\.logLevel)) {
                 ForEach(ServerRules.logLevels, id: \.self) { Text($0).tag($0) }
             }
-            .frame(maxWidth: 240)
         }
     }
 
