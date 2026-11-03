@@ -93,7 +93,8 @@ Served by a small `Network.framework` server on `server.bind:server.port`
 |---|---|
 | `/metrics` | Prometheus exposition |
 | `/healthz` | liveness, returns `ok` |
-| `/collectors` | JSON per-collector status: runs, errors, last duration, last success, last error |
+| `/collectors` | JSON per-collector status: runs, errors, last duration, last success, last error, unavailable since |
+| `/stats` | JSON registry size: series and distinct label values per family, plus the collector status list; read by `molly tune` |
 | `/config` | effective configuration as JSON, salts redacted |
 | `POST /event` | JSON event intake for `molly hook` and scripts; 204 on success, see [HOOKS.md](HOOKS.md) |
 | `/` | index |

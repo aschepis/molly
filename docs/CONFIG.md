@@ -36,8 +36,14 @@ in-memory cardinality limits reset. Counter cursors on disk are kept. Restarting
 `GET http://127.0.0.1:9765/config` returns the effective configuration as JSON:
 `server`, `labels` (the const labels with defaults resolved), `links` and the
 `collectors` sections exactly as parsed. Every key named `salt` is replaced with
-`"***"`. The endpoint has no authentication, like `/metrics`. `logLevel` is not
-included.
+`"***"`. The endpoint has no authentication, like `/metrics`.
+
+### Letting Molly suggest changes
+
+`molly tune` reads the running daemon's `/stats` and `/collectors`, the
+Prometheus scrape stats, and this file, then prints recommendations with the
+JSON fragment each one would merge into the config. `molly tune --apply`
+writes them after backing the file up next to it. See [TUNING.md](TUNING.md).
 
 ## Top-level keys
 

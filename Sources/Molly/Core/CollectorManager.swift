@@ -13,6 +13,8 @@ final class CollectorManager {
         var lastSuccess: Date?
         var lastDuration: TimeInterval = 0
         var unavailable: Bool = false
+        /// When the current unavailable streak began; nil while the source works.
+        var unavailableSince: Date?
     }
 
     private struct Entry {
@@ -158,6 +160,11 @@ final class CollectorManager {
             status.lastError = String(describing: error)
             let wasUnavailable = status.unavailable
             status.unavailable = error is CollectorUnavailable
+            if status.unavailable {
+                status.unavailableSince = status.unavailableSince ?? Date()
+            } else {
+                status.unavailableSince = nil
+            }
             statuses[name] = status
             lock.unlock()
             errorsTotal.inc(labels: labels)
@@ -168,6 +175,7 @@ final class CollectorManager {
         } else {
             status.lastSuccess = Date()
             status.unavailable = false
+            status.unavailableSince = nil
             statuses[name] = status
             lock.unlock()
             lastSuccess.set(Date().timeIntervalSince1970, labels: labels)

@@ -768,11 +768,204 @@
     {
       "id": 12,
       "type": "row",
-      "title": "Collectors",
+      "title": "Registry size",
       "collapsed": false,
       "gridPos": {
         "x": 0,
         "y": 16,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Series",
+      "description": "Series across all metric families. `molly tune` warns above 5000.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "molly_self_series_total{user=~\"$user\",host=~\"$host\"}",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#0ca30c",
+                "value": null
+              },
+              {
+                "color": "#fab219",
+                "value": 3000
+              },
+              {
+                "color": "#d03b3b",
+                "value": 5000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "id": 13,
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 4,
+        "h": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Metric families",
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "molly_self_metric_families{user=~\"$user\",host=~\"$host\"}",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#2a78d6"
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "id": 14,
+      "gridPos": {
+        "x": 4,
+        "y": 17,
+        "w": 4,
+        "h": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Largest families",
+      "description": "Series per family for the 20 largest; a family that keeps growing usually has a label policy that needs maxCardinality or a denylist.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "topk(10, molly_self_series{user=~\"$user\",host=~\"$host\"})",
+          "legendFormat": "{{family}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#2a78d6"
+          },
+          "min": 0,
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "valueMode": "color",
+        "showUnfilled": true,
+        "namePlacement": "left",
+        "sizing": "auto",
+        "minVizHeight": 16
+      },
+      "id": 15,
+      "gridPos": {
+        "x": 8,
+        "y": 17,
+        "w": 16,
+        "h": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "id": 16,
+      "type": "row",
+      "title": "Collectors",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 23,
         "w": 24,
         "h": 1
       },
@@ -830,10 +1023,10 @@
           "sort": "desc"
         }
       },
-      "id": 13,
+      "id": 17,
       "gridPos": {
         "x": 0,
-        "y": 17,
+        "y": 24,
         "w": 8,
         "h": 8
       },
@@ -895,10 +1088,10 @@
           "sort": "desc"
         }
       },
-      "id": 14,
+      "id": 18,
       "gridPos": {
         "x": 8,
-        "y": 17,
+        "y": 24,
         "w": 8,
         "h": 8
       },
@@ -959,10 +1152,10 @@
           "sort": "desc"
         }
       },
-      "id": 15,
+      "id": 19,
       "gridPos": {
         "x": 16,
-        "y": 17,
+        "y": 24,
         "w": 8,
         "h": 8
       },
@@ -1114,10 +1307,10 @@
           }
         }
       ],
-      "id": 16,
+      "id": 20,
       "gridPos": {
         "x": 0,
-        "y": 25,
+        "y": 32,
         "w": 24,
         "h": 12
       },

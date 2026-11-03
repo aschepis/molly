@@ -10,6 +10,7 @@ enum Routes {
             /healthz     liveness
             /event       POST a JSON event (see docs/HOOKS.md)
             /collectors  per-collector status (JSON)
+            /stats       registry size per family plus collector status (JSON)
             /config      effective configuration (JSON, secrets redacted)
 
             """)
@@ -29,16 +30,17 @@ enum Routes {
             }
         }
         router.get("/collectors") { _ in
-            let statuses = manager.allStatuses.map { s -> [String: Any] in
-                var o: [String: Any] = [
-                    "name": s.name, "interval": s.interval, "runs": s.runs, "errors": s.errors,
-                    "lastDuration": s.lastDuration, "unavailable": s.unavailable,
-                ]
-                if let e = s.lastError { o["lastError"] = e }
-                if let t = s.lastSuccess { o["lastSuccess"] = t.timeIntervalSince1970 }
-                return o
+            .json(["paused": manager.isPaused, "collectors": collectorsJSON(manager)])
+        }
+        router.get("/stats") { _ in
+            let families = manager.registry.stats().map { f -> [String: Any] in
+                ["name": f.name, "type": f.type.rawValue, "series": f.series, "labels": f.labelCardinality]
             }
-            return .json(["paused": manager.isPaused, "collectors": statuses])
+            return .json([
+                "families": families,
+                "seriesTotal": families.reduce(0) { $0 + ($1["series"] as? Int ?? 0) },
+                "collectors": collectorsJSON(manager),
+            ])
         }
         router.get("/config") { _ in
             var collectors: [String: Any] = [:]
@@ -52,6 +54,19 @@ enum Routes {
                 "links": ["grafana": config.links.grafana, "prometheus": config.links.prometheus],
                 "collectors": collectors,
             ])
+        }
+    }
+
+    static func collectorsJSON(_ manager: CollectorManager) -> [[String: Any]] {
+        manager.allStatuses.map { s -> [String: Any] in
+            var o: [String: Any] = [
+                "name": s.name, "interval": s.interval, "runs": s.runs, "errors": s.errors,
+                "lastDuration": s.lastDuration, "unavailable": s.unavailable,
+            ]
+            if let e = s.lastError { o["lastError"] = e }
+            if let t = s.lastSuccess { o["lastSuccess"] = t.timeIntervalSince1970 }
+            if let t = s.unavailableSince { o["unavailableSince"] = t.timeIntervalSince1970 }
+            return o
         }
     }
 

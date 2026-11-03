@@ -109,6 +109,28 @@ final class MetricFamily {
         defer { lock.unlock() }
         return children.sorted { $0.key.values.lexicographicallyPrecedes($1.key.values) }
     }
+
+    fileprivate func stats() -> FamilyStats {
+        lock.lock()
+        defer { lock.unlock() }
+        var distinct: [String: Set<String>] = [:]
+        for key in children.keys {
+            for (i, label) in labelNames.enumerated() {
+                distinct[label, default: []].insert(key.values[i])
+            }
+        }
+        return FamilyStats(name: name, type: type, series: children.count,
+                           labelCardinality: distinct.mapValues { $0.count })
+    }
+}
+
+/// Size of one metric family: how many series it holds and how many distinct
+/// values each label has. Used by `/stats` and `molly tune`.
+struct FamilyStats: Equatable {
+    let name: String
+    let type: MetricType
+    let series: Int
+    let labelCardinality: [String: Int]
 }
 
 /// A gauge can go up and down. `reset()` drops every child so a collector that
@@ -191,6 +213,15 @@ final class MetricsRegistry {
         lock.lock()
         defer { lock.unlock() }
         return families.keys.sorted()
+    }
+
+    /// Per-family sizes, sorted by name. Families with no series are included
+    /// with zero so a dashboard can tell "registered" from "populated".
+    func stats() -> [FamilyStats] {
+        lock.lock()
+        let all = families.values.sorted { $0.name < $1.name }
+        lock.unlock()
+        return all.map { $0.stats() }
     }
 
     /// Prometheus text exposition format, version 0.0.4.

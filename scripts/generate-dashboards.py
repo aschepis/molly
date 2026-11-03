@@ -616,6 +616,14 @@ def health():
     timeseries(d, "Molly process CPU", [("rate(" + m("molly_self_cpu_seconds_total") + "[" + RI + "])", "{{host}}")],
                unit="percentunit", w=8, min_=0)
     state_timeline(d, "Molly up (history)", [(m("molly_up"), "molly")], mappings=mapping([(0, "down", CRIT), (1, "up", GOOD)]), h=3)
+    d.row("Registry size")
+    stat(d, "Series", m("molly_self_series_total"), w=4, h=6, decimals=0,
+         th=[(None, GOOD), (3000, WARN), (5000, CRIT)],
+         desc="Series across all metric families. `molly tune` warns above 5000.")
+    stat(d, "Metric families", m("molly_self_metric_families"), w=4, h=6, decimals=0)
+    bargauge(d, "Largest families", [("topk(10, " + m("molly_self_series") + ")", "{{family}}")],
+             w=16, h=6, decimals=0,
+             desc="Series per family for the 20 largest; a family that keeps growing usually has a label policy that needs maxCardinality or a denylist.")
     d.row("Collectors")
     timeseries(d, "Collector runs per minute", [
         ("sum by (collector) (rate(" + m("molly_collector_runs_total") + "[" + RI + "])) * 60", "{{collector}}")],
