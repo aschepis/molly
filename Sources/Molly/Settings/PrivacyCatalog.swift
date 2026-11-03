@@ -128,6 +128,11 @@ enum PrivacyCatalog {
                          defaults: TitlesCollector.titlesDefaults,
                          metrics: ["molly_focus_window_info", "molly_focus_window_seconds_total"],
                          permission: .screenRecording),
+        PrivacyDimension(collector: "sensors", key: "sensors", title: "Sensor names",
+                         rawValue: "hardware sensor product names such as \"PMU tdie1\"; not personal",
+                         defaults: SensorsCollector.sensorsDefaults,
+                         metrics: ["molly_sensor_temperature_celsius"],
+                         permission: .none),
     ]
 
     static func dimension(_ id: String) -> PrivacyDimension? {

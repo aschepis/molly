@@ -514,6 +514,22 @@ Policy `titles` governs `title` (hashed by default); `app` follows the focus col
 | `molly_focus_window_info` | gauge | `app`, `title` **policy** `titles` | info | the frontmost window, exactly one series, reset on change |
 | `molly_focus_window_seconds_total` | counter | `app`, `title` **policy** `titles` | seconds | frontmost time per window title |
 
+## sensors (interval 30s, disabled by default)
+
+Apple Silicon hardware sensors through private Apple interfaces resolved at runtime; see the caveat in [CONFIG.md](CONFIG.md#sensors). Policy `sensors` governs `sensor` (hardware strings, on by default, max 40). Each source is independent: one that is missing or refuses publishes `molly_sensor_source_available{source}` 0 and no data series.
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_sensor_temperature_celsius` | gauge | `sensor` **policy** `sensors` | celsius | HID temperature services (about 50 to 75 on an M-series MacBook); readings outside -40..150 are dropped; over `maxCardinality` the coolest are omitted, never summed |
+| `molly_sensor_temperature_max_celsius` | gauge | | celsius | hottest valid sensor, computed before the policy so it stays truthful when names are off |
+| `molly_sensor_ambient_light_lux` | gauge | | raw level | ambient light sensor as the HID service reports it; 0 in the dark, not calibrated lux on every model |
+| `molly_sensor_fan_rpm` | gauge | `fan` (0, 1, ...) | rpm | SMC keys `F0Ac`, `F1Ac`, ... |
+| `molly_sensor_system_power_watts` | gauge | | watts | SMC key `PSTR` |
+| `molly_sensor_power_watts` | gauge | `rail` (battery, cpu, gpu, dc_in) | watts | SMC keys `PPBR`, `PCPC`, `PGPC`, `PDTR`; only the ones that exist on the model |
+| `molly_display_brightness_ratio` | gauge | | ratio 0..1 | main display via DisplayServices; unavailable when the main display is external or the lid is closed |
+| `molly_lid_angle_degrees` | gauge | | degrees | lid angle HID sensor (usage page 0x20, usage 0x8A); 0 with the lid closed |
+| `molly_sensor_source_available` | gauge | `source` (hid, smc, display, lid_angle) | bool | 1 when the source read on the last run; only the configured sources appear |
+
 ## events (interval 60s, pushed)
 
 Counts events pushed to `POST /event`, including Claude Code hooks sent by

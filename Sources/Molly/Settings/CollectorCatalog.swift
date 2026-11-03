@@ -89,6 +89,7 @@ enum CollectorCatalog {
         CollectorInfo(name: "health", title: "Health (iPhone)", summary: "Steps, sleep, heart rate and more, pushed by an iPhone Shortcut. Stays on this machine; needs a token.", defaultEnabled: false, defaultInterval: 60, permission: .none),
         CollectorInfo(name: "alerts", title: "Alerts", summary: "Prometheus alerts as macOS notifications, polled from the local stack.", defaultEnabled: true, defaultInterval: 30, permission: .none),
         CollectorInfo(name: "insights", title: "Insights", summary: "Daily and weekly Claude narratives of your metrics.", defaultEnabled: false, defaultInterval: 300, permission: .none),
+        CollectorInfo(name: "sensors", title: "Hardware sensors", summary: "Temperatures, fans, power, brightness and lid angle via private Apple interfaces; Apple Silicon only.", defaultEnabled: false, defaultInterval: 30, permission: .none),
     ]
 
     static func info(_ name: String) -> CollectorInfo? {

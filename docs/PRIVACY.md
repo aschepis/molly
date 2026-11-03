@@ -50,6 +50,7 @@ processes) and are easy to turn off.
 | `media.tracks` | off, denylist, hash on, max 100 | current track and artist names from Music or Spotify (collector itself is opt-in) | `molly_media_track_info` |
 | `gaming.games` | off, denylist, max 30 | game titles from Steam manifests, CrossOver executables and game apps (Steam account files are never read) | `molly_gaming_seconds_total`, `molly_gaming_launches_total`, `molly_gaming_playtime_minutes`, `molly_gaming_last_played_timestamp_seconds` |
 | `titles.titles` | on, denylist, hash on, max 100 | the frontmost window's title, normalised and truncated to 80 characters (collector itself is opt-in and needs Screen Recording) | `molly_focus_window_info`, `molly_focus_window_seconds_total` |
+| `sensors.sensors` | on, denylist, max 40 | hardware sensor product names such as `PMU tdie1`; not personal (collector itself is opt-in) | `molly_sensor_temperature_celsius` |
 
 Not policy-governed, by design, because they are fixed small sets or your own
 config keys: `processes.agents` names (claude, codex, ...), `builds.tools`
@@ -66,6 +67,7 @@ points and interface names, display geometry, alert names.
 | `media` | asks Music and Spotify via AppleScript (Automation prompt); track names stay off and hashed unless you say otherwise |
 | `titles` | reads window titles, which needs Screen Recording; titles are hashed by default |
 | `health` | accepts Apple Health numbers from an iPhone Shortcut; needs a token and stays local, see "Health data" below |
+| `sensors` | reads hardware sensors through private Apple interfaces resolved at runtime; nothing personal, but undocumented APIs |
 
 `/privacy` reports whether each of these is currently on.
 

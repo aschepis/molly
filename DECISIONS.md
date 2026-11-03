@@ -201,3 +201,18 @@ separate `ps` batch and keeps the pid and the score from the same instant.
 helpers keep their process name rather than being guessed into an app. The
 total is `molly_energy_impact_sum`, a gauge: a sum of scores is not a counter,
 so the `_total` suffix is wrong for it.
+
+## 2026-11-03 Private APIs are allowed only in the sensors collector
+
+Temperatures, fans, system power, display brightness and lid angle exist only
+behind undocumented interfaces (IOHIDEventSystemClient, the AppleSMC user
+client, DisplayServices), and "is the laptop hot, are the fans spinning" is
+worth knowing. The rule is: private code lives in one file
+(`SensorsSupport.swift`), every private symbol is resolved with `dlopen` and
+`dlsym` at runtime and never linked, a missing symbol makes that source
+`CollectorUnavailable` naming it, and the collector is off by default. A
+macOS update can therefore remove a source but cannot stop Molly from
+launching. What this does not cover: a crash inside Apple's code on a changed
+ABI. That is the reason for the opt-in. The collector publishes
+`molly_sensor_source_available{source}` so a dashboard can tell "no data"
+from "source refused". No other collector may use private interfaces.
