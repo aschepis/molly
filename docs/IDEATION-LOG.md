@@ -49,7 +49,18 @@ Picked:
    cardinality, collector errors and durations) and proposes config changes
    as a diff. Rules-based, with an optional Claude pass.
 
-Outcome: (pending)
+Outcome: all four shipped and merged. `molly insights` (49-query digest,
+Claude API or `claude` CLI backend, cached daily/weekly Markdown, served at
+`/insights/latest`, optional scheduled `insights` collector, off by default);
+`molly mcp` with five read-only tools (`query_metrics`, `list_metrics`,
+`day_summary`, `current_context`, `collector_status`); `/privacy` and
+`molly privacy` auditing all 16 label dimensions with decision counters;
+nine informational anomaly alerts and an Alerts row on the Health dashboard;
+`molly tune` with nine rules, `/stats`, registry-size self metrics, and a
+`--apply` that patches config with a backup. Tests went from 198 to 262.
+One real narrative was generated through the CLI backend to prove the path;
+its headline finding was that code is being produced faster than it can be
+reviewed.
 
 ## Loop 3: product and operations (planned)
 
