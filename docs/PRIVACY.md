@@ -47,6 +47,8 @@ processes) and are easy to turn off.
 | `shell.commands` | off, allowlist, max 50 | the first word of each shell command (arguments are never read) | `molly_shell_command_names_total` |
 | `shell.hosts` | off, denylist, max 50 | hostnames found in curl, ssh, scp and URL arguments | `molly_shell_network_hosts_total` |
 | `system.wifi` | off | the Wi-Fi SSID (needs Location Services) | `molly_network_wifi_info` |
+| `media.tracks` | off, denylist, hash on, max 100 | current track and artist names from Music or Spotify (collector itself is opt-in) | `molly_media_track_info` |
+| `titles.titles` | on, denylist, hash on, max 100 | the frontmost window's title, normalised and truncated to 80 characters (collector itself is opt-in and needs Screen Recording) | `molly_focus_window_info`, `molly_focus_window_seconds_total` |
 
 Not policy-governed, by design, because they are fixed small sets or your own
 config keys: `processes.agents` names (claude, codex, ...), `builds.tools`
@@ -60,6 +62,8 @@ points and interface names, display geometry, alert names.
 | `input` | needs Accessibility; counts key and click events (never keycodes) |
 | `mail` | reads Apple Mail's envelope index for counts |
 | `tabs` | asks browsers via AppleScript, which prompts for Automation permission |
+| `media` | asks Music and Spotify via AppleScript (Automation prompt); track names stay off and hashed unless you say otherwise |
+| `titles` | reads window titles, which needs Screen Recording; titles are hashed by default |
 
 `/privacy` reports whether each of these is currently on.
 

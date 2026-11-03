@@ -643,6 +643,11 @@ enum GroupADoctor {
             checks.append(DoctorCommand.Check(name: "wifi ssid", ok: visible,
                                               detail: visible ? "SSID readable" : "SSID hidden: grant Location access to your terminal/Molly, or leave the wifi policy off"))
         }
+        if config.collector("titles").enabled(default: false) {
+            let granted = CGPreflightScreenCaptureAccess()
+            checks.append(DoctorCommand.Check(name: "screen recording", ok: granted,
+                                              detail: granted ? "granted; window titles readable" : TitlesCollector.permissionHint))
+        }
         if config.collector("input").enabled(default: false) {
             let trusted = AXIsProcessTrusted()
             checks.append(DoctorCommand.Check(name: "input tap", ok: trusted,

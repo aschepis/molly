@@ -1293,6 +1293,191 @@
         "type": "prometheus",
         "uid": "molly-prometheus"
       }
+    },
+    {
+      "id": 21,
+      "type": "row",
+      "title": "Window titles (opt-in)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 72,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Top windows by focus time (selected range)",
+      "description": "Needs the titles collector (Screen Recording). Titles are hashed unless titles.titles.hash is false.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "topk(15, sum by (app, title) (increase(molly_focus_window_seconds_total{user=~\"$user\",host=~\"$host\"}[$__range])))",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#2a78d6"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Seconds"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "Seconds",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "user": true,
+              "host": true,
+              "job": true,
+              "instance": true,
+              "__name__": true
+            },
+            "renameByName": {
+              "app": "App",
+              "title": "Title",
+              "Value": "Seconds"
+            }
+          }
+        }
+      ],
+      "id": 22,
+      "gridPos": {
+        "x": 0,
+        "y": 73,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "type": "state-timeline",
+      "title": "Now playing",
+      "description": "Needs the media collector (Automation permission for Music/Spotify).",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "molly_media_playing{user=~\"$user\",host=~\"$host\"}",
+          "legendFormat": "{{app}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "no",
+                  "color": "#898781",
+                  "index": 0
+                },
+                "1": {
+                  "text": "playing",
+                  "color": "#2a78d6",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#898781",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "auto",
+        "alignValue": "left",
+        "rowHeight": 0.8,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "id": 23,
+      "gridPos": {
+        "x": 0,
+        "y": 82,
+        "w": 24,
+        "h": 3
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
     }
   ]
 }

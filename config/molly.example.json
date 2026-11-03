@@ -318,6 +318,31 @@
       "interval": 60,
       "browsers": ["safari", "chrome", "brave", "arc", "edge", "vivaldi"]
     },
+    "media": {
+      "enabled": false,
+      "interval": 15,
+      "apps": ["music", "spotify"],
+      "tracks": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": true,
+        "salt": "",
+        "maxCardinality": 100
+      }
+    },
+    "titles": {
+      "enabled": false,
+      "interval": 5,
+      "titles": {
+        "enabled": true,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": true,
+        "salt": "",
+        "maxCardinality": 100
+      }
+    },
     "events": {
       "enabled": true,
       "interval": 60,
