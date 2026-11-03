@@ -109,7 +109,7 @@ Modified counts include newly created notes.
 | `molly_notes_created_today` / `molly_notes_modified_today` | gauge | |
 | `molly_notes_folder_modified_total` | counter | `folder` (policy `folders`) |
 
-Deviation from the plan: the per-folder counter is its own family
+The per-folder counter is its own family
 (`molly_notes_folder_modified_total`) because one Prometheus family cannot be both
 labelled and unlabelled.
 

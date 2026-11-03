@@ -8,7 +8,7 @@ Molly always labels the collected data with the current user and hostname, allow
 
 ## Status
 
-Early development. The Swift skeleton, metrics registry, privacy policies, menu bar app, deployment stack, six Grafana dashboards and launchd integration are in place; collectors are being filled in according to [docs/METRICS-PLAN.md](docs/METRICS-PLAN.md).
+Early development. The Swift skeleton, metrics registry, privacy policies, menu bar app, deployment stack, six Grafana dashboards and launchd integration are in place; all collectors are implemented; see [docs/METRICS.md](docs/METRICS.md) and [docs/CONFIG.md](docs/CONFIG.md).
 
 ## Quick start
 
@@ -35,5 +35,6 @@ _Screenshots of the Overview, Focus and Developer dashboards go here._
 - [Getting started](docs/GETTING-STARTED.md): build, permissions, the stack, remote Prometheus
 - [Dashboards](docs/DASHBOARDS.md): what each Grafana dashboard shows
 - [Architecture](docs/ARCHITECTURE.md): collectors, registry, privacy policies, data flow
-- [Metrics plan](docs/METRICS-PLAN.md): every metric name and label
+- [Metrics](docs/METRICS.md): every metric name, label and unit
+- [Configuration](docs/CONFIG.md): every config key, label policies, example configs
 - [Decisions](DECISIONS.md): why things are the way they are

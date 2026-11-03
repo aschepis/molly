@@ -52,4 +52,4 @@ uninstall-agent:
 	swift run -q molly uninstall-agent
 
 check-dashboards:
-	scripts/check-dashboards.sh docs/METRICS-PLAN.md
+	scripts/check-dashboards.sh docs/METRICS.md

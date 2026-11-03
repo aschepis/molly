@@ -1,6 +1,6 @@
 # Roadmap and ideation backlog
 
-The MVP (collectors in `docs/METRICS-PLAN.md`, the local stack, six
+The MVP (collectors in `docs/METRICS.md`, the local stack, six
 dashboards) is the foundation. This file is the menu of what Molly could
 become, grouped by theme and tagged by effort: **S** (hours), **M** (a day or
 two), **L** (a week). The ideation loops in `docs/IDEATION-LOG.md` pick from

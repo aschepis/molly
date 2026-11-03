@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Reports molly_* metric names used by dashboards and rules that are absent from a metrics list.
-# usage: scripts/check-dashboards.sh <metrics.txt|docs/METRICS-PLAN.md>
+# usage: scripts/check-dashboards.sh <metrics.txt|docs/METRICS.md>
 set -euo pipefail
 
 if [ $# -ne 1 ] || [ ! -f "$1" ]; then

@@ -130,7 +130,7 @@ Notes:
 | `historyFile` | `~/.claude/history.jsonl` | |
 | `activeWindowSeconds` | `300` | |
 | `sessionGapSeconds` | `1800` | longest gap counted as active |
-| `pricing` | `{}` | `{"<model substring>": {"input", "output", "cacheRead", "cacheWrite"}}`, checked before the defaults |
+| `pricing` | `{}` | `{"<model substring>": {"input", "output", "cacheRead", "cacheWrite"}}`. Overrides are checked before the defaults, in alphabetical order of the pattern; the first substring match wins, so a short pattern shadows a longer one that extends it. A missing price field counts as 0. |
 | `projects` | enabled, denylist, `maxCardinality` 30 | policy |
 | `interval` | `60` | |
 

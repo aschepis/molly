@@ -54,7 +54,7 @@ Prometheus text exposition format. Collectors create gauges and counters by
 name with fixed label names. The registry adds the constant labels `user`,
 `host` and any `labels.extra` to every series; collectors never set them.
 Names follow `molly_<area>_<thing>_<unit>`, counters end in `_total`.
-`docs/METRICS-PLAN.md` is the contract between collectors and dashboards.
+`docs/METRICS.md` is the contract between collectors and dashboards.
 
 ## Privacy policies
 

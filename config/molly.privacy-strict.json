@@ -1,0 +1,267 @@
+{
+  "server": {
+    "bind": "127.0.0.1",
+    "port": 9765
+  },
+  "labels": {
+    "user": null,
+    "host": null,
+    "extra": {}
+  },
+  "links": {
+    "grafana": "http://localhost:3030",
+    "prometheus": "http://localhost:9090"
+  },
+  "logLevel": "info",
+  "collectors": {
+    "process": {
+      "enabled": true,
+      "interval": 30
+    },
+    "system": {
+      "enabled": true,
+      "interval": 15,
+      "bluetooth": true,
+      "wifi": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 0
+      }
+    },
+    "processes": {
+      "enabled": true,
+      "interval": 30,
+      "topN": 25,
+      "names": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 25
+      },
+      "agents": {
+        "claude": [
+          "claude"
+        ],
+        "codex": [
+          "codex"
+        ],
+        "cursor": [
+          "Cursor Helper",
+          "cursor"
+        ],
+        "aider": [
+          "aider"
+        ],
+        "copilot": [
+          "copilot"
+        ],
+        "gemini": [
+          "gemini"
+        ],
+        "ollama": [
+          "ollama"
+        ]
+      }
+    },
+    "focus": {
+      "enabled": true,
+      "interval": 5,
+      "idleThresholdSeconds": 300,
+      "maxGapSeconds": 60,
+      "apps": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 0
+      }
+    },
+    "docker": {
+      "enabled": true,
+      "interval": 60,
+      "stats": false,
+      "path": "",
+      "containers": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 0
+      }
+    },
+    "meeting": {
+      "enabled": true,
+      "interval": 5
+    },
+    "browser": {
+      "enabled": true,
+      "interval": 60,
+      "browsers": [],
+      "extraProfiles": [],
+      "domains": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 50
+      }
+    },
+    "messages": {
+      "enabled": false,
+      "interval": 60,
+      "path": "~/Library/Messages/chat.db"
+    },
+    "notes": {
+      "enabled": true,
+      "interval": 120,
+      "path": "~/Library/Group Containers/group.com.apple.notes/NoteStore.sqlite",
+      "folders": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 50
+      }
+    },
+    "knowledge": {
+      "enabled": false,
+      "interval": 60,
+      "path": "~/Library/Application Support/Knowledge/knowledgeC.db",
+      "apps": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 50
+      }
+    },
+    "calendar": {
+      "enabled": false,
+      "interval": 300,
+      "calendars": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 50
+      }
+    },
+    "mail": {
+      "enabled": false,
+      "interval": 120
+    },
+    "git": {
+      "enabled": true,
+      "interval": 120,
+      "roots": [
+        "~/src"
+      ],
+      "maxDepth": 4,
+      "rescanSeconds": 1800,
+      "activeDays": 30,
+      "skipDirs": [
+        "node_modules",
+        ".build",
+        "vendor"
+      ],
+      "authorEmails": [],
+      "repos": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 50
+      },
+      "branches": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 0
+      }
+    },
+    "claude_code": {
+      "enabled": true,
+      "interval": 60,
+      "projectsDir": "~/.claude/projects",
+      "historyFile": "~/.claude/history.jsonl",
+      "activeWindowSeconds": 300,
+      "sessionGapSeconds": 1800,
+      "pricing": {},
+      "projects": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 30
+      }
+    },
+    "cursor": {
+      "enabled": true,
+      "interval": 120,
+      "databasePath": "~/.cursor/ai-tracking/ai-code-tracking.db"
+    },
+    "codex": {
+      "enabled": true,
+      "interval": 120,
+      "sessionsDir": "~/.codex/sessions",
+      "activeWindowSeconds": 300
+    },
+    "shell": {
+      "enabled": true,
+      "interval": 60,
+      "shells": [
+        "zsh",
+        "bash",
+        "fish"
+      ],
+      "zshHistory": "~/.zsh_history",
+      "bashHistory": "~/.bash_history",
+      "fishHistory": "~/.local/share/fish/fish_history",
+      "commands": {
+        "enabled": false,
+        "mode": "allowlist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 50
+      },
+      "hosts": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 50
+      }
+    },
+    "projects": {
+      "enabled": true,
+      "interval": 60,
+      "activeWindowSeconds": 1800,
+      "retentionSeconds": 86400,
+      "projects": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 30
+      }
+    }
+  }
+}

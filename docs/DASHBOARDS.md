@@ -16,7 +16,7 @@ domains, mail, codex, cursor) stay empty until you enable them; the panel
 description says which setting.
 
 Run `make check-dashboards` after editing: it fails if a dashboard or rule uses
-a metric name that is not in `docs/METRICS-PLAN.md`.
+a metric name that is not in `docs/METRICS.md`.
 
 ## Overview (`molly-overview`)
 

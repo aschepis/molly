@@ -36,9 +36,11 @@ For the installed app:
 2. Click `+`, choose `/Applications/Molly.app`, switch it on.
 3. If you rebuild and reinstall, macOS may ask again because the ad-hoc signature changes.
 
-The first time Molly runs it may also ask for Calendar access. Microphone and
-camera prompts only appear if macOS decides the in-use check needs them; Molly
-reads only whether the device is in use, never audio or video.
+The Calendar collector reads Calendar's database directly and does not use
+EventKit, so it needs Full Disk Access rather than a Calendar prompt.
+Microphone and camera prompts should not appear; Molly reads only whether the
+device is in use, never audio or video. Reading the Wi-Fi SSID (only when the
+`wifi` policy is enabled) needs Location Services for the host process.
 
 ## 3. Start the stack
 
