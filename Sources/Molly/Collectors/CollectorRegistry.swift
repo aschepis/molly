@@ -33,6 +33,9 @@ enum CollectorRegistry {
         try add("shell") { try ShellCollector(settings: $0) }
         // After git and claude_code so a once-run sees what they reported.
         try add("projects") { try ProjectsCollector(settings: $0) }
+        try add("power") { PowerCollector(settings: $0) }
+        try add("builds") { BuildsCollector(settings: $0) }
+        try add("tabs", defaultEnabled: false) { TabsCollector(settings: $0) }
         return collectors
     }
 }
@@ -43,5 +46,6 @@ extension CollectorRegistry {
         "process", "system", "processes", "focus", "docker", "meeting",
         "browser", "messages", "notes", "knowledge", "calendar", "mail",
         "git", "claude_code", "cursor", "codex", "shell", "projects",
+        "power", "builds", "tabs",
     ]
 }

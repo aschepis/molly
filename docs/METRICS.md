@@ -320,3 +320,41 @@ not emitted. Details: [group C](collectors/group-c.md#projects).
 | `molly_project_active` | gauge | `project` **policy** `projects` | info | always 1; activity within `activeWindowSeconds` |
 | `molly_project_last_activity_timestamp_seconds` | gauge | `project` **policy** `projects`, `source` (git, claude) | seconds (unix) | latest activity |
 | `molly_projects_active` | gauge | | count | active projects, not capped by the policy |
+
+## power (interval 300s)
+
+No policies. Parsed from `pmset -g log` plus `kern.boottime`. Wake reasons are a fixed set: `lid`, `power button`, `user activity`, `scheduled`, `notification`, `other`. Details: [group D](collectors/group-d.md#power).
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_power_sleep_events_total` | counter | `kind` (sleep, darkwake, wake) | events | log events newer than the cursor; the first run backfills `backfillSeconds` |
+| `molly_power_last_sleep_timestamp_seconds` | gauge | | seconds (unix) | latest sleep in the log |
+| `molly_power_last_wake_timestamp_seconds` | gauge | | seconds (unix) | latest full wake in the log |
+| `molly_power_last_wake_reason_info` | gauge | `reason` | info | always 1; the reason of the latest full wake |
+| `molly_power_boots_total` | counter | | boots | boots newer than the last seen (or the backfill window on first run) |
+| `molly_power_last_boot_timestamp_seconds` | gauge | | seconds (unix) | `kern.boottime` |
+| `molly_power_awake_seconds_today` | gauge | | seconds | fully awake since local midnight, from sleep and wake pairs |
+| `molly_power_sleep_seconds_today` | gauge | | seconds | asleep, dark wakes included, since local midnight |
+
+## builds (interval 15s)
+
+No policies; the `tool` label comes from your config keys. Details: [group D](collectors/group-d.md#builds).
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_build_processes` | gauge | `tool` | count | running processes matching the tool |
+| `molly_build_seconds_total` | counter | `tool` | seconds | sampled time with at least one process of the tool |
+| `molly_builds_total` | counter | `tool` | builds | transitions from no process to at least one |
+| `molly_build_active` | gauge | | bool | 1 when any tool has a process |
+| `molly_build_cpu_ratio` | gauge | `tool` | cores | CPU use of the tool's processes; 1.0 is one full core |
+| `molly_xcode_builds_total` | counter | | builds | `.xcactivitylog` files under DerivedData modified since Molly started |
+| `molly_xcode_derived_data_bytes` | gauge | | bytes | `du -sk` of DerivedData, at most every `derivedDataSeconds`; absent without DerivedData |
+
+## tabs (interval 60s, disabled by default)
+
+No policies. Only counts; titles and URLs are never read. A browser that is not running has no series. Details: [group D](collectors/group-d.md#tabs).
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_browser_windows` | gauge | `browser` (safari, chrome, brave, arc, edge, vivaldi) | count | open windows |
+| `molly_browser_tabs` | gauge | `browser` | count | open tabs across all windows |

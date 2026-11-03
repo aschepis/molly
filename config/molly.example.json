@@ -262,6 +262,36 @@
         "salt": "",
         "maxCardinality": 30
       }
+    },
+    "power": {
+      "enabled": true,
+      "interval": 300,
+      "backfillSeconds": 86400
+    },
+    "builds": {
+      "enabled": true,
+      "interval": 15,
+      "tools": {
+        "swift": ["swift-frontend", "swift-build", "swiftc"],
+        "clang": ["clang", "clang-*", "cc1"],
+        "xcodebuild": ["xcodebuild"],
+        "cargo": ["cargo", "rustc"],
+        "go": ["go", "compile", "link"],
+        "node": ["tsc", "esbuild", "webpack", "vite"],
+        "gradle": ["gradle"],
+        "make": ["make", "gmake", "ninja", "cmake"],
+        "docker": ["docker-buildx", "buildkit"],
+        "python": ["pytest"],
+        "jest": ["jest"]
+      },
+      "xcode": true,
+      "derivedDataPath": "~/Library/Developer/Xcode/DerivedData",
+      "derivedDataSeconds": 1800
+    },
+    "tabs": {
+      "enabled": false,
+      "interval": 60,
+      "browsers": ["safari", "chrome", "brave", "arc", "edge", "vivaldi"]
     }
   }
 }
