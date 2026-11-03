@@ -33,7 +33,7 @@ without a wildcard also match as dotted suffixes (`bank.com` covers
 
 ## 2026-11-02 Grafana on port 3030
 
-Port 3000 on this machine is used by a Rails app (Damocles). The local stack
+Port 3000 on this machine is already taken by another local service. The local stack
 uses 3030 for Grafana and 9090 for Prometheus; Molly serves on 9765.
 
 ## 2026-11-02 Metrics bind to 127.0.0.1; Prometheus reaches it via host.docker.internal
