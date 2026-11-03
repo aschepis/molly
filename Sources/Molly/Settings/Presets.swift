@@ -440,6 +440,24 @@ enum Presets {
       "interval": 5,
       "maxGapSeconds": 60
     },
+    "gaming": {
+      "enabled": true,
+      "extraGameBundleIds": [],
+      "extraProcessNames": [],
+      "games": {
+        "enabled": false,
+        "hash": false,
+        "maxCardinality": 30,
+        "mode": "denylist",
+        "patterns": [],
+        "salt": ""
+      },
+      "gpuThreshold": 0.3,
+      "interval": 5,
+      "libraryIntervalSeconds": 300,
+      "maxGapSeconds": 180,
+      "steamPath": "~/Library/Application Support/Steam"
+    },
     "git": {
       "activeDays": 30,
       "authorEmails": [],

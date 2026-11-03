@@ -512,6 +512,28 @@ Permissions: Automation, one prompt per browser on first run. Privacy: only
 window and tab counts are requested; titles and URLs are never read.
 Details: [group D](collectors/group-d.md#tabs).
 
+### gaming
+
+Interval 5s. On by default; if the machine has no Steam, CrossOver or game apps
+the collector reports itself unavailable once and does nothing.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `steamPath` | string | `~/Library/Application Support/Steam` | the Steam folder; `steamapps/libraryfolders.vdf` adds other library volumes |
+| `libraryIntervalSeconds` | number | `300` | how often manifests and Steam playtime are re-read (game apps are rescanned hourly) |
+| `extraGameBundleIds` | array of strings | `[]` | apps to treat as games although their Info.plist is not in the games category |
+| `extraProcessNames` | array of strings | `[]` | executable names to treat as native games (emulators, itch.io builds) |
+| `gpuThreshold` | number | `0.3` | GPU device utilisation (0..1) that, for two samples in a row, counts a Steam or CrossOver game as played while it is not frontmost |
+| `maxGapSeconds` | number | `180` | how long a session survives without the game being frontmost or the GPU busy |
+| `games` | policy | off, denylist, max 30 | the `game` label on per-game seconds, launches, playtime and last played |
+
+Permissions: none. Privacy: Steam files are read for game names and
+`LastPlayed`/`Playtime` only; `loginusers.vdf`, friends, chat and achievements
+are never opened. Game names stay off unless you enable the `games` policy
+(add `patterns` to hide particular titles). State (`gaming.json`) keeps the last
+Steam playtime per app and the open session so restarts neither double count
+nor split a session.
+
 ### media
 
 Interval 15s, **disabled by default**. Asks Music and Spotify, when they are

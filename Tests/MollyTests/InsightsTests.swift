@@ -63,6 +63,16 @@ final class InsightsTests: XCTestCase {
         XCTAssertGreaterThan(DigestQueries.all.count, 40)
     }
 
+    func testDigestCarriesGamingBalanceButNoTitles() {
+        let keys = Set(DigestQueries.all.map { $0.key })
+        XCTAssertTrue(keys.isSuperset(of: ["gaming_seconds", "gaming_sessions", "late_night_gaming_seconds", "top_platform"]))
+        for q in DigestQueries.all where q.key.contains("gaming") || q.key == "top_platform" {
+            XCTAssertFalse(q.promql.contains("game"), "\(q.key) must not group or select by game title")
+        }
+        let platform = DigestQueries.all.first { $0.key == "top_platform" }
+        XCTAssertEqual(platform?.shape, .breakdown(label: "platform"))
+    }
+
     func testQueryRendering() {
         let q = DigestQueries.all[0]
         let rendered = q.rendered(selector: DigestQueries.selector(user: "u", host: "h"), range: "3600s")
