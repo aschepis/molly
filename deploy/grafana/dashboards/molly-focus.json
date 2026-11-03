@@ -19,23 +19,7 @@
   "annotations": {
     "list": [
       {
-        "name": "Commits",
-        "datasource": {
-          "type": "prometheus",
-          "uid": "molly-prometheus"
-        },
-        "enable": true,
-        "hide": false,
-        "iconColor": "#2a78d6",
-        "expr": "changes(molly_git_last_commit_timestamp_seconds{user=~\"$user\",host=~\"$host\"}[1m]) > 0",
-        "step": "15s",
-        "titleFormat": "commit",
-        "textFormat": "{{repo}}",
-        "tagKeys": "repo",
-        "useValueForTime": false
-      },
-      {
-        "name": "Meetings",
+        "name": "Meeting",
         "datasource": {
           "type": "prometheus",
           "uid": "molly-prometheus"
@@ -51,14 +35,30 @@
         "useValueForTime": false
       },
       {
-        "name": "Screen locked",
+        "name": "Claude session",
         "datasource": {
           "type": "prometheus",
           "uid": "molly-prometheus"
         },
         "enable": true,
         "hide": false,
-        "iconColor": "#898781",
+        "iconColor": "#8a5cd6",
+        "expr": "increase(molly_claude_sessions_total{user=~\"$user\",host=~\"$host\"}[1m]) > 0",
+        "step": "15s",
+        "titleFormat": "Claude session",
+        "textFormat": "new Claude Code session",
+        "tagKeys": "",
+        "useValueForTime": false
+      },
+      {
+        "name": "Locked",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#d6489a",
         "expr": "molly_screen_locked{user=~\"$user\",host=~\"$host\"} == 1",
         "step": "15s",
         "titleFormat": "locked",
