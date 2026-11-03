@@ -52,6 +52,7 @@ _Screenshots of the Overview, Focus and Developer dashboards go here._
 - [Insights](docs/INSIGHTS.md): `molly insights` writes a Claude narrative of your day with recommendations
 - [Tuning](docs/TUNING.md): `molly tune` recommendations from registry size and collector health
 - [Remote](docs/REMOTE.md): scraping from another machine, remote_write, fleets
+- [Signing](docs/SIGNING.md): why `make app` signs with your Developer ID and how that keeps Full Disk Access across rebuilds
 - [Roadmap](docs/ROADMAP.md) and [Ideation log](docs/IDEATION-LOG.md): what could come next and what the three loops built
 - [Decisions](DECISIONS.md): why things are the way they are
 - [Questions](QUESTIONS.md): things only you can answer, with the defaults taken meanwhile

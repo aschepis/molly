@@ -13,7 +13,7 @@ swift run molly doctor # checks permissions, ports and stack reachability
 For an app bundle you can grant permissions to and run at login:
 
 ```sh
-make app               # dist/Molly.app (release build, ad-hoc signed)
+make app               # dist/Molly.app (release build, signed with your Developer ID; see docs/SIGNING.md)
 make install           # copies it to /Applications/Molly.app
 ```
 
@@ -34,7 +34,7 @@ For the installed app:
 
 1. System Settings > Privacy & Security > Full Disk Access.
 2. Click `+`, choose `/Applications/Molly.app`, switch it on.
-3. If you rebuild and reinstall, macOS may ask again because the ad-hoc signature changes.
+3. Rebuilds keep the grant as long as the app is signed with a certificate (docs/SIGNING.md). Ad-hoc builds lose it on every reinstall.
 
 The Calendar collector reads Calendar's database directly and does not use
 EventKit, so it needs Full Disk Access rather than a Calendar prompt.

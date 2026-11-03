@@ -1,4 +1,4 @@
-.PHONY: build release test run once doctor stack-up stack-down stack-logs app icon dist install uninstall install-agent uninstall-agent check-dashboards
+.PHONY: build release test run once doctor stack-up stack-down stack-logs app icon dist install uninstall install-agent uninstall-agent check-dashboards verify-signature notarize
 
 build:
 	swift build
@@ -29,6 +29,17 @@ stack-logs:
 
 APP := dist/Molly.app
 ICON := packaging/AppIcon.icns
+ENTITLEMENTS := packaging/Molly.entitlements
+# A certificate keeps the code identity stable across rebuilds, so TCC grants
+# (Full Disk Access) survive `make install`. Ad-hoc signing pins them to one build.
+CODESIGN_IDENTITY ?= Developer ID Application
+HAVE_IDENTITY := $(shell security find-identity -v -p codesigning 2>/dev/null | grep -c "$(CODESIGN_IDENTITY)")
+ifeq ($(HAVE_IDENTITY),0)
+CODESIGN_FLAGS := --sign -
+else
+CODESIGN_FLAGS := --sign "$(CODESIGN_IDENTITY)" --options runtime --timestamp --entitlements $(ENTITLEMENTS)
+endif
+NOTARY_PROFILE ?= notary-profile
 VERSION := $(shell grep -o 'static let current = "[^"]*"' Sources/Molly/Core/CollectorManager.swift | cut -d'"' -f2)
 
 # Regenerates the icon from scripts/render-icon.swift (macOS tools only).
@@ -44,8 +55,23 @@ app: release $(ICON)
 	cp .build/release/molly $(APP)/Contents/MacOS/molly
 	cp $(ICON) $(APP)/Contents/Resources/AppIcon.icns
 	sed "s/@VERSION@/$(VERSION)/" packaging/Info.plist.in > $(APP)/Contents/Info.plist
-	codesign --force --sign - $(APP)
-	@echo "built $(APP) ($(VERSION))"
+ifeq ($(HAVE_IDENTITY),0)
+	@echo "warning: no '$(CODESIGN_IDENTITY)' identity in keychain; signing ad-hoc (Full Disk Access will not survive rebuilds, see docs/SIGNING.md)"
+endif
+	codesign --force $(CODESIGN_FLAGS) $(APP)
+	@echo "built $(APP) ($(VERSION), signed with: $(if $(filter 0,$(HAVE_IDENTITY)),ad-hoc,$(CODESIGN_IDENTITY)))"
+
+verify-signature:
+	codesign --verify --strict --verbose=2 $(APP)
+	codesign -d -r- $(APP) 2>&1 | grep designated
+	spctl -a -vv -t exec $(APP) || true
+
+# Needs a keychain profile created once with:
+#   xcrun notarytool store-credentials notary-profile --apple-id ... --team-id ... --password ...
+notarize: dist
+	xcrun notarytool submit dist/Molly-$(VERSION).zip --keychain-profile "$(NOTARY_PROFILE)" --wait
+	xcrun stapler staple $(APP)
+	@echo "notarized and stapled $(APP)"
 
 # A zip plus checksum for handing the app to another machine.
 dist: app
