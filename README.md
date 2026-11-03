@@ -56,3 +56,7 @@ _Screenshots of the Overview, Focus and Developer dashboards go here._
 - [Roadmap](docs/ROADMAP.md) and [Ideation log](docs/IDEATION-LOG.md): what could come next and what the three loops built
 - [Decisions](DECISIONS.md): why things are the way they are
 - [Questions](QUESTIONS.md): things only you can answer, with the defaults taken meanwhile
+
+## License
+
+MIT, see [LICENSE](LICENSE).
