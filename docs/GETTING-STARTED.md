@@ -59,12 +59,42 @@ anything already using 3000.
 
 ```sh
 swift run molly            # menu bar icon appears, metrics on http://127.0.0.1:9765/metrics
-molly install-agent        # optional: start at every login (launchd)
 molly status               # agent state, /healthz, and the Prometheus target
 ```
 
 Prometheus in Docker reaches Molly's loopback-only server through
 `host.docker.internal`, so nothing is exposed on your network.
+
+The menu bar menu shows recording state, the last scrape, a Status submenu
+with every collector, Pause/Resume, links to Grafana, Prometheus, `/metrics`
+and the latest insights report, Run Doctor (logs each failing check and, from
+Molly.app, posts a notification with the summary), Reload Config, and Launch
+at Login.
+
+### Installing Molly.app and starting at login
+
+```sh
+make app                   # dist/Molly.app with the icon from packaging/AppIcon.icns
+make install               # copies it to /Applications
+make dist                  # dist/Molly-<version>.zip plus a .sha256 next to it
+```
+
+Two ways to start Molly at login; pick one:
+
+| | Launch at Login (menu bar) | `molly install-agent` |
+|---|---|---|
+| Needs | `/Applications/Molly.app` | any `molly` binary, bundle or not |
+| Mechanism | `SMAppService`, listed under System Settings > General > Login Items | a LaunchAgent plist in `~/Library/LaunchAgents` with `KeepAlive` |
+| Restarts after a crash | no | yes |
+| Remove | untick the menu item or the Login Items switch | `molly uninstall-agent` |
+
+From `swift run` or the bare `.build` binary the menu item is disabled and
+says "install Molly.app first"; use the LaunchAgent instead. Do not enable
+both, or two copies will fight over port 9765.
+
+The app icon is generated, not hand-drawn: `make icon` re-renders
+`packaging/AppIcon.icns` from `scripts/render-icon.swift` with the tools that
+ship with macOS.
 
 ## 5. Look at the dashboards
 

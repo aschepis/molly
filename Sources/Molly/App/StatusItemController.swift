@@ -1,4 +1,6 @@
 import AppKit
+import ServiceManagement
+import UserNotifications
 
 /// The menu bar presence. The icon being visible means Molly is collecting.
 final class StatusItemController: NSObject, NSMenuDelegate {
@@ -8,6 +10,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let scrapeLine = NSMenuItem(title: "Not scraped yet", action: nil, keyEquivalent: "")
     private let endpointLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let pauseItem = NSMenuItem(title: "Pause", action: nil, keyEquivalent: "")
+    private let insightsItem = NSMenuItem(title: "Open Latest Insights", action: nil, keyEquivalent: "")
+    private let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: nil, keyEquivalent: "")
+    private let statusSubmenu = NSMenu(title: "Status")
+    private let isBundled = MenuModel.isBundled(bundleURL: Bundle.main.bundleURL)
 
     init(runtime: Runtime) {
         self.runtime = runtime
@@ -28,6 +34,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             line.isEnabled = false
             menu.addItem(line)
         }
+        let statusParent = NSMenuItem(title: "Status", action: nil, keyEquivalent: "")
+        statusParent.submenu = statusSubmenu
+        menu.addItem(statusParent)
         menu.addItem(.separator())
         pauseItem.action = #selector(togglePause)
         pauseItem.target = self
@@ -37,9 +46,23 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(item("Open Prometheus", #selector(openPrometheus)))
         menu.addItem(item("Open /metrics", #selector(openMetrics)))
         menu.addItem(item("Collector Status", #selector(openCollectors)))
+        insightsItem.action = #selector(openInsights)
+        insightsItem.target = self
+        menu.addItem(insightsItem)
         menu.addItem(.separator())
+        menu.addItem(item("Run Doctor", #selector(runDoctor), key: "d"))
         menu.addItem(item("Open Data Folder", #selector(openDataFolder)))
         menu.addItem(item("Reload Config", #selector(reloadConfig), key: "r"))
+        // SMAppService only works from an app bundle; `swift run` users get the
+        // LaunchAgent path (`molly install-agent`) instead.
+        if isBundled {
+            launchAtLoginItem.action = #selector(toggleLaunchAtLogin)
+            launchAtLoginItem.target = self
+        } else {
+            launchAtLoginItem.title = "Launch at Login (install Molly.app first)"
+            launchAtLoginItem.isEnabled = false
+        }
+        menu.addItem(launchAtLoginItem)
         menu.addItem(.separator())
         menu.addItem(item("Quit Molly", #selector(quit), key: "q"))
         return menu
@@ -52,6 +75,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu !== statusSubmenu else { return }
         let statuses = runtime.manager.allStatuses
         let failing = statuses.filter { $0.lastError != nil && $0.lastSuccess == nil }.count
         let state = runtime.manager.isPaused ? "Paused" : "Recording"
@@ -61,19 +85,71 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         } else {
             scrapeLine.title = "Not scraped yet (is Prometheus running?)"
         }
-        endpointLine.title = "http://\(runtime.config.server.bind):\(runtime.config.server.port)/metrics"
+        endpointLine.title = serverURL("/metrics")
         pauseItem.title = runtime.manager.isPaused ? "Resume" : "Pause"
         statusItem.button?.appearsDisabled = runtime.manager.isPaused
+        insightsItem.isEnabled = MenuModel.hasInsights(folder: Paths.dataFolder.appendingPathComponent("insights"))
+        if isBundled {
+            launchAtLoginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        }
+        statusSubmenu.removeAllItems()
+        for line in MenuModel.statusLines(statuses) {
+            let entry = NSMenuItem(title: line, action: nil, keyEquivalent: "")
+            entry.isEnabled = false
+            statusSubmenu.addItem(entry)
+        }
     }
 
     @objc private func togglePause() {
         if runtime.manager.isPaused { runtime.manager.resume() } else { runtime.manager.pause() }
     }
 
+    @objc private func toggleLaunchAtLogin() {
+        let service = SMAppService.mainApp
+        do {
+            if service.status == .enabled {
+                try service.unregister()
+                Log.info("launch at login disabled")
+            } else {
+                try service.register()
+                Log.info("launch at login enabled")
+            }
+        } catch {
+            Log.error("launch at login change failed: \(error)")
+        }
+    }
+
+    @objc private func runDoctor() {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let checks = DoctorCommand.allChecks()
+            let summary = MenuModel.doctorSummary(checks)
+            for check in checks where !check.ok {
+                Log.warn("doctor: \(check.name): \(check.detail)")
+            }
+            Log.info("doctor: \(summary)")
+            DispatchQueue.main.async { self?.notify(title: "Molly doctor", body: summary) }
+        }
+    }
+
+    /// User notifications need a bundle identifier; from `swift run` the log
+    /// line is the only output.
+    private func notify(title: String, body: String) {
+        guard isBundled else { return }
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert]) { granted, _ in
+            guard granted else { return }
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            center.add(UNNotificationRequest(identifier: "molly-doctor", content: content, trigger: nil))
+        }
+    }
+
     @objc private func openGrafana() { open(runtime.config.links.grafana) }
     @objc private func openPrometheus() { open(runtime.config.links.prometheus) }
-    @objc private func openMetrics() { open("http://\(runtime.config.server.bind):\(runtime.config.server.port)/metrics") }
-    @objc private func openCollectors() { open("http://\(runtime.config.server.bind):\(runtime.config.server.port)/collectors") }
+    @objc private func openMetrics() { open(serverURL("/metrics")) }
+    @objc private func openCollectors() { open(serverURL("/collectors")) }
+    @objc private func openInsights() { open(serverURL("/insights/latest")) }
     @objc private func openDataFolder() {
         try? FileManager.default.createDirectory(at: Paths.dataFolder, withIntermediateDirectories: true)
         NSWorkspace.shared.open(Paths.dataFolder)
@@ -92,6 +168,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func quit() {
         runtime.stop()
         NSApp.terminate(nil)
+    }
+
+    private func serverURL(_ path: String) -> String {
+        "http://\(runtime.config.server.bind):\(runtime.config.server.port)\(path)"
     }
 
     private func open(_ url: String) {

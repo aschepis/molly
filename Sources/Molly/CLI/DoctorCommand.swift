@@ -10,6 +10,15 @@ enum DoctorCommand {
     }
 
     static func run(_ arguments: [String]) {
+        let checks = allChecks()
+        for check in checks {
+            print("\(check.ok ? "ok  " : "FAIL") \(check.name.padding(toLength: 18, withPad: " ", startingAt: 0)) \(check.detail)")
+        }
+        exit(checks.allSatisfy { $0.ok } ? 0 : 1)
+    }
+
+    /// Every check in display order. Shared by the CLI and the menu bar.
+    static func allChecks() -> [Check] {
         var checks: [Check] = []
         let config: Config
         do {
@@ -25,11 +34,7 @@ enum DoctorCommand {
         checks.append(reachable("grafana", config.links.grafana + "/api/health"))
         checks.append(Check(name: "docker", ok: Shell.which("docker") != nil, detail: Shell.which("docker") ?? "docker CLI not found; the local stack needs Docker Desktop"))
         checks.append(contentsOf: Doctor.extraChecks(config: config))
-
-        for check in checks {
-            print("\(check.ok ? "ok  " : "FAIL") \(check.name.padding(toLength: 18, withPad: " ", startingAt: 0)) \(check.detail)")
-        }
-        exit(checks.allSatisfy { $0.ok } ? 0 : 1)
+        return checks
     }
 
     /// Messages' chat.db is protected by TCC; reading it proves Full Disk Access.

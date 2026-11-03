@@ -19,7 +19,7 @@ make stack-up                # Prometheus :9090 and Grafana :3030 (admin / admin
 swift run molly              # menu bar app, metrics on 127.0.0.1:9765
 open http://localhost:3030   # Dashboards > Molly
 make install                 # optional: build and copy Molly.app to /Applications
-make install-agent           # optional: start Molly at login
+                             # then tick "Launch at Login" in the menu bar (or: molly install-agent)
 ```
 
 Grant Full Disk Access to your terminal (or Molly.app) so the Safari, Messages,
