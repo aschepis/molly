@@ -81,6 +81,6 @@ enum DoctorCommand {
 /// Collectors can contribute checks here (one line per collector file is fine).
 enum Doctor {
     static func extraChecks(config: Config) -> [DoctorCommand.Check] {
-        browserChecks(config: config) + messagesChecks(config: config)
+        GroupADoctor.checks(config: config) + browserChecks(config: config) + messagesChecks(config: config)
     }
 }

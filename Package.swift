@@ -17,6 +17,10 @@ let package = Package(
                 .linkedLibrary("sqlite3"),
                 .linkedFramework("AppKit"),
                 .linkedFramework("IOKit"),
+                .linkedFramework("CoreWLAN"),
+                .linkedFramework("IOBluetooth"),
+                .linkedFramework("CoreAudio"),
+                .linkedFramework("CoreMediaIO"),
             ]
         ),
         .testTarget(

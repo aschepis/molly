@@ -15,6 +15,11 @@ enum CollectorRegistry {
         }
 
         try add("process") { ProcessSelfCollector(settings: $0) }
+        try add("system") { try SystemCollector(settings: $0) }
+        try add("processes") { try ProcessesCollector(settings: $0) }
+        try add("focus") { try FocusCollector(settings: $0) }
+        try add("docker") { try DockerCollector(settings: $0) }
+        try add("meeting") { MeetingCollector(settings: $0) }
         try add("browser") { try BrowserCollector(settings: $0) }
         try add("messages") { MessagesCollector(settings: $0) }
         try add("notes") { try NotesCollector(settings: $0) }
@@ -27,5 +32,8 @@ enum CollectorRegistry {
 
 extension CollectorRegistry {
     /// Names with a config section; `molly validate` warns about anything else.
-    static let knownNames: Set<String> = ["process", "browser", "messages", "notes", "knowledge", "calendar", "mail"]
+    static let knownNames: Set<String> = [
+        "process", "system", "processes", "focus", "docker", "meeting",
+        "browser", "messages", "notes", "knowledge", "calendar", "mail",
+    ]
 }
