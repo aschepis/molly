@@ -1,0 +1,42 @@
+# Local Molly stack. Run from this folder: docker compose up -d
+# Data lives in ${MOLLY_DATA_DIR:-./data}; stop the stack and copy that folder to back up or move.
+name: molly
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    container_name: molly-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=2y
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - ${MOLLY_DATA_DIR:-./data}/prometheus:/prometheus
+
+  grafana:
+    image: grafana/grafana:12.2.0
+    container_name: molly-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    ports:
+      - "3030:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_DEFAULT_THEME: system
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ${MOLLY_DATA_DIR:-./data}/grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana-dashboards:ro
