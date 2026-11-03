@@ -1070,13 +1070,13 @@
       }
     },
     {
-      "id": 19,
+      "id": 20,
       "type": "row",
       "title": "Insights",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 30,
+        "y": 35,
         "w": 24,
         "h": 1
       },
@@ -1090,10 +1090,10 @@
         "mode": "markdown",
         "content": "Molly can write a daily narrative with recommendations from this data (`molly insights`, or enable the `insights` collector). Open the latest report: [127.0.0.1:9765/insights/latest](http://127.0.0.1:9765/insights/latest). Setup: `docs/INSIGHTS.md`."
       },
-      "id": 20,
+      "id": 21,
       "gridPos": {
         "x": 0,
-        "y": 31,
+        "y": 36,
         "w": 24,
         "h": 3
       },

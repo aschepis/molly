@@ -404,6 +404,26 @@ No policies. Only counts; titles and URLs are never read. A browser that is not 
 | `molly_browser_windows` | gauge | `browser` (safari, chrome, brave, arc, edge, vivaldi) | count | open windows |
 | `molly_browser_tabs` | gauge | `browser` | count | open tabs across all windows |
 
+## media (interval 15s, disabled by default)
+
+Policy `tracks` governs `track` and `artist`. A player that is not running has no series. Playback seconds are credited per poll, capped at two intervals so a sleep gap is not counted.
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_media_playing` | gauge | `app` (music, spotify) | bool | 1 while the player reports "playing" |
+| `molly_media_playing_seconds_total` | counter | `app` | seconds | playback time |
+| `molly_media_track_changes_total` | counter | `app` | count | the (track, artist) pair changed while playing |
+| `molly_media_track_info` | gauge | `app`, `track`, `artist` **policy** `tracks` | info | 1 for the current track; only when the policy is enabled, hashed by default |
+
+## titles (interval 5s, disabled by default)
+
+Policy `titles` governs `title` (hashed by default); `app` follows the focus collector's `apps` policy. Needs Screen Recording.
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_focus_window_info` | gauge | `app`, `title` **policy** `titles` | info | the frontmost window, exactly one series, reset on change |
+| `molly_focus_window_seconds_total` | counter | `app`, `title` **policy** `titles` | seconds | frontmost time per window title |
+
 ## events (interval 60s, pushed)
 
 Counts events pushed to `POST /event`, including Claude Code hooks sent by

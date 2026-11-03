@@ -509,6 +509,42 @@ Permissions: Automation, one prompt per browser on first run. Privacy: only
 window and tab counts are requested; titles and URLs are never read.
 Details: [group D](collectors/group-d.md#tabs).
 
+### media
+
+Interval 15s, **disabled by default**. Asks Music and Spotify, when they are
+running, whether they are playing and what the current track is.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `apps` | array of strings | `["music", "spotify"]` | which players to ask, when running |
+| `tracks` | policy | off, denylist, hash on, max 100 | the `track` and `artist` labels on `molly_media_track_info`; each value is filtered separately |
+
+Permissions: Automation, one prompt per player on first run (reset with
+`tccutil reset AppleEvents`). Privacy: playback state and timing are always
+exported; track and artist names only when the `tracks` policy is enabled,
+and hashed unless you set `"hash": false`. The current (track, artist) pair is
+held in memory to detect changes and never logged.
+
+### titles
+
+Interval 5s, **disabled by default**. The title of the frontmost window.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `titles` | policy | on, denylist, hash on, max 100 | the `title` label; `"hash": false` exports plain titles |
+
+The `app` label uses the focus collector's `apps` policy so both agree.
+Titles are normalised before filtering: whitespace collapsed, known app
+suffixes (" - Google Chrome", " - Visual Studio Code", "— Edited", ...)
+removed, truncated to 80 characters. An empty title is `other`.
+
+Permissions: Screen Recording (System Settings > Privacy & Security > Screen
+Recording, add the molly binary or Molly.app); without it macOS hides every
+title and the collector reports unavailable. `molly doctor` checks this when
+`titles` is enabled. Privacy: this is the leakiest dimension Molly has. Hashed
+titles still let a dashboard rank "which documents got the most time" without
+naming them; keep the default unless you have a denylist you trust.
+
 ### events
 
 Interval 60s, enabled by default. Receives `POST /event`, the target of

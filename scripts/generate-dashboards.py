@@ -480,6 +480,13 @@ def focus():
     bargauge(d, "App launches (selected range)",
              [("topk(10, sum by (app) (increase(" + m("molly_app_launches_total") + "[$__range])))", "{{app}}")],
              unit="short", w=24, decimals=0)
+    d.row("Window titles (opt-in)")
+    table(d, "Top windows by focus time (selected range)",
+          ["topk(15, sum by (app, title) (increase(" + m("molly_focus_window_seconds_total") + "[$__range])))"],
+          {"app": "App", "title": "Title", "Value": "Seconds"}, h=9, units={"Seconds": "s"}, sort_by="Seconds",
+          desc="Needs the titles collector (Screen Recording). Titles are hashed unless titles.titles.hash is false.")
+    state_timeline(d, "Now playing", [(m("molly_media_playing"), "{{app}}")], mappings=YESNO("playing"), h=3,
+                   desc="Needs the media collector (Automation permission for Music/Spotify).")
     annotate_activity(d)
     return d
 
