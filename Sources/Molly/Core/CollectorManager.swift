@@ -47,6 +47,7 @@ final class CollectorManager {
         registry.gauge("molly_up", help: "1 while Molly is running.").set(1)
         registry.gauge("molly_build_info", help: "Build metadata.", labels: ["version"]).set(1, labels: ["version": Version.current])
         registry.gauge("molly_start_time_seconds", help: "Unix time Molly started.").set(Date().timeIntervalSince1970)
+        PrivacyAudit.shared.attach(registry: registry)
 
         for collector in collectors {
             entries.append(Entry(collector: collector,

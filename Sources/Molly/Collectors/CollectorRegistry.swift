@@ -3,6 +3,10 @@ import Foundation
 /// The one place collectors are wired up. Each collector reads its own
 /// section with `config.collector("<name>")` and is skipped when disabled.
 enum CollectorRegistry {
+    /// Collectors that need an explicit opt-in because of permissions or
+    /// sensitivity. Must match the `defaultEnabled: false` lines below.
+    static let disabledByDefault: Set<String> = ["input", "mail", "tabs"]
+
     static func makeCollectors(config: Config) throws -> [Collector] {
         var collectors: [Collector] = []
         func add(_ name: String, defaultEnabled: Bool = true, _ make: (CollectorSettings) throws -> Collector) throws {

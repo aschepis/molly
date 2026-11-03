@@ -517,8 +517,30 @@ and the project name from `cwd` are used; prompts, tool input and transcript
 paths are discarded. Label values from payloads are sanitized and capped at 64
 characters.
 
+## Auditing what leaves the box
+
+Every `LabelPolicy` is registered with a privacy audit when its collector
+reads it, under the name `<collector>.<key>` (for example `browser.domains`).
+Each decision the filter makes is counted: `passed`, `other` (allowlist miss
+or cardinality fold), `redacted` (denylist hit or policy off), `hashed`. Raw
+values are never stored.
+
+- `GET /privacy` returns the dimensions with their effective policy (mode,
+  pattern count, hash, maxCardinality; never the patterns themselves), the
+  counts, the labels on every series, and whether each opt-in collector
+  (`input`, `mail`, `tabs`) is on.
+- `molly privacy` prints the same as a table (`--json` for the raw report). It
+  asks the running daemon; with no daemon it builds the collectors from the
+  config and shows policies with zero counts.
+- `molly_privacy_label_decisions_total{dimension,outcome}` carries the counts
+  into Prometheus.
+
+[PRIVACY.md](PRIVACY.md) lists every dimension, its default, the raw value it
+governs, and the metrics that carry it.
+
 ## Next steps
 
 - [METRICS.md](METRICS.md) lists the metrics each collector publishes.
+- [PRIVACY.md](PRIVACY.md) lists every sensitive label dimension.
 - [Getting started](GETTING-STARTED.md) covers permissions and the local stack.
 - [Collector deep dives](collectors/group-a.md): [B](collectors/group-b.md), [C](collectors/group-c.md), [D](collectors/group-d.md).

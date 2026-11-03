@@ -33,6 +33,9 @@ case "uninstall-agent":
 case "status":
     StatusCommand.run(commandArguments)
 
+case "privacy":
+    PrivacyCommand.run(commandArguments)
+
 case "config-path":
     print(Paths.configFile.path)
 

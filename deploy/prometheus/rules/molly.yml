@@ -114,3 +114,101 @@ groups:
         annotations:
           summary: Battery below 15% on {{ $labels.host }}
           description: Battery at {{ $value }}% and not on AC power.
+
+  # Informational anomaly alerts. They never page; Grafana shows them on the
+  # Health dashboard and as an "Anomalies today" tile on Overview.
+  - name: molly-anomalies
+    interval: 60s
+    rules:
+      # Edit this one number to change what counts as a big Claude day.
+      - record: molly:claude_spend_threshold_usd
+        expr: vector(50)
+
+      - alert: SwitchRateSpike
+        # Twice the 7 day median switch rate while active. The 0.5 floor on the
+        # baseline keeps a quiet week from making any activity look like a spike.
+        expr: >
+          molly:switch_rate:5m > 2 * quantile_over_time(0.5, molly:switch_rate:5m[7d])
+          and quantile_over_time(0.5, molly:switch_rate:5m[7d]) > 0.5
+          and on (user, host) molly_user_active == 1
+        for: 15m
+        labels:
+          severity: info
+        annotations:
+          summary: App switching is twice your weekly norm
+          description: "{{ $value | printf \"%.1f\" }} switches per minute on {{ $labels.host }} for 15 minutes. Something is pulling you around."
+
+      - alert: NoBreakFourHours
+        expr: min_over_time(molly_user_active[4h]) == 1 and count_over_time(molly_user_active[4h]) > 800
+        labels:
+          severity: info
+        annotations:
+          summary: 4 hours without a break
+          description: No 5 minute idle gap on {{ $labels.host }} for 4 hours.
+
+      - alert: ActiveDayNoCommits
+        # A long weekday with nothing committed. hour() is UTC; 22 is 17:00 or 18:00
+        # on the US east coast. Adjust for your timezone.
+        expr: >
+          molly:active_hours:1d > 6
+          and on (user, host) sum by (user, host) (increase(molly_git_commits_total{author="me"}[1d])) == 0
+          and on () (day_of_week() >= 1 < 6)
+          and on () (hour() >= 22 < 24)
+        labels:
+          severity: info
+        annotations:
+          summary: 6+ active hours and no commits today
+          description: "{{ $value | printf \"%.1f\" }} active hours on {{ $labels.host }} with nothing committed. Meetings, reading, or work outside git?"
+
+      - alert: MemoryPressureCritical
+        expr: molly_memory_pressure_level >= 4
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: Memory pressure critical on {{ $labels.host }}
+          description: macOS is at critical memory pressure for 5 minutes. Expect swapping and stalls.
+
+      - alert: HighClaudeSpend
+        expr: sum by (user, host) (increase(molly_claude_estimated_cost_usd_total[1d])) > scalar(molly:claude_spend_threshold_usd)
+        labels:
+          severity: info
+        annotations:
+          summary: Estimated Claude spend above threshold today
+          description: "About ${{ $value | printf \"%.2f\" }} in the last 24 hours on {{ $labels.host }} (threshold in molly:claude_spend_threshold_usd)."
+
+      - alert: MeetingMarathon
+        expr: sum by (user, host) (increase(molly_meeting_seconds_total[1d])) > 4 * 3600
+        labels:
+          severity: info
+        annotations:
+          summary: More than 4 hours of meetings today
+          description: "Microphone or camera in use for {{ $value | humanizeDuration }} in the last 24 hours."
+
+      - alert: DiskAlmostFull
+        expr: >
+          molly_disk_free_bytes{mount="/System/Volumes/Data"}
+          / molly_disk_total_bytes{mount="/System/Volumes/Data"} < 0.1
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: Less than 10% disk free on {{ $labels.host }}
+          description: "{{ $value | humanizePercentage }} of the data volume is free."
+
+      - alert: CollectorFailing
+        expr: increase(molly_collector_errors_total{collector!="codex"}[30m]) > 5
+        labels:
+          severity: info
+        annotations:
+          summary: Collector {{ $labels.collector }} keeps failing
+          description: "{{ $value | printf \"%.0f\" }} errors in 30 minutes. Run `molly doctor`; a permission is the usual cause."
+
+      - alert: ScrapeLarge
+        expr: scrape_samples_scraped{job="molly"} > 5000
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: Molly exposes more than 5000 series
+          description: "{{ $value }} samples per scrape. A label policy's maxCardinality is probably too generous; see /privacy."

@@ -11,6 +11,7 @@ enum Routes {
             /event       POST a JSON event (see docs/HOOKS.md)
             /collectors  per-collector status (JSON)
             /config      effective configuration (JSON, secrets redacted)
+            /privacy     every sensitive label dimension, its policy, and decision counts (JSON)
 
             """)
         }
@@ -39,6 +40,12 @@ enum Routes {
                 return o
             }
             return .json(["paused": manager.isPaused, "collectors": statuses])
+        }
+        router.get("/privacy") { _ in
+            .json(PrivacyAudit.shared.report(
+                constLabels: config.constLabels,
+                collectorsOn: manager.collectors.map { $0.name },
+                disabledByDefault: CollectorRegistry.disabledByDefault))
         }
         router.get("/config") { _ in
             var collectors: [String: Any] = [:]

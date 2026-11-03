@@ -73,13 +73,16 @@ struct LabelPolicy: Equatable {
 /// before it becomes a Prometheus label.
 final class LabelFilter {
     let policy: LabelPolicy
+    /// Audit name ("<collector>.<key>"); nil for ad-hoc filters in tests.
+    let dimension: String?
     private let matchers: [NSRegularExpression]
 
     /// A filter that exposes nothing.
     static let disabled = try! LabelFilter(policy: LabelPolicy(enabled: false))
 
-    init(policy: LabelPolicy) throws {
+    init(policy: LabelPolicy, dimension: String? = nil) throws {
         self.policy = policy
+        self.dimension = dimension
         self.matchers = try policy.patterns.map(LabelFilter.compile)
     }
 
@@ -96,16 +99,22 @@ final class LabelFilter {
     /// become "redacted". Values that pass are optionally replaced by a salted
     /// hash so dashboards can still distinguish them without naming them.
     func label(_ value: String) -> String {
-        guard enabled else { return LabelPolicy.redacted }
+        let (result, outcome) = decide(value)
+        if let dimension { PrivacyAudit.shared.record(dimension: dimension, outcome: outcome) }
+        return result
+    }
+
+    private func decide(_ value: String) -> (String, PrivacyAudit.Outcome) {
+        guard enabled else { return (LabelPolicy.redacted, .redacted) }
         let v = normalize(value)
-        if v.isEmpty { return LabelPolicy.other }
+        if v.isEmpty { return (LabelPolicy.other, .other) }
         let matched = matches(v)
         switch policy.mode {
-        case .allowlist where !matched: return LabelPolicy.other
-        case .denylist where matched: return LabelPolicy.redacted
+        case .allowlist where !matched: return (LabelPolicy.other, .other)
+        case .denylist where matched: return (LabelPolicy.redacted, .redacted)
         default: break
         }
-        return policy.hash ? LabelFilter.hash(v, salt: policy.salt) : v
+        return policy.hash ? (LabelFilter.hash(v, salt: policy.salt), .hashed) : (v, .passed)
     }
 
     /// Applies `label` to a map of counts, merging collisions and folding

@@ -16,6 +16,7 @@ enum Help {
       install-agent  start Molly at login (writes ~/Library/LaunchAgents/com.aschepis.molly.plist)
       uninstall-agent  stop Molly and remove the launch agent
       status         launch agent state, /healthz, and the Prometheus target
+      privacy        every sensitive label dimension, its policy, and decision counts (--json)
       config-path    print the config file location
       version        print the version
 

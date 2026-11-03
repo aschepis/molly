@@ -37,6 +37,7 @@ Published by the collector manager and the `process` collector (interval 30s).
 | `molly_collector_duration_seconds` | gauge | `collector` | seconds | wall time of the last run |
 | `molly_collector_last_success_timestamp_seconds` | gauge | `collector` | seconds (unix) | last successful run |
 | `molly_collector_enabled` | gauge | `collector` | bool | 1 when the collector started; 0 when it failed to start or was stopped |
+| `molly_privacy_label_decisions_total` | counter | `dimension` (`<collector>.<key>`), `outcome` (passed, other, redacted, hashed) | decisions | what each label policy did with the raw values it saw; see [PRIVACY.md](PRIVACY.md) |
 
 ## system (interval 15s)
 
