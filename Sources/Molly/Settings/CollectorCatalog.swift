@@ -76,6 +76,7 @@ enum CollectorCatalog {
         CollectorInfo(name: "shell", title: "Shell", summary: "Commands run per shell, and optionally command names and hosts.", defaultEnabled: true, defaultInterval: 60, permission: .none),
         CollectorInfo(name: "projects", title: "Projects", summary: "Which projects are active, merged from git, agents and the shell hook.", defaultEnabled: true, defaultInterval: 60, permission: .none),
         CollectorInfo(name: "power", title: "Power", summary: "Sleep, wake and charge events from the system power log.", defaultEnabled: true, defaultInterval: 300, permission: .none),
+        CollectorInfo(name: "forensics", title: "Forensics", summary: "Boots, shutdowns and crash, hang and panic reports that explain gaps.", defaultEnabled: true, defaultInterval: 300, permission: .none),
         CollectorInfo(name: "builds", title: "Builds", summary: "Compiler and test runner processes, as build activity.", defaultEnabled: true, defaultInterval: 15, permission: .none),
         CollectorInfo(name: "tabs", title: "Browser tabs", summary: "Open tab and window counts per browser via AppleScript.", defaultEnabled: false, defaultInterval: 60, permission: .automation),
         CollectorInfo(name: "media", title: "Media", summary: "Whether Music or Spotify is playing, optionally the track.", defaultEnabled: false, defaultInterval: 15, permission: .automation),

@@ -281,6 +281,11 @@ def annotate_activity(d):
     annotation(d, "Screen locked", m("molly_screen_locked") + " == 1", GRAY, "locked", "screen locked")
 
 
+def annotate_reboots(d):
+    annotation(d, "Rebooted", "changes(" + m("molly_boot_timestamp_seconds") + "[1m]) > 0",
+               CRIT, "reboot", "machine restarted")
+
+
 def table(d, title, items, renames, w=24, h=9, desc="", units=None, exclude=None, sort_by=None):
     """items: instant queries sharing a label set; merged into one row per series."""
     exclude = {k: True for k in (exclude or [])}
@@ -361,6 +366,7 @@ def overview():
                "Setup: `docs/INSIGHTS.md`.",
                h=3, desc="Reports are Markdown served by Molly; Grafana text panels cannot fetch them inline.")
     annotate_activity(d)
+    annotate_reboots(d)
     return d
 
 
@@ -667,6 +673,22 @@ def health():
          "Value #C": "Runs", "Value #D": "Errors", "Value #E": "Last duration"},
         units={"Last success age": "s", "Last duration": "s"}, h=12, sort_by="Last success age",
         desc="Last success age well above the collector interval means it is failing or unavailable.")
+    d.row("Boots and crashes")
+    stat(d, "Machine uptime", m("molly_uptime_seconds"), unit="s", w=4, h=5, spark=False, instant=True,
+         desc="Time since the current boot, from kern.boottime.")
+    stat(d, "Boots in range", "sum(increase(" + m("molly_boots_total") + "[$__range]))", w=4, h=5, spark=False,
+         decimals=0, desc="Reboots seen by Molly in the selected range.")
+    stat(d, "Last crash", "time() - " + m("molly_last_crash_timestamp_seconds"), unit="s", w=4, h=5, spark=False,
+         instant=True, desc="Age of the newest crash, hang, spin or panic report on disk.")
+    timeseries(d, "Boots and shutdowns (per day)", [
+        ("sum(increase(" + m("molly_boots_total") + "[1d]))", "boots"),
+        ("sum(increase(" + m("molly_shutdowns_total") + "[1d]))", "shutdowns")],
+        w=12, h=5, bars=True, min_=0, decimals=0)
+    timeseries(d, "Crash reports (per hour)", [
+        ("sum by (kind) (increase(" + m("molly_crash_reports_total") + "[1h]))", "{{kind}}")],
+        w=24, h=7, bars=True, stack=True, min_=0, decimals=0,
+        desc="Crash, hang, spin and kernel panic reports from DiagnosticReports.")
+    annotate_reboots(d)
     d.row("Alerts")
     table(d, "Firing alerts", [
         # Seconds since the alert became active where Prometheus tracks it (alerts with a `for`),

@@ -366,6 +366,20 @@ Details: [group C](collectors/group-c.md#projects).
 | `molly_project_last_activity_timestamp_seconds` | gauge | `project` **policy** `projects`, `source` (git, claude, shell) | seconds (unix) | latest activity |
 | `molly_projects_active` | gauge | | count | active projects, not capped by the policy |
 
+## forensics (interval 300s)
+
+Policy `processes` (default enabled, denylist, 30) governs the `process` label. Sources: `sysctl -n kern.boottime`, `last -y shutdown`, and report filenames in the two DiagnosticReports folders. `kind` is `crash`, `hang`, `spin` or `panic`; kernel panics report process `kernel`.
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_boot_timestamp_seconds` | gauge | | seconds (unix) | current boot, from `kern.boottime` |
+| `molly_uptime_seconds` | gauge | | seconds | time since the current boot |
+| `molly_boots_total` | counter | | boots | new boot timestamps seen since Molly first ran; never backfilled |
+| `molly_shutdowns_total` | counter | | shutdowns | `last shutdown` entries newer than the cursor; the first run backfills `backfillSeconds` |
+| `molly_crash_reports_total` | counter | `kind` | reports | reports newer than the cursor (file modification time); the first run backfills `backfillSeconds` |
+| `molly_crash_reports_by_process_total` | counter | `kind`, `process` **policy** `processes` | reports | the same reports split by process; absent when the policy is disabled |
+| `molly_last_crash_timestamp_seconds` | gauge | | seconds (unix) | modification time of the newest report on disk |
+
 ## power (interval 300s)
 
 No policies. Parsed from `pmset -g log` plus `kern.boottime`. Wake reasons are a fixed set: `lid`, `power button`, `user activity`, `scheduled`, `notification`, `other`. Details: [group D](collectors/group-d.md#power).
