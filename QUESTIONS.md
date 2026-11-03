@@ -1,6 +1,53 @@
 # Questions for Adam
 
-Things I could not resolve on my own. Each has a default I took so work
+Things I could not resolve on my own. Each has the default I took so work
 could continue; change the default and the code will follow.
 
-(none yet)
+## Claude pricing table
+`collectors.claude_code.pricing` ships built-in per-million-token prices for
+opus/sonnet/haiku rows that are plausible list prices and a `claude-fable`
+row that is a guess (15 in / 75 out / 1.5 cache read / 18.75 cache write).
+`molly_claude_estimated_cost_usd_total` is only as good as this table.
+Default: documented as an estimate; override in config.
+
+## Codex session format
+No `~/.codex/sessions` on this machine, so the `codex` collector's parser was
+written from recollection of the rollout JSONL format and tested only on
+fixtures. Default: collector reports unavailable until the folder exists.
+If you use Codex elsewhere, a sample file would let me verify it.
+
+## Messages and Mail defaults
+`messages` is on by default (counts only, per service and direction, never
+content or contacts). `mail` is off by default. mac-timeline shipped
+communication volume off; I kept messages on because you listed "messages
+sent" as a must-have. Say if you want it off.
+
+## Full Disk Access for the daemon
+The terminal already has it, so `swift run` works. The launch agent runs the
+built binary or Molly.app, which needs its own grant in System Settings >
+Privacy & Security > Full Disk Access. `molly doctor` tells you which sources
+are unreadable. Default: nothing installed; `make install` then
+`molly install-agent` when you are ready.
+
+## Wi-Fi SSID needs Location Services
+macOS only reveals the SSID to processes with Location permission. Default:
+`system.wifi` policy disabled; `molly_network_wifi_connected` still reports.
+
+## Browser tab counts need Automation permission
+The `tabs` collector (loop 1) asks Safari/Chrome via AppleScript, which
+prompts once per browser. Default: disabled.
+
+## Input intensity needs Accessibility
+The `input` collector (loop 1) counts key/click events (never keycodes) via a
+listen-only event tap. Default: disabled.
+
+## Hooks into ~/.claude/settings.json
+`molly hook install` (loop 1) merges hook entries into your Claude Code
+settings with a backup. I did not run it on this machine. Default: not
+installed; `molly hook snippet` prints what it would add.
+
+## Unknown config keys are ignored silently
+`molly validate` warns about unknown collector sections but not unknown keys
+inside a section (each collector reads its keys dynamically). A typo like
+`intervl` is ignored. Fixing this needs a per-collector key manifest; on the
+roadmap, not done.
