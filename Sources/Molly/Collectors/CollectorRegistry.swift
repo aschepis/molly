@@ -15,11 +15,17 @@ enum CollectorRegistry {
         }
 
         try add("process") { ProcessSelfCollector(settings: $0) }
+        try add("browser") { try BrowserCollector(settings: $0) }
+        try add("messages") { MessagesCollector(settings: $0) }
+        try add("notes") { try NotesCollector(settings: $0) }
+        try add("knowledge") { try KnowledgeCollector(settings: $0) }
+        try add("calendar") { try CalendarCollector(settings: $0) }
+        try add("mail", defaultEnabled: false) { MailCollector(settings: $0) }
         return collectors
     }
 }
 
 extension CollectorRegistry {
     /// Names with a config section; `molly validate` warns about anything else.
-    static let knownNames: Set<String> = ["process"]
+    static let knownNames: Set<String> = ["process", "browser", "messages", "notes", "knowledge", "calendar", "mail"]
 }
