@@ -8,6 +8,7 @@ enum Routes {
             Molly \(Version.current)
             /metrics     Prometheus exposition
             /healthz     liveness
+            /event       POST a JSON event (see docs/HOOKS.md)
             /collectors  per-collector status (JSON)
             /config      effective configuration (JSON, secrets redacted)
 
@@ -17,6 +18,16 @@ enum Routes {
             .text(manager.registry.render(), contentType: "text/plain; version=0.0.4; charset=utf-8")
         }
         router.get("/healthz") { _ in .text("ok\n") }
+        router.post("/event") { request in
+            guard let events = manager.collector(as: EventsCollector.self) else {
+                return .text("events collector disabled\n", status: 503)
+            }
+            switch events.handle(body: request.body, authorization: request.headers["authorization"]) {
+            case .accepted: return HTTPResponse(status: 204, headers: [:], body: Data())
+            case .unauthorized: return .text("unauthorized\n", status: 401)
+            case .badRequest(let why): return .text("bad request: \(why)\n", status: 400)
+            }
+        }
         router.get("/collectors") { _ in
             let statuses = manager.allStatuses.map { s -> [String: Any] in
                 var o: [String: Any] = [

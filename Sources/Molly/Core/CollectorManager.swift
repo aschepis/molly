@@ -57,6 +57,10 @@ final class CollectorManager {
 
     var collectors: [Collector] { entries.map { $0.collector } }
 
+    func collector<T: Collector>(as type: T.Type) -> T? {
+        entries.lazy.compactMap { $0.collector as? T }.first
+    }
+
     var allStatuses: [Status] {
         lock.lock()
         defer { lock.unlock() }

@@ -8,6 +8,7 @@ struct HTTPRequest {
     var path: String
     var query: [String: String]
     var headers: [String: String]
+    var body: Data = Data()
 }
 
 struct HTTPResponse {
@@ -47,9 +48,12 @@ struct HTTPResponse {
     static func reason(for status: Int) -> String {
         switch status {
         case 200: return "OK"
+        case 204: return "No Content"
         case 400: return "Bad Request"
+        case 401: return "Unauthorized"
         case 404: return "Not Found"
         case 405: return "Method Not Allowed"
+        case 413: return "Payload Too Large"
         case 500: return "Internal Server Error"
         case 503: return "Service Unavailable"
         default: return "Status \(status)"
@@ -61,8 +65,12 @@ enum HTTPRequestParser {
     enum Result {
         case incomplete
         case invalid
+        case tooLarge
         case request(HTTPRequest)
     }
+
+    /// Bodies beyond this are refused with 413; /event payloads are tiny.
+    static let maxBodyBytes = 64 * 1024
 
     static func parse(_ buffer: Data) -> Result {
         guard let headerEnd = buffer.range(of: Data("\r\n\r\n".utf8)) else {
@@ -79,8 +87,15 @@ enum HTTPRequestParser {
             guard let colon = line.firstIndex(of: ":") else { return .invalid }
             headers[line[..<colon].lowercased()] = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
         }
+        let contentLength = headers["content-length"].flatMap(Int.init) ?? 0
+        guard contentLength >= 0 else { return .invalid }
+        guard contentLength <= maxBodyBytes else { return .tooLarge }
+        let bodyStart = headerEnd.upperBound
+        guard buffer.distance(from: bodyStart, to: buffer.endIndex) >= contentLength else { return .incomplete }
+        let body = buffer.subdata(in: bodyStart..<buffer.index(bodyStart, offsetBy: contentLength))
         let (path, query) = parseTarget(String(parts[1]))
-        return .request(HTTPRequest(method: String(parts[0]).uppercased(), path: path, query: query, headers: headers))
+        return .request(HTTPRequest(method: String(parts[0]).uppercased(), path: path, query: query,
+                                    headers: headers, body: body))
     }
 
     static func parseTarget(_ target: String) -> (path: String, query: [String: String]) {
@@ -108,14 +123,18 @@ final class Router {
         routes.append(("GET", path, handler))
     }
 
+    func post(_ path: String, _ handler: @escaping Handler) {
+        routes.append(("POST", path, handler))
+    }
+
     func route(_ request: HTTPRequest) -> HTTPResponse {
-        for route in routes where route.path == request.path {
+        let matching = routes.filter { $0.path == request.path }
+        for route in matching {
             if route.method == request.method || (route.method == "GET" && request.method == "HEAD") {
                 return route.handler(request)
             }
-            return .text("method not allowed\n", status: 405)
         }
-        return .notFound()
+        return matching.isEmpty ? .notFound() : .text("method not allowed\n", status: 405)
     }
 }
 
@@ -154,7 +173,7 @@ final class HTTPServer {
     private func handle(_ connection: NWConnection) {
         var buffer = Data()
         func receive() {
-            connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { data, _, isComplete, error in
+            connection.receive(minimumIncompleteLength: 1, maximumLength: 2 * HTTPRequestParser.maxBodyBytes) { data, _, isComplete, error in
                 if let data { buffer.append(data) }
                 if error != nil {
                     connection.cancel()
@@ -165,6 +184,8 @@ final class HTTPServer {
                     if isComplete { connection.cancel() } else { receive() }
                 case .invalid:
                     self.send(.text("bad request\n", status: 400), on: connection)
+                case .tooLarge:
+                    self.send(.text("payload too large\n", status: 413), on: connection)
                 case .request(let request):
                     self.onRequest?(request)
                     self.send(self.router.route(request), on: connection)

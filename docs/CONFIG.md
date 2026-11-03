@@ -65,7 +65,7 @@ and domain names, to your network. See [Getting started](GETTING-STARTED.md#usin
 
 Sections are keyed by these names: `process`, `system`, `processes`, `focus`,
 `docker`, `meeting`, `browser`, `messages`, `notes`, `knowledge`, `calendar`,
-`mail`, `git`, `claude_code`, `cursor`, `codex`, `shell`, `projects`.
+`mail`, `git`, `claude_code`, `cursor`, `codex`, `shell`, `projects`, `events`.
 
 ## LabelPolicy reference
 
@@ -500,6 +500,22 @@ Interval 60s, **disabled by default**. Enable it with `"enabled": true`.
 Permissions: Automation, one prompt per browser on first run. Privacy: only
 window and tab counts are requested; titles and URLs are never read.
 Details: [group D](collectors/group-d.md#tabs).
+
+### events
+
+Interval 60s, enabled by default. Receives `POST /event`, the target of
+`molly hook` (Claude Code hooks) and of any script. See [HOOKS.md](HOOKS.md).
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `activeWindowSeconds` | number | `300` | a hook session counts as active this long after its last event |
+| `token` | string | `""` | when set, requests must carry `Authorization: Bearer <token>` |
+| `projects` | policy | enabled, denylist, 30 | the `project` label derived from the hook's `cwd` |
+
+Permissions: none. Privacy: only `hook_event_name`, `tool_name`, `session_id`
+and the project name from `cwd` are used; prompts, tool input and transcript
+paths are discarded. Label values from payloads are sanitized and capped at 64
+characters.
 
 ## Next steps
 

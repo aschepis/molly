@@ -313,6 +313,20 @@
       "enabled": false,
       "interval": 60,
       "browsers": ["safari", "chrome", "brave", "arc", "edge", "vivaldi"]
+    },
+    "events": {
+      "enabled": true,
+      "interval": 60,
+      "activeWindowSeconds": 300,
+      "token": "",
+      "projects": {
+        "enabled": true,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 30
+      }
     }
   }
 }
