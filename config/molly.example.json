@@ -421,6 +421,15 @@
       "allowRemoteBind": false,
       "detailedInsights": false
     },
+    "alerts": {
+      "enabled": true,
+      "interval": 30,
+      "prometheusURL": "http://localhost:9090",
+      "notify": true,
+      "muted": [],
+      "minSeverity": "info",
+      "repeatAfterSeconds": 14400
+    },
     "insights": {
       "enabled": false,
       "interval": 300,

@@ -76,7 +76,7 @@ and domain names, to your network. See [Getting started](GETTING-STARTED.md#usin
 
 Sections are keyed by these names: `process`, `system`, `network`, `processes`, `focus`,
 `docker`, `meeting`, `browser`, `messages`, `notes`, `knowledge`, `calendar`,
-`reminders`, `mail`, `git`, `claude_code`, `cursor`, `codex`, `shell`, `projects`, `events`, `health`.
+`reminders`, `mail`, `git`, `claude_code`, `cursor`, `codex`, `shell`, `projects`, `events`, `health`, `alerts`.
 
 ## LabelPolicy reference
 
@@ -660,6 +660,23 @@ subscription budget. See [INSIGHTS.md](INSIGHTS.md).
 
 Permissions: none. Privacy: only the policy-filtered digest of aggregate
 numbers is sent, and only to the backend you configured.
+
+### alerts
+
+Interval 30s, enabled by default. Polls Prometheus for firing alerts (the local
+stack has no Alertmanager) and posts a macOS notification with the alert's
+`summary` and `description` when one starts firing. Notifications need
+`Molly.app`; from `swift run` metrics still publish and one warning is logged.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `prometheusURL` | string | `links.prometheus` | where to read `/api/v1/alerts` |
+| `notify` | bool | `true` | post notifications; permission is requested the first time an alert fires |
+| `muted` | string array | `[]` | alert names that never notify (they still publish `molly_alert_active`) |
+| `minSeverity` | string | `"info"` | `info`, `warning` or `critical`; lower severities do not notify |
+| `repeatAfterSeconds` | number | `14400` | an alert that flaps is not notified again within this window |
+
+Permissions: notifications (asked once, lazily). Privacy: alert names only.
 
 ## Auditing what leaves the box
 

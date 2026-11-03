@@ -34,3 +34,24 @@ extension SettingsModel {
         Binding(get: { self.policy(dimension).maxCardinality }, set: { self.setPolicyMaxCardinality(dimension, $0) })
     }
 }
+
+extension SettingsModel {
+    var alertsNotify: Bool {
+        get { get(["collectors", "alerts", "notify"])?.boolValue ?? true }
+        set { set(["collectors", "alerts", "notify"], .bool(newValue)) }
+    }
+
+    var mutedAlerts: Set<String> {
+        Set((get(["collectors", "alerts", "muted"])?.arrayValue ?? []).compactMap { $0.stringValue })
+    }
+
+    func setAlertMuted(_ name: String, _ muted: Bool) {
+        var names = mutedAlerts
+        if muted { names.insert(name) } else { names.remove(name) }
+        set(["collectors", "alerts", "muted"], names.isEmpty ? nil : .array(names.sorted().map { .string($0) }))
+    }
+
+    func alertMutedBinding(_ name: String) -> Binding<Bool> {
+        Binding(get: { self.mutedAlerts.contains(name) }, set: { self.setAlertMuted(name, $0) })
+    }
+}

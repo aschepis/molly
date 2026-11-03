@@ -390,6 +390,11 @@ def overview():
     stat(d, "Anomalies firing", 'count(ALERTS{alertstate="firing", severity="info", alertname!="MollyDown"}) or vector(0)',
          w=4, h=5, spark=False, decimals=0, instant=True, th=[(None, GOOD), (1, WARN)],
          desc="Informational alerts currently firing (see Health > Alerts). Built-in series; not filtered by user/host.")
+    d.row("Alerts")
+    table(d, "Firing alerts", [(m("molly_alert_active") + " == 1", "A")],
+          {"alertname": "Alert", "severity": "Severity", "Value": "Firing"}, h=6,
+          exclude=["Value"],
+          desc="Alerts Molly saw firing on its last poll. Empty means nothing is firing, or the alerts collector is off.")
     d.row("Output today")
     stat(d, "Messages sent", "sum(" + m("molly_messages_today", 'direction="sent"') + ")", w=6, h=4, spark=False,
          decimals=0, instant=True)

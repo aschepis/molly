@@ -296,6 +296,15 @@ enum Presets {
     static let balanced = #"""
 {
   "collectors": {
+    "alerts": {
+      "enabled": true,
+      "interval": 30,
+      "minSeverity": "info",
+      "muted": [],
+      "notify": true,
+      "prometheusURL": "http://localhost:9090",
+      "repeatAfterSeconds": 14400
+    },
     "browser": {
       "browsers": [],
       "domains": {

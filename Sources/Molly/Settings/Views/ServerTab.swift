@@ -15,6 +15,7 @@ struct ServerTab: View {
             endpointSection
             linksSection
             labelsSection
+            alertsSection
             hooksSection
             loggingSection
         }
@@ -58,6 +59,26 @@ struct ServerTab: View {
                 TextField("Prometheus", text: model.binding(\.prometheusURL))
                 Button("Open") { Browser.open(model.prometheusURL) }
             }
+        }
+    }
+
+    private var alertsSection: some View {
+        Section {
+            Toggle("Show macOS notifications for firing alerts", isOn: model.binding(\.alertsNotify))
+            ForEach(AlertCatalog.all, id: \.name) { alert in
+                Toggle(isOn: model.alertMutedBinding(alert.name)) {
+                    VStack(alignment: .leading) {
+                        Text("Mute \(alert.name)")
+                        Text(alert.summary).font(.caption).foregroundColor(.secondary)
+                    }
+                }
+            }
+        } header: {
+            Text("Alerts")
+        } footer: {
+            Text("Notifications need Molly.app and permission in System Settings. Muted alerts still show on the dashboards.")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
     }
 

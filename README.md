@@ -48,6 +48,7 @@ _Screenshots of the Overview, Focus and Developer dashboards go here._
 - [Metrics](docs/METRICS.md): every metric name, label and unit
 - [Configuration](docs/CONFIG.md): every config key, label policies, example configs
 - [Hooks](docs/HOOKS.md): live Claude Code events via `molly hook` and `POST /event`
+- Alerts: the Prometheus rules fire as macOS notifications (mute per alert in Settings > Server), with a firing count in the menu bar and a Firing alerts table on Overview; see `alerts` in [docs/CONFIG.md](docs/CONFIG.md)
 - [Health](docs/HEALTH.md): opt-in Apple Health data from an iPhone Shortcut, a Body dashboard, and `molly health import` for history
 - [MCP](docs/MCP.md): `molly mcp`, read-only query tools for Claude Code and other MCP clients
 - [Privacy](docs/PRIVACY.md): every sensitive label dimension, its default, and `/privacy` for auditing

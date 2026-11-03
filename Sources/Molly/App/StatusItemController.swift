@@ -9,6 +9,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusLine = NSMenuItem(title: "Recording", action: nil, keyEquivalent: "")
     private let scrapeLine = NSMenuItem(title: "Not scraped yet", action: nil, keyEquivalent: "")
     private let endpointLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private let alertsLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let pauseItem = NSMenuItem(title: "Pause", action: nil, keyEquivalent: "")
     private let insightsItem = NSMenuItem(title: "Open Latest Insights", action: nil, keyEquivalent: "")
     private let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: nil, keyEquivalent: "")
@@ -35,6 +36,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             line.isEnabled = false
             menu.addItem(line)
         }
+        alertsLine.action = #selector(openAlerts)
+        alertsLine.target = self
+        alertsLine.isHidden = true
+        menu.addItem(alertsLine)
         let statusParent = NSMenuItem(title: "Status", action: nil, keyEquivalent: "")
         statusParent.submenu = statusSubmenu
         menu.addItem(statusParent)
@@ -88,6 +93,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             scrapeLine.title = "Not scraped yet (is Prometheus running?)"
         }
         endpointLine.title = serverURL("/metrics")
+        let firing = AlertsStatus.firingCount
+        alertsLine.isHidden = firing == 0
+        alertsLine.title = MenuModel.alertsLine(firing: firing)
         pauseItem.title = runtime.manager.isPaused ? "Resume" : "Pause"
         statusItem.button?.appearsDisabled = runtime.manager.isPaused
         insightsItem.isEnabled = MenuModel.hasInsights(folder: Paths.dataFolder.appendingPathComponent("insights"))
@@ -148,6 +156,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     @objc private func openGrafana() { open(runtime.config.links.grafana) }
+    @objc private func openAlerts() { open(MenuModel.healthDashboardURL(grafana: runtime.config.links.grafana)) }
     @objc private func openPrometheus() { open(runtime.config.links.prometheus) }
     @objc private func openMetrics() { open(serverURL("/metrics")) }
     @objc private func openCollectors() { open(serverURL("/collectors")) }

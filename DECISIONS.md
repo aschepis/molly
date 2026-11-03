@@ -143,3 +143,12 @@ the matching series from Prometheus needs the admin API and a metric-prefix
 match that `molly prune` does not have yet; doing it silently would also
 surprise anyone keeping long history on purpose. The tab says so and points
 to `molly prune`.
+
+## 2026-11-03 Molly polls Prometheus for alerts instead of running Alertmanager
+
+The sixteen rules in `molly.yml` fired into nothing. Alertmanager would add a
+fourth container, a routing config and a webhook route into Molly just to
+reach a desktop notification. The `alerts` collector polls `/api/v1/alerts`
+every 30s instead, so notifications use the app's own permission and mute list.
+Cost: nothing is delivered while Molly is not running, and a restart forgets
+the debounce, so a still-firing alert notifies again.

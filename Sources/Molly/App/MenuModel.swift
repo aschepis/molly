@@ -26,6 +26,14 @@ enum MenuModel {
         }
     }
 
+    static func alertsLine(firing: Int) -> String {
+        "\(firing) alert\(firing == 1 ? "" : "s") firing"
+    }
+
+    static func healthDashboardURL(grafana: String) -> String {
+        grafana.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/d/molly-health"
+    }
+
     /// Summary for the doctor notification.
     static func doctorSummary(_ checks: [DoctorCommand.Check]) -> String {
         let failing = checks.filter { !$0.ok }

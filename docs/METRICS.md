@@ -539,6 +539,18 @@ after local midnight; a bedtime before noon counts past 24:00 (23:30 is 84600,
 | `molly_health_bedtime_seconds` | gauge | | seconds | bedtime of that night, after the previous midnight |
 | `molly_health_day` | gauge | `type` | per type | one value per local day at 12:00, written only by `molly health import` (not exposed on `/metrics`) |
 
+## alerts (interval 30s)
+
+No policies. Polls `GET /api/v1/alerts` on Prometheus and posts a macOS
+notification when an alert starts firing. Prometheus being down is a normal
+state: the collector reports unavailable once and keeps trying.
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_alert_active` | gauge | `alertname`, `severity` | 1 or 0 | 1 while firing, 0 for an alert seen earlier that resolved (until restart) |
+| `molly_alert_notifications_total` | counter | `alertname` | count | notifications handed to macOS; muted, below-`minSeverity` and debounced alerts are not counted |
+| `molly_alert_notifications_authorized` | gauge | | -1, 0, 1 | notification permission: 1 granted, 0 denied or no app bundle, -1 not asked yet |
+
 ## insights (interval 300s, disabled by default)
 
 No policies. Only present when the `insights` collector is enabled. Details: [INSIGHTS.md](INSIGHTS.md).

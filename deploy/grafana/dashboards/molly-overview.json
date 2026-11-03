@@ -640,11 +640,99 @@
     {
       "id": 9,
       "type": "row",
-      "title": "Output today",
+      "title": "Alerts",
       "collapsed": false,
       "gridPos": {
         "x": 0,
         "y": 11,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Firing alerts",
+      "description": "Alerts Molly saw firing on its last poll. Empty means nothing is firing, or the alerts collector is off.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "molly_alert_active{user=~\"$user\",host=~\"$host\"} == 1",
+          "legendFormat": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#2a78d6"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": []
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Value": true,
+              "Time": true,
+              "user": true,
+              "host": true,
+              "job": true,
+              "instance": true,
+              "__name__": true
+            },
+            "renameByName": {
+              "alertname": "Alert",
+              "severity": "Severity",
+              "Value": "Firing"
+            }
+          }
+        }
+      ],
+      "id": 10,
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "Output today",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 18,
         "w": 24,
         "h": 1
       },
@@ -693,10 +781,10 @@
         "justifyMode": "auto",
         "orientation": "auto"
       },
-      "id": 10,
+      "id": 12,
       "gridPos": {
         "x": 0,
-        "y": 12,
+        "y": 19,
         "w": 6,
         "h": 4
       },
@@ -748,10 +836,10 @@
         "justifyMode": "auto",
         "orientation": "auto"
       },
-      "id": 11,
+      "id": 13,
       "gridPos": {
         "x": 6,
-        "y": 12,
+        "y": 19,
         "w": 6,
         "h": 4
       },
@@ -805,10 +893,10 @@
       },
       "timeFrom": "now/d",
       "hideTimeOverride": true,
-      "id": 12,
+      "id": 14,
       "gridPos": {
         "x": 12,
-        "y": 12,
+        "y": 19,
         "w": 6,
         "h": 4
       },
@@ -862,10 +950,10 @@
       },
       "timeFrom": "now/d",
       "hideTimeOverride": true,
-      "id": 13,
+      "id": 15,
       "gridPos": {
         "x": 18,
-        "y": 12,
+        "y": 19,
         "w": 6,
         "h": 4
       },
@@ -875,13 +963,13 @@
       }
     },
     {
-      "id": 14,
+      "id": 16,
       "type": "row",
       "title": "Focus and activity",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 16,
+        "y": 23,
         "w": 24,
         "h": 1
       },
@@ -930,10 +1018,10 @@
           "mode": "single"
         }
       },
-      "id": 15,
+      "id": 17,
       "gridPos": {
         "x": 0,
-        "y": 17,
+        "y": 24,
         "w": 24,
         "h": 8
       },
@@ -1010,10 +1098,10 @@
           "mode": "single"
         }
       },
-      "id": 16,
+      "id": 18,
       "gridPos": {
         "x": 0,
-        "y": 25,
+        "y": 32,
         "w": 24,
         "h": 3
       },
@@ -1023,13 +1111,13 @@
       }
     },
     {
-      "id": 17,
+      "id": 19,
       "type": "row",
       "title": "Machine",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 28,
+        "y": 35,
         "w": 24,
         "h": 1
       },
@@ -1088,10 +1176,10 @@
           "sort": "desc"
         }
       },
-      "id": 18,
+      "id": 20,
       "gridPos": {
         "x": 0,
-        "y": 29,
+        "y": 36,
         "w": 12,
         "h": 6
       },
@@ -1153,10 +1241,10 @@
           "sort": "desc"
         }
       },
-      "id": 19,
+      "id": 21,
       "gridPos": {
         "x": 12,
-        "y": 29,
+        "y": 36,
         "w": 12,
         "h": 6
       },
@@ -1166,13 +1254,13 @@
       }
     },
     {
-      "id": 20,
+      "id": 22,
       "type": "row",
       "title": "Insights",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 35,
+        "y": 42,
         "w": 24,
         "h": 1
       },
@@ -1186,10 +1274,10 @@
         "mode": "markdown",
         "content": "Molly can write a daily narrative with recommendations from this data (`molly insights`, or enable the `insights` collector). Open the latest report: [127.0.0.1:9765/insights/latest](http://127.0.0.1:9765/insights/latest). Setup: `docs/INSIGHTS.md`."
       },
-      "id": 21,
+      "id": 23,
       "gridPos": {
         "x": 0,
-        "y": 36,
+        "y": 43,
         "w": 24,
         "h": 3
       },

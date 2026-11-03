@@ -51,6 +51,7 @@ enum CollectorRegistry {
         try add("titles", defaultEnabled: false) { try TitlesCollector(settings: $0, config: config) }
         try add("events") { try EventsCollector(settings: $0) }
         try add("health", defaultEnabled: false) { HealthCollector(settings: $0, bind: config.server.bind) }
+        try add("alerts") { try AlertsCollector(settings: $0, config: config) }
         try add("insights", defaultEnabled: false) { try InsightsCollector(settings: $0, config: config) }
         return collectors
     }
@@ -62,6 +63,6 @@ extension CollectorRegistry {
         "process", "system", "network", "processes", "focus", "docker", "meeting", "input", "clipboard", "hardware",
         "browser", "messages", "notes", "knowledge", "calendar", "reminders", "mail",
         "git", "claude_code", "cursor", "codex", "shell", "projects",
-        "power", "forensics", "builds", "tabs", "events", "insights", "media", "gaming", "titles", "health",
+        "power", "forensics", "builds", "tabs", "events", "insights", "media", "gaming", "titles", "health", "alerts",
     ]
 }

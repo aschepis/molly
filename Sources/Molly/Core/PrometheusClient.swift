@@ -82,6 +82,11 @@ struct PrometheusClient {
         try query(promql, at: at).first?.value
     }
 
+    /// Raw body of `GET /api/v1/alerts`; parsed by `AlertsParser`.
+    func alertsJSON() throws -> Data {
+        try get("/api/v1/alerts", [])
+    }
+
     func isReady() -> Bool {
         (try? get("/-/ready", [])) != nil
     }
