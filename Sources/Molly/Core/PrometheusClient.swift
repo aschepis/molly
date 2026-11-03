@@ -33,7 +33,10 @@ struct PrometheusClient {
     var timeout: TimeInterval = 15
 
     init(baseURL: String) throws {
-        guard let url = URL(string: baseURL) else { throw ClientError.unreachable("bad url \(baseURL)") }
+        guard let url = URL(string: baseURL), let scheme = url.scheme, ["http", "https"].contains(scheme),
+              url.host != nil else {
+            throw ClientError.unreachable("bad url \(baseURL)")
+        }
         self.baseURL = url
     }
 
