@@ -5,7 +5,7 @@ import Foundation
 enum CollectorRegistry {
     /// Collectors that need an explicit opt-in because of permissions or
     /// sensitivity. Must match the `defaultEnabled: false` lines below.
-    static let disabledByDefault: Set<String> = ["input", "mail", "tabs", "media", "titles", "insights"]
+    static let disabledByDefault: Set<String> = ["input", "mail", "tabs", "media", "titles", "insights", "health"]
 
     static func makeCollectors(config: Config) throws -> [Collector] {
         var collectors: [Collector] = []
@@ -50,6 +50,7 @@ enum CollectorRegistry {
         try add("gaming") { try GamingCollector(settings: $0) }
         try add("titles", defaultEnabled: false) { try TitlesCollector(settings: $0, config: config) }
         try add("events") { try EventsCollector(settings: $0) }
+        try add("health", defaultEnabled: false) { HealthCollector(settings: $0, bind: config.server.bind) }
         try add("insights", defaultEnabled: false) { try InsightsCollector(settings: $0, config: config) }
         return collectors
     }
@@ -61,6 +62,6 @@ extension CollectorRegistry {
         "process", "system", "network", "processes", "focus", "docker", "meeting", "input", "clipboard", "hardware",
         "browser", "messages", "notes", "knowledge", "calendar", "reminders", "mail",
         "git", "claude_code", "cursor", "codex", "shell", "projects",
-        "power", "forensics", "builds", "tabs", "events", "insights", "media", "gaming", "titles",
+        "power", "forensics", "builds", "tabs", "events", "insights", "media", "gaming", "titles", "health",
     ]
 }

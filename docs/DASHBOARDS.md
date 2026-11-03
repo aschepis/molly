@@ -59,6 +59,8 @@ from a single scrape. The dashboards below use them.
 | `molly:gaming_seconds:increase1h`, `:increase1d` | gaming seconds in the window, from `molly_gaming_platform_seconds_total` |
 | `molly:gaming_late_night_seconds:increase1d` | gaming seconds between 23:00 and 05:00 local in the trailing 24h |
 | `molly:local_utc_offset_hours` | your UTC offset in whole hours (default -5); Prometheus `hour()` is UTC, so the late-night window needs it. Edit it in the rules file; DST is not handled |
+| `molly:health_sleep_minutes:last_night` | minutes asleep last night, from the health collector |
+| `molly:active_unbroken_hours:1d` | hours in the last day with no 5 minute idle gap; stands in for "longest sedentary stretch", which Molly cannot see without per-minute steps |
 
 The flow thresholds are a starting point. Change them in the rules file, run
 `curl -X POST localhost:9090/-/reload`, and every panel follows.
@@ -77,6 +79,7 @@ user/host labels.
 | `LongSessionNoBreak` | `molly_user_active` stayed 1 for 2 hours | no 5 minute idle gap; take a break |
 | `NoBreakFourHours` | the same for 4 hours | |
 | `LongGamingSession` | `molly_gaming_session_seconds` above 3 hours | one unbroken gaming session |
+| `NotStandingEnough` | active 90 minutes while neither stand hours nor steps changed, and the phone posted in that window | stand up; only fires with the health collector on |
 | `HighMemoryPressure` | pressure level 2 or more for 10 minutes | macOS is compressing memory |
 | `MemoryPressureCritical` | pressure level 4 for 5 minutes | expect swapping and stalls |
 | `BatteryLow` | under 15% and not on AC | |
@@ -179,6 +182,33 @@ timeline of alert history (see [Alerts](#alerts)).
 Look for: a collector whose last-success age is far beyond its interval
 (failing or missing permission), error counts that keep rising, and scrape
 duration approaching the 15 second scrape interval.
+
+## Body (`molly-body`)
+
+Purpose: set Apple Health numbers against how you worked. Needs the `health`
+collector ([HEALTH.md](HEALTH.md)); every panel is empty until the iPhone
+Shortcut has posted. Default range is 14 days.
+
+Panels: today tiles (steps, stand hours, exercise, active energy, resting HR,
+HRV, sleep last night, bedtime); sleep vs flow hours and vs app switching;
+bedtime; stand hours vs unbroken active hours; steps vs active hours; exercise
+vs commits; daylight; resting HR vs meeting hours and HRV vs interruptions
+(seven day rolling); a grid of the remaining types; and a pipeline row (age of
+the last post, samples accepted and rejected).
+
+Daily series work with live and imported data: each is
+`molly_health_yesterday offset -1d or molly_health_today or
+last_over_time(molly_health_day[1d] offset -12h)`, so a day shows its final
+total once it is over, the running total while it is in progress, and the
+`molly health import` value for history with no live data. Where Molly has no
+counterpart series the health series stands alone and the panel description
+says so: bedtime (no late-night work or gaming rule) and daylight (no
+afternoon-focus rule). Work-side series (flow, active hours, commits) are the
+trailing 24 hours, so they line up with a calendar day only at its end.
+
+Look for: short nights followed by low flow or fast switching, a resting heart
+rate that climbs through a meeting-heavy week, and days with many active hours
+and few steps.
 
 ## Week (`molly-week`)
 

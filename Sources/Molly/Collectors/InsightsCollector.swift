@@ -19,6 +19,7 @@ final class InsightsCollector: Collector {
             client: client, store: InsightsStore(),
             user: config.constLabels["user"] ?? Config.defaultUser,
             host: config.constLabels["host"] ?? Config.defaultHost,
+            extraQueries: DigestQueries.health(config: config),
             makeCompleter: { try NarrativeBackend.make(choice: insights.backend, apiKey: insights.apiKey, model: insights.model) })
     }
 

@@ -65,8 +65,36 @@ points and interface names, display geometry, alert names.
 | `tabs` | asks browsers via AppleScript, which prompts for Automation permission |
 | `media` | asks Music and Spotify via AppleScript (Automation prompt); track names stay off and hashed unless you say otherwise |
 | `titles` | reads window titles, which needs Screen Recording; titles are hashed by default |
+| `health` | accepts Apple Health numbers from an iPhone Shortcut; needs a token and stays local, see "Health data" below |
 
 `/privacy` reports whether each of these is currently on.
+
+## Health data
+
+The `health` collector is the most personal thing Molly can hold: sleep, heart
+rate, body mass. It is off by default and built to stay on your machine.
+
+- **Nothing is accepted until you set `collectors.health.token`.** An empty
+  token answers 401 to everything.
+- **Local only by default.** With `server.bind` on a loopback address the
+  endpoint is reachable only from this Mac. Posting from a phone needs a LAN
+  bind, and then Molly refuses to start the collector (and answers 403) unless
+  you also set `collectors.health.allowRemoteBind` to `true`. Bind to the LAN
+  address only, never `0.0.0.0` on a laptop you carry to other networks.
+- **`/metrics` is not authenticated.** Once Molly listens on the LAN, anyone on
+  that network can read the health gauges. Keep the firewall on and the network
+  trusted, or do not enable the collector.
+- **Labels carry no personal text.** `type` is a fixed list, `reason` a fixed
+  list, and `device` is a lowercased 32 character label capped at 5 values.
+  Values are numbers.
+- **Insights get buckets, not numbers.** The digest sent to the narrative
+  backend contains only sleep (short, ok, long), movement (low, ok, high) and
+  resting heart rate (down, flat, up). Nothing finer reaches the model unless
+  you set `collectors.health.detailedInsights` to `true`.
+- **At rest.** Per-day totals live in `state/health.json` for `maxAgeSeconds`;
+  Prometheus keeps the series for its retention. `molly export` redacts the
+  token. Forget data in Settings, or delete the series with the admin API, to
+  remove history.
 
 ## Data at rest
 

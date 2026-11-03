@@ -85,6 +85,7 @@ enum CollectorCatalog {
         CollectorInfo(name: "gaming", title: "Gaming", summary: "Steam, CrossOver, App Store games and controller use; no account data.", defaultEnabled: true, defaultInterval: 5, permission: .none),
         CollectorInfo(name: "titles", title: "Window titles", summary: "The frontmost window's title, normalised and capped.", defaultEnabled: false, defaultInterval: 5, permission: .screenRecording),
         CollectorInfo(name: "events", title: "Claude Code hooks", summary: "Live events posted by `molly hook` from Claude Code sessions.", defaultEnabled: true, defaultInterval: 60, permission: .none),
+        CollectorInfo(name: "health", title: "Health (iPhone)", summary: "Steps, sleep, heart rate and more, pushed by an iPhone Shortcut. Stays on this machine; needs a token.", defaultEnabled: false, defaultInterval: 60, permission: .none),
         CollectorInfo(name: "insights", title: "Insights", summary: "Daily and weekly Claude narratives of your metrics.", defaultEnabled: false, defaultInterval: 300, permission: .none),
     ]
 

@@ -76,7 +76,7 @@ and domain names, to your network. See [Getting started](GETTING-STARTED.md#usin
 
 Sections are keyed by these names: `process`, `system`, `network`, `processes`, `focus`,
 `docker`, `meeting`, `browser`, `messages`, `notes`, `knowledge`, `calendar`,
-`reminders`, `mail`, `git`, `claude_code`, `cursor`, `codex`, `shell`, `projects`, `events`.
+`reminders`, `mail`, `git`, `claude_code`, `cursor`, `codex`, `shell`, `projects`, `events`, `health`.
 
 ## LabelPolicy reference
 
@@ -628,6 +628,20 @@ characters. The shell hook (`molly shell-hook`) posts source `shell` with the
 shell name, the last exit status and `cwd`; the path is reduced to a project
 name and never stored. The snippet bakes in `server.bind`, `server.port` and
 `token`, so re-run `molly shell-hook install` after changing them.
+
+### health
+
+Interval 60s, **disabled by default**. Receives `POST /health` from an iPhone
+Shortcut; see [HEALTH.md](HEALTH.md) for the setup and the payload.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `token` | string | `""` | required: `Authorization: Bearer <token>` or a `token` field in the body. An empty token refuses every post (401). Redacted in `/config` |
+| `maxAgeSeconds` | number | `604800` | samples that ended longer ago are rejected as `too_old`; also how many days of totals are kept |
+| `allowRemoteBind` | bool | `false` | health data stays local: with a non-loopback `server.bind` the collector will not start and the route answers 403 until this is `true` |
+| `detailedInsights` | bool | `false` | when false the insights digest gets only coarse buckets (sleep short/ok/long, movement low/ok/high, resting heart rate down/flat/up); when true it also gets the underlying numbers |
+
+Permissions: none. Privacy: see "Health data" in [PRIVACY.md](PRIVACY.md).
 
 ### insights
 

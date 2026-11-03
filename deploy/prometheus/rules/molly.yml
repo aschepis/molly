@@ -95,6 +95,18 @@ groups:
             (molly:gaming_seconds:increase1h
               and on () ((hour() + scalar(molly:local_utc_offset_hours) + 24) % 24 <= 5))[1d:1h]
           )
+  # Body: derived from the Apple Health numbers an iPhone Shortcut posts
+  # (collectors.health). Empty until that collector is on.
+  - name: molly-body
+    interval: 60s
+    rules:
+      - record: molly:health_sleep_minutes:last_night
+        expr: max by (user, host) (molly_health_sleep_minutes_last_night)
+      # Molly cannot see steps by the minute, so "longest sedentary stretch" is
+      # approximated by its opposite: hours in the last day that had no 5 minute
+      # idle gap, to set against stand hours.
+      - record: molly:active_unbroken_hours:1d
+        expr: sum by (user, host) (count_over_time((min_over_time(molly_user_active[1h]) == 1)[1d:1h]))
 
   - name: molly-alerts
     rules:
@@ -252,3 +264,17 @@ groups:
         annotations:
           summary: Molly exposes more than 5000 series
           description: "{{ $value }} samples per scrape. A label policy's maxCardinality is probably too generous; see /privacy."
+
+      - alert: NotStandingEnough
+        # Active for 90 minutes while neither stand hours nor steps changed. Needs the
+        # phone to have posted in that window, so a phone that is off cannot trigger it.
+        expr: >
+          (min_over_time(molly_user_active[90m]) == 1 and count_over_time(molly_user_active[90m]) > 300)
+          and on (user, host) (changes(molly_health_today{type="stand_hours"}[90m]) == 0)
+          and on (user, host) (changes(molly_health_today{type="steps"}[90m]) == 0)
+          and on (user, host) (changes(molly_health_last_post_timestamp_seconds[90m]) >= 1)
+        labels:
+          severity: info
+        annotations:
+          summary: 90 minutes at the machine without standing up
+          description: "No new stand hour or steps on {{ $labels.host }} while active for 90 minutes. Stand up, walk a little."

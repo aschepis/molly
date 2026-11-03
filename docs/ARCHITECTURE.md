@@ -100,6 +100,7 @@ so the launch agent's `KeepAlive` restarts it rather than running blind.
 | `/config` | effective configuration as JSON, salts redacted |
 | `/privacy` | every label policy, its settings and decision counts (see [PRIVACY.md](PRIVACY.md)) |
 | `POST /event` | JSON event intake for `molly hook` and scripts; 204 on success, see [HOOKS.md](HOOKS.md) |
+| `POST /health` | Apple Health samples from an iPhone Shortcut; token required, loopback bind unless allowed, see [HEALTH.md](HEALTH.md) |
 | `GET /insights/latest`, `/insights/<date>[-week]` | Markdown reports written by `molly insights`, see [INSIGHTS.md](INSIGHTS.md) |
 | `/` | index |
 

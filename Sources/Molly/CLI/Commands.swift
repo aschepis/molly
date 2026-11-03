@@ -27,6 +27,8 @@ enum Help {
       privacy        every sensitive label dimension, its policy, and decision counts (--json)
       export         back up config, state, insights, /metrics and a Prometheus TSDB snapshot to a tarball
                      (--out DIR | --include-secrets | --restore TARBALL prints the manual restore steps)
+      health         import <export.zip|export.xml> [--out file.om]: turn an Apple Health export
+                     into an OpenMetrics file for promtool (live data comes from POST /health)
       prune          delete Molly samples older than a cutoff from Prometheus
                      (--older-than 30d|12h|2w, --dry-run; needs the admin API)
       config-path    print the config file location

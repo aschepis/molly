@@ -82,6 +82,7 @@ enum AgentActions {
             client: client, store: InsightsStore(),
             user: config.constLabels["user"] ?? Config.defaultUser,
             host: config.constLabels["host"] ?? Config.defaultHost,
+            extraQueries: DigestQueries.health(config: config),
             makeCompleter: { try NarrativeBackend.make(choice: settings.backend, apiKey: settings.apiKey, model: settings.model) })
         return try generator.generate(kind: kind, date: Date(), force: force)
     }

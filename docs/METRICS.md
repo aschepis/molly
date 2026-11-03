@@ -507,6 +507,38 @@ the payload carries no `cwd`. Details: [HOOKS.md](HOOKS.md).
 | `molly_shell_prompts_total` | counter | `shell` | prompts | prompts reported by the shell hook (`molly shell-hook`) |
 | `molly_shell_last_exit_nonzero_total` | counter | `shell` | prompts | prompts whose previous command exited non-zero |
 
+## health (interval 60s, pushed, disabled by default)
+
+Apple Health numbers posted by an iPhone Shortcut to `POST /health`. No label
+policies; the only labels are `type` (a fixed set, below), `reason` and
+`device` (free text from the payload, lowercased, `[a-z0-9_-]`, 32 characters,
+at most 5 distinct then `other`). Refuses to start on a non-loopback
+`server.bind` unless `allowRemoteBind` is true. Details: [HEALTH.md](HEALTH.md).
+
+`type` values: `steps`, `stand_hours`, `active_energy_kcal`,
+`exercise_minutes`, `resting_heart_rate_bpm`, `heart_rate_bpm`, `hrv_ms`,
+`sleep_minutes`, `sleep_in_bed_minutes`, `bedtime`, `wake_time`,
+`walking_distance_m`, `flights_climbed`, `daylight_minutes`,
+`headphone_audio_db`, `vo2max`, `body_mass_kg`, `respiratory_rate`,
+`blood_oxygen_ratio`, `wrist_temperature_delta_c`, `mindful_minutes`.
+Additive types are summed per local day, headphone audio keeps the day's
+maximum, the rest keep the latest value. `bedtime` and `wake_time` are seconds
+after local midnight; a bedtime before noon counts past 24:00 (23:30 is 84600,
+01:15 is 90900). A night's sleep belongs to the day you wake up.
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_health_today` | gauge | `type` | per type | value so far today; absent for a type with no data today |
+| `molly_health_yesterday` | gauge | `type` | per type | yesterday's value |
+| `molly_health_last_sample_timestamp_seconds` | gauge | `type` | seconds (unix) | end time of the newest accepted sample |
+| `molly_health_samples_total` | counter | `type` | samples | accepted samples (a daily total counts as one) |
+| `molly_health_samples_rejected_total` | counter | `reason` (bad_type, bad_value, bad_time, too_old) | samples | refused samples; the rest of the post is still used |
+| `molly_health_last_post_timestamp_seconds` | gauge | | seconds (unix) | last authenticated post |
+| `molly_health_device_info` | gauge | `device` | 1 | devices that have posted |
+| `molly_health_sleep_minutes_last_night` | gauge | | minutes | asleep in the night that ended most recently (today's, else yesterday's) |
+| `molly_health_bedtime_seconds` | gauge | | seconds | bedtime of that night, after the previous midnight |
+| `molly_health_day` | gauge | `type` | per type | one value per local day at 12:00, written only by `molly health import` (not exposed on `/metrics`) |
+
 ## insights (interval 300s, disabled by default)
 
 No policies. Only present when the `insights` collector is enabled. Details: [INSIGHTS.md](INSIGHTS.md).
