@@ -37,6 +37,7 @@ enum Routes {
             return .json([
                 "server": ["bind": config.server.bind, "port": config.server.port],
                 "labels": config.constLabels,
+                "logLevel": config.logLevel,
                 "links": ["grafana": config.links.grafana, "prometheus": config.links.prometheus],
                 "collectors": collectors,
             ])

@@ -30,7 +30,7 @@ Published by the collector manager and the `process` collector (interval 30s).
 | `molly_build_info` | gauge | `version` | info | always 1; the Molly version is the label |
 | `molly_start_time_seconds` | gauge | | seconds (unix) | when Molly started |
 | `molly_self_resident_memory_bytes` | gauge | | bytes | resident memory of the Molly process |
-| `molly_self_cpu_seconds_total` | gauge | | seconds | cumulative CPU time of the Molly process. It is a gauge despite the name: use `deriv`, not `rate` |
+| `molly_self_cpu_seconds_total` | counter | | seconds | cumulative CPU time of the Molly process |
 | `molly_self_threads` | gauge | | count | threads in the Molly process |
 | `molly_collector_runs_total` | counter | `collector` | runs | collector runs |
 | `molly_collector_errors_total` | counter | `collector` | runs | runs that failed (unavailable sources are logged once but also count) |

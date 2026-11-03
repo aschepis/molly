@@ -5,7 +5,8 @@ final class ProcessSelfCollector: Collector {
     let name = "process"
     let interval: TimeInterval
     private var residentBytes: Gauge?
-    private var cpuSeconds: Gauge?
+    private var cpuSeconds: Counter?
+    private var lastCPUSeconds: Double = 0
     private var threads: Gauge?
 
     init(settings: CollectorSettings) {
@@ -14,7 +15,7 @@ final class ProcessSelfCollector: Collector {
 
     func start(registry: MetricsRegistry) throws {
         residentBytes = registry.gauge("molly_self_resident_memory_bytes", help: "Resident memory of the Molly process.")
-        cpuSeconds = registry.gauge("molly_self_cpu_seconds_total", help: "CPU time consumed by the Molly process.")
+        cpuSeconds = registry.counter("molly_self_cpu_seconds_total", help: "CPU time consumed by the Molly process.")
         threads = registry.gauge("molly_self_threads", help: "Threads in the Molly process.")
     }
 
@@ -33,7 +34,9 @@ final class ProcessSelfCollector: Collector {
         if getrusage(RUSAGE_SELF, &usage) == 0 {
             let user = Double(usage.ru_utime.tv_sec) + Double(usage.ru_utime.tv_usec) / 1e6
             let system = Double(usage.ru_stime.tv_sec) + Double(usage.ru_stime.tv_usec) / 1e6
-            cpuSeconds?.set(user + system)
+            let total = user + system
+            cpuSeconds?.add(max(0, total - lastCPUSeconds))
+            lastCPUSeconds = total
         }
         threads?.set(threadCount())
     }
