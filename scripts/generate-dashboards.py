@@ -526,8 +526,20 @@ def focus():
                desc="Minutes classified as flow since local midnight (5 minute resolution).")
     timeseries(d, "App switches per minute", [(m("molly:switch_rate:5m"), "{{host}}")], w=9, h=6, min_=0, fill=0,
                th=[(None, BLUE), (1.5, WARN)], desc="Rolling 5 minutes. Above 1.5 the bucket cannot be flow.")
-    timeseries(d, "Interruptions per hour", [(m("molly:interruptions:increase1h"), "{{host}}")], w=9, h=6, bars=True, min_=0,
-               decimals=0, desc="App switches per hour above a baseline of 10. An approximation of context-switch cost.")
+    timeseries(d, "Switch churn per hour", [(m("molly:interruptions:increase1h"), "{{host}}")], w=9, h=6, bars=True, min_=0,
+               decimals=0, desc="App switches per hour above a baseline of 10. Churn, not a count of interruptions: Molly cannot yet tell a switch caused by a notification from a deliberate one.")
+    d.row("Interruptions")
+    bargauge(d, "Notifications by app (selected range)",
+             [("topk(15, sum by (app) (increase(" + m("molly_knowledge_notifications_total") + "[$__range])))", "{{app}}")],
+             unit="short", w=8, h=10, decimals=0, color=fixed(WARN),
+             desc="Posting app from knowledgeC. app=\"unknown\" when macOS recorded none; collectors.knowledge.apps policy hides apps.")
+    timeseries(d, "Notifications per hour by app", [
+        ("sum by (app) (increase(" + m("molly_knowledge_notifications_total") + "[1h]))", "{{app}}")],
+        w=16, h=10, bars=True, stack=True, min_=0, decimals=0, desc="Rolling 1h, stacked. A tall hour shows which app made it noisy.")
+    timeseries(d, "Notifications per 5 minutes", [
+        ("sum(increase(" + m("molly_knowledge_notifications_total") + "[5m]))", "notifications")],
+        w=24, h=5, bars=True, min_=0, decimals=0, color=fixed(WARN),
+        desc="Same time axis as the flow state above: read the two together to see whether notifications land during flow or between tasks.")
     d.row("Presence")
     state_timeline(d, "Active / idle", [(m("molly_user_active"), "active")], mappings=ACTIVE_MAP, h=3)
     state_timeline(d, "Locked / asleep / screensaver", [
