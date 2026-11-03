@@ -233,7 +233,7 @@
         "displayMode": "basic",
         "valueMode": "color",
         "showUnfilled": true,
-        "namePlacement": "left",
+        "namePlacement": "top",
         "sizing": "auto",
         "minVizHeight": 16
       },
@@ -349,7 +349,8 @@
             "gradientMode": "none"
           },
           "mappings": [],
-          "min": 0
+          "min": 0,
+          "decimals": 2
         },
         "overrides": []
       },
@@ -475,7 +476,8 @@
         "defaults": {
           "unit": "short",
           "color": {
-            "mode": "thresholds"
+            "mode": "fixed",
+            "fixedColor": "#898781"
           },
           "mappings": [
             {
@@ -502,15 +504,6 @@
           "custom": {
             "fillOpacity": 80,
             "lineWidth": 0
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#898781",
-                "value": null
-              }
-            ]
           }
         },
         "overrides": []
@@ -521,7 +514,7 @@
         "alignValue": "left",
         "rowHeight": 0.8,
         "legend": {
-          "showLegend": true,
+          "showLegend": false,
           "displayMode": "list",
           "placement": "bottom"
         },
@@ -974,7 +967,8 @@
         "defaults": {
           "unit": "short",
           "color": {
-            "mode": "thresholds"
+            "mode": "fixed",
+            "fixedColor": "#898781"
           },
           "mappings": [
             {
@@ -996,15 +990,6 @@
           "custom": {
             "fillOpacity": 80,
             "lineWidth": 0
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#898781",
-                "value": null
-              }
-            ]
           }
         },
         "overrides": []
@@ -1015,7 +1000,7 @@
         "alignValue": "left",
         "rowHeight": 0.8,
         "legend": {
-          "showLegend": true,
+          "showLegend": false,
           "displayMode": "list",
           "placement": "bottom"
         },
@@ -1072,7 +1057,8 @@
         "defaults": {
           "unit": "short",
           "color": {
-            "mode": "thresholds"
+            "mode": "fixed",
+            "fixedColor": "#898781"
           },
           "mappings": [
             {
@@ -1094,15 +1080,6 @@
           "custom": {
             "fillOpacity": 80,
             "lineWidth": 0
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#898781",
-                "value": null
-              }
-            ]
           }
         },
         "overrides": []
@@ -1170,7 +1147,8 @@
         "defaults": {
           "unit": "short",
           "color": {
-            "mode": "thresholds"
+            "mode": "fixed",
+            "fixedColor": "#898781"
           },
           "mappings": [
             {
@@ -1192,15 +1170,6 @@
           "custom": {
             "fillOpacity": 80,
             "lineWidth": 0
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#898781",
-                "value": null
-              }
-            ]
           }
         },
         "overrides": []
@@ -1614,13 +1583,23 @@
           },
           "expr": "molly_media_playing{user=~\"$user\",host=~\"$host\"}",
           "legendFormat": "{{app}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "label_replace(0 * absent(molly_media_playing{user=~\"$user\",host=~\"$host\"}), \"app\", \"nothing playing\", \"\", \"\")",
+          "legendFormat": "{{app}}"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
           "color": {
-            "mode": "thresholds"
+            "mode": "fixed",
+            "fixedColor": "#898781"
           },
           "mappings": [
             {
@@ -1642,15 +1621,6 @@
           "custom": {
             "fillOpacity": 80,
             "lineWidth": 0
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#898781",
-                "value": null
-              }
-            ]
           }
         },
         "overrides": []
@@ -1661,7 +1631,7 @@
         "alignValue": "left",
         "rowHeight": 0.8,
         "legend": {
-          "showLegend": true,
+          "showLegend": false,
           "displayMode": "list",
           "placement": "bottom"
         },

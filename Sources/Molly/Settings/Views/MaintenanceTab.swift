@@ -29,10 +29,12 @@ struct MaintenanceTab: View {
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
-                        Button("Forget") { model.forgetData(collector: info.name) }
+                        Button("Forget", role: .destructive) { model.forgetData(collector: info.name) }
+                            .buttonStyle(DestructiveButtonStyle())
                     }
                 }
                 Button("Forget all stored data…", role: .destructive) { confirmForgetAll = true }
+                    .buttonStyle(DestructiveButtonStyle())
                     .disabled(collectorsWithData.isEmpty)
                     .confirmationDialog("Forget stored data for every collector?",
                                         isPresented: $confirmForgetAll, titleVisibility: .visible) {
@@ -86,6 +88,8 @@ struct MaintenanceTab: View {
             }
         }
         .formStyle(.grouped)
+        .textFieldStyle(.roundedBorder)
+        .scrollIndicators(.visible)
     }
 
     private func chooseComposeDir() {
@@ -109,5 +113,21 @@ struct MaintenanceTab: View {
             }
             applyingRetention = false
         }
+    }
+}
+
+/// Drawn by hand because .bordered ignores .tint when the window is rendered offscreen.
+private struct DestructiveButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundColor(.red)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 3)
+            .background(RoundedRectangle(cornerRadius: 6)
+                .fill(Color.red.opacity(configuration.isPressed ? 0.3 : 0.12)))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.red.opacity(0.5)))
+            .opacity(isEnabled ? 1 : 0.4)
     }
 }

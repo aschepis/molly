@@ -7,7 +7,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private static var shared: SettingsWindowController?
 
     /// Fixed so screenshots from scripts/snap-settings.sh are comparable.
-    static let defaultSize = NSSize(width: 720, height: 520)
+    static let defaultSize = NSSize(width: 760, height: 680)
 
     static func close() { shared?.window?.orderOut(nil) }
 

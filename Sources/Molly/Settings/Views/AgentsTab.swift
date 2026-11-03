@@ -20,6 +20,8 @@ struct AgentsTab: View {
             tuneSection
         }
         .formStyle(.grouped)
+        .textFieldStyle(.roundedBorder)
+        .scrollIndicators(.visible)
     }
 
     private var insightsSection: some View {
@@ -28,10 +30,11 @@ struct AgentsTab: View {
             Picker("Backend", selection: model.binding(\.insightsBackend)) {
                 ForEach(AgentsRules.backends, id: \.self) { Text($0).tag($0) }
             }
-            .frame(maxWidth: 240)
             TextField("Model", text: model.binding(\.insightsModel))
+                .multilineTextAlignment(.trailing)
             HStack {
-                SecureField(model.hasInsightsAPIKey ? "key set; type to replace" : "no key; type to set", text: $newAPIKey)
+                SecureField("API key", text: $newAPIKey,
+                            prompt: Text(model.hasInsightsAPIKey ? "key set; type to replace" : "no key; type to set"))
                 Button("Save key") {
                     model.setInsightsAPIKey(newAPIKey)
                     newAPIKey = ""
@@ -40,7 +43,9 @@ struct AgentsTab: View {
                 Button("Clear") { model.setInsightsAPIKey("") }
                     .disabled(!model.hasInsightsAPIKey)
             }
-            Stepper("Daily at \(model.insightsDailyHour):00", value: model.binding(\.insightsDailyHour), in: 0...23)
+            Picker("Daily at", selection: model.binding(\.insightsDailyHour)) {
+                ForEach(0...23, id: \.self) { Text(String(format: "%02d:00", $0)).tag($0) }
+            }
             Toggle("Also write a weekly report", isOn: model.binding(\.insightsWeekly))
             HStack {
                 Button("Open latest report") {

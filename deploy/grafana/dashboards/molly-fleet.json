@@ -615,7 +615,8 @@
         "defaults": {
           "unit": "short",
           "color": {
-            "mode": "thresholds"
+            "mode": "fixed",
+            "fixedColor": "#898781"
           },
           "mappings": [
             {
@@ -637,15 +638,6 @@
           "custom": {
             "fillOpacity": 80,
             "lineWidth": 0
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#898781",
-                "value": null
-              }
-            ]
           }
         },
         "overrides": []
@@ -656,7 +648,7 @@
         "alignValue": "left",
         "rowHeight": 0.8,
         "legend": {
-          "showLegend": true,
+          "showLegend": false,
           "displayMode": "list",
           "placement": "bottom"
         },
@@ -695,7 +687,8 @@
         "defaults": {
           "unit": "short",
           "color": {
-            "mode": "thresholds"
+            "mode": "fixed",
+            "fixedColor": "#898781"
           },
           "mappings": [
             {
@@ -717,15 +710,6 @@
           "custom": {
             "fillOpacity": 80,
             "lineWidth": 0
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#898781",
-                "value": null
-              }
-            ]
           }
         },
         "overrides": []
@@ -736,7 +720,7 @@
         "alignValue": "left",
         "rowHeight": 0.8,
         "legend": {
-          "showLegend": true,
+          "showLegend": false,
           "displayMode": "list",
           "placement": "bottom"
         },
