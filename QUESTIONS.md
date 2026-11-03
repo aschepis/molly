@@ -73,3 +73,24 @@ if you ever expose 9090, turn it off or put auth in front.
 ## Shell hook install
 `molly shell-hook install` appends a block to your rc file with a backup. Not
 run on this machine. Default: `molly shell-hook snippet` to inspect first.
+
+## Full Disk Access does not survive rebuilds (ad-hoc signature)
+
+`make app` signs with `codesign --sign -`. An ad-hoc signature has no stable
+identity, so macOS ties the Full Disk Access grant to the binary's CDHash.
+Every `make install` produces a new CDHash and the grant silently stops
+applying: Molly.app still shows as enabled in System Settings, but the
+launchd daemon logs "not readable (missing file or Full Disk Access)" for
+Messages, Notes, Calendar, knowledgeC and Safari history. Toggling the entry
+off and on (or removing and re-adding the app) restores it.
+
+Options only you can pick:
+1. Sign with your Apple Development / Developer ID certificate
+   (`CODESIGN_IDENTITY=... make app`) so the identity is stable across builds.
+2. Create a self-signed code-signing certificate in Keychain Access and use it
+   the same way. Free, no Apple account needed.
+3. Keep ad-hoc signing and re-toggle Full Disk Access after each install.
+
+Observed 2026-11-03: after `make install` + `launchctl kickstart`, the four
+collectors stayed unavailable from the daemon while `molly doctor` run from
+a terminal with Full Disk Access reported everything readable.
