@@ -68,6 +68,7 @@ enum CollectorCatalog {
         CollectorInfo(name: "notes", title: "Notes", summary: "Notes created and modified, counts only.", defaultEnabled: true, defaultInterval: 120, permission: .fullDiskAccess),
         CollectorInfo(name: "knowledge", title: "Screen Time", summary: "App usage, notifications and display time from the system's own knowledge store.", defaultEnabled: true, defaultInterval: 60, permission: .fullDiskAccess),
         CollectorInfo(name: "calendar", title: "Calendar", summary: "Events today, time in events and the next event start, never titles.", defaultEnabled: true, defaultInterval: 300, permission: .fullDiskAccess),
+        CollectorInfo(name: "reminders", title: "Reminders", summary: "Open, due, overdue and completed reminders, never titles or notes.", defaultEnabled: true, defaultInterval: 300, permission: .fullDiskAccess),
         CollectorInfo(name: "mail", title: "Mail", summary: "Mail received and sent from Apple Mail's envelope index, counts only.", defaultEnabled: false, defaultInterval: 120, permission: .fullDiskAccess),
         CollectorInfo(name: "git", title: "Git", summary: "Commits, dirty files and branches across your source roots.", defaultEnabled: true, defaultInterval: 120, permission: .none),
         CollectorInfo(name: "claude_code", title: "Claude Code", summary: "Sessions, messages, tool calls, tokens and estimated cost.", defaultEnabled: true, defaultInterval: 60, permission: .none),

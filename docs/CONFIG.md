@@ -76,7 +76,7 @@ and domain names, to your network. See [Getting started](GETTING-STARTED.md#usin
 
 Sections are keyed by these names: `process`, `system`, `processes`, `focus`,
 `docker`, `meeting`, `browser`, `messages`, `notes`, `knowledge`, `calendar`,
-`mail`, `git`, `claude_code`, `cursor`, `codex`, `shell`, `projects`, `events`.
+`reminders`, `mail`, `git`, `claude_code`, `cursor`, `codex`, `shell`, `projects`, `events`.
 
 ## LabelPolicy reference
 
@@ -361,6 +361,19 @@ Interval 300s, enabled by default. Reads Calendar's database, not EventKit.
 
 Permissions: Full Disk Access. Privacy: event titles, locations, attendees and
 notes are never selected. Only counts and durations are published.
+
+### reminders
+
+Interval 300s, enabled by default. Reads every `Data-*.sqlite` store (one per
+account) under the Reminders group container and sums them.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `path` | string | auto-detected | read this single store instead of all `Data-*.sqlite` files. Omit it to auto-detect |
+| `lists` | policy | **disabled**, denylist, 50 | list names. When disabled one `redacted` series is published per per-list metric |
+
+Permissions: Full Disk Access. Privacy: reminder titles, notes and locations
+are never selected. Only counts are published.
 
 ### mail
 

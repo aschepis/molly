@@ -189,6 +189,18 @@
         "maxCardinality": 50
       }
     },
+    "reminders": {
+      "enabled": true,
+      "interval": 300,
+      "lists": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 50
+      }
+    },
     "mail": {
       "enabled": false,
       "interval": 120

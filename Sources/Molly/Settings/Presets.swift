@@ -222,6 +222,18 @@ enum Presets {
       },
       "retentionSeconds": 86400
     },
+    "reminders": {
+      "enabled": false,
+      "interval": 300,
+      "lists": {
+        "enabled": false,
+        "hash": false,
+        "maxCardinality": 50,
+        "mode": "denylist",
+        "patterns": [],
+        "salt": ""
+      }
+    },
     "shell": {
       "bashHistory": "~/.bash_history",
       "commands": {
@@ -614,6 +626,18 @@ enum Presets {
       },
       "retentionSeconds": 86400
     },
+    "reminders": {
+      "enabled": true,
+      "interval": 300,
+      "lists": {
+        "enabled": false,
+        "hash": false,
+        "maxCardinality": 50,
+        "mode": "denylist",
+        "patterns": [],
+        "salt": ""
+      }
+    },
     "shell": {
       "bashHistory": "~/.bash_history",
       "commands": {
@@ -940,6 +964,18 @@ enum Presets {
         "salt": ""
       },
       "retentionSeconds": 86400
+    },
+    "reminders": {
+      "enabled": true,
+      "interval": 300,
+      "lists": {
+        "enabled": false,
+        "hash": false,
+        "maxCardinality": 50,
+        "mode": "denylist",
+        "patterns": [],
+        "salt": ""
+      }
     },
     "shell": {
       "bashHistory": "~/.bash_history",

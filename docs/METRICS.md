@@ -267,6 +267,23 @@ Policy `calendars` (default disabled) governs `calendar`; when disabled one
 | `molly_calendar_in_event` | gauge | | bool | inside a timed event |
 | `molly_calendar_next_event_start_seconds` | gauge | | seconds | until the next timed event; -1 if none cached |
 
+## reminders (interval 300s, Full Disk Access)
+
+Policy `lists` (default disabled) governs `list`; when disabled one `redacted`
+series is published. Gauges are recomputed from the store each run; the counter
+starts at first run and never backfills. Overdue means due before local midnight.
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_reminders_open` | gauge | | reminders | not completed |
+| `molly_reminders_due_today` | gauge | | reminders | open and due today |
+| `molly_reminders_overdue` | gauge | | reminders | open and due before today |
+| `molly_reminders_completed_today` | gauge | | reminders | completed since local midnight |
+| `molly_reminders_completed_total` | counter | | reminders | completed since Molly started watching |
+| `molly_reminders_lists` | gauge | | lists | reminder lists |
+| `molly_reminders_list_open` | gauge | `list` **policy** `lists` | reminders | open per list |
+| `molly_reminders_list_overdue` | gauge | `list` **policy** `lists` | reminders | overdue per list |
+
 ## mail (interval 120s, Full Disk Access, default disabled)
 
 No policies. Details: [group B](collectors/group-b.md#mail).

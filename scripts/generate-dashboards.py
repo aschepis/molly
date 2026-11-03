@@ -610,6 +610,15 @@ def communication():
     stat(d, "Event time today", "max(" + m("molly_calendar_event_seconds_today") + ")", unit="s", w=4, h=4, spark=False, instant=True)
     stat(d, "Event time remaining", "max(" + m("molly_calendar_event_seconds_remaining_today") + ")", unit="s", w=4, h=4, spark=False, instant=True)
     state_timeline(d, "In an event", [(m("molly_calendar_in_event"), "in event")], mappings=YESNO("in event"), w=4, h=4)
+    d.row("Reminders")
+    stat(d, "Open reminders", "sum(" + m("molly_reminders_open") + ")", w=4, h=4, decimals=0)
+    stat(d, "Due today", "sum(" + m("molly_reminders_due_today") + ")", w=4, h=4, spark=False, decimals=0, instant=True)
+    stat(d, "Overdue", "sum(" + m("molly_reminders_overdue") + ")", w=4, h=4, spark=False, decimals=0, instant=True,
+         th=[(None, BLUE), (1, WARN), (10, SERIOUS)])
+    stat(d, "Completed today", "sum(" + m("molly_reminders_completed_today") + ")", w=4, h=4, spark=False, decimals=0, instant=True)
+    timeseries(d, "Reminders completed (per hour)", [
+        ("sum(increase(" + m("molly_reminders_completed_total") + "[1h]))", "completed")],
+        w=8, h=4, bars=True, min_=0, decimals=0)
     d.row("Mail (when enabled)")
     stat(d, "Unread mail", "sum(" + m("molly_mail_unread") + ")", w=6, h=4, decimals=0)
     stat(d, "Mail sent today", "sum(" + m("molly_mail_messages_today", 'direction="sent"') + ")", w=6, h=4, spark=False, decimals=0, instant=True)
