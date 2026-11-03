@@ -168,7 +168,7 @@ final class CatalogTests: XCTestCase {
         for dimension in PrivacyCatalog.all {
             XCTAssertTrue(seen.contains(dimension.id), "catalog row \(dimension.id) has no filter call")
         }
-        XCTAssertEqual(PrivacyCatalog.all.count, 19)
+        XCTAssertEqual(PrivacyCatalog.all.count, 20)
     }
 
     static func collectorName(forFile file: String) -> String {
