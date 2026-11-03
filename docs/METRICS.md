@@ -410,3 +410,12 @@ the payload carries no `cwd`. Details: [HOOKS.md](HOOKS.md).
 | `molly_claude_hook_events_total` | counter | `event`, `tool`, `project` **policy** `projects` | count | Claude Code hook events by hook name and tool; `tool` is empty for non-tool hooks |
 | `molly_claude_hook_sessions_active` | gauge | | count | hook sessions seen within `activeWindowSeconds` and not ended |
 | `molly_claude_hook_last_event_timestamp_seconds` | gauge | | seconds (unix) | time of the last hook event; absent until one arrives |
+
+## insights (interval 300s, disabled by default)
+
+No policies. Only present when the `insights` collector is enabled. Details: [INSIGHTS.md](INSIGHTS.md).
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_insights_last_generated_timestamp_seconds` | gauge | | seconds (unix) | when the last report was written |
+| `molly_insights_generations_total` | counter | `kind` (day, week), `status` (ok, cached, error) | count | report generation attempts by outcome |

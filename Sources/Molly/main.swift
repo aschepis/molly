@@ -21,6 +21,9 @@ case "once":
 case "hook":
     HookCommand.run(commandArguments)
 
+case "insights":
+    InsightsCommand.run(commandArguments)
+
 case "doctor":
     DoctorCommand.run(commandArguments)
 

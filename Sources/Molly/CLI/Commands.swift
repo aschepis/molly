@@ -11,6 +11,8 @@ enum Help {
                      (--collector NAME to run only one; never advances saved cursors)
       hook           read a Claude Code hook payload on stdin and post it to /event
                      (hook snippet | hook install | hook uninstall manage ~/.claude/settings.json)
+      insights       write a Claude-generated report for a day or week from Prometheus data
+                     (--day YYYY-MM-DD | --week | --force | --digest-only | --backend api|cli)
       doctor         check permissions, ports, and the local Prometheus/Grafana stack
       validate       parse the config file and report problems
       install-agent  start Molly at login (writes ~/Library/LaunchAgents/com.aschepis.molly.plist)

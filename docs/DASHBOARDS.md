@@ -51,7 +51,9 @@ Purpose: the one-screen answer to "how was today".
 Panels: active share of today, focused app now, tiles for active hours, focus
 switches, commits, Claude tokens, messages sent, browser visits, meeting
 minutes and estimated Claude cost; a focused-app state timeline; an
-active/idle timeline; CPU and memory trends.
+active/idle timeline; CPU and memory trends; an Insights row linking to the
+latest Claude-written report at `http://127.0.0.1:9765/insights/latest`
+(Grafana text panels cannot embed it; see [INSIGHTS.md](INSIGHTS.md)).
 
 Look for: a long unbroken active bar with many focus switches (fragmented
 attention), tiles that are zero when they should not be (a collector lost its

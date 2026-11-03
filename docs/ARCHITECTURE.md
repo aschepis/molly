@@ -96,6 +96,7 @@ Served by a small `Network.framework` server on `server.bind:server.port`
 | `/collectors` | JSON per-collector status: runs, errors, last duration, last success, last error |
 | `/config` | effective configuration as JSON, salts redacted |
 | `POST /event` | JSON event intake for `molly hook` and scripts; 204 on success, see [HOOKS.md](HOOKS.md) |
+| `GET /insights/latest`, `/insights/<date>[-week]` | Markdown reports written by `molly insights`, see [INSIGHTS.md](INSIGHTS.md) |
 | `/` | index |
 
 ## Menu bar

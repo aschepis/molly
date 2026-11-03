@@ -267,6 +267,13 @@ def annotation(d, name, expr, color, title_format, text_format="", tag_keys="", 
     })
 
 
+def text_panel(d, title, content, w=24, h=3, desc=""):
+    d.add({
+        "type": "text", "title": title, "description": desc,
+        "options": {"mode": "markdown", "content": content},
+    }, w, h)
+
+
 def annotate_activity(d):
     annotation(d, "Commits", "changes(" + m("molly_git_last_commit_timestamp_seconds") + "[1m]) > 0",
                BLUE, "commit", "{{repo}}", tag_keys="repo")
@@ -343,6 +350,13 @@ def overview():
         "sum by (host) (" + m("molly_memory_bytes", 'state=~"active|wired|compressed"') + ") / on (host) max by (host) (" + m("molly_memory_total_bytes") + ")",
         "{{host}}")], unit="percentunit", w=12, h=6, min_=0, max_=1,
         desc="Active + wired + compressed over total physical memory.")
+    d.row("Insights")
+    text_panel(d, "Latest insights",
+               "Molly can write a daily narrative with recommendations from this data "
+               "(`molly insights`, or enable the `insights` collector). "
+               "Open the latest report: [127.0.0.1:9765/insights/latest](http://127.0.0.1:9765/insights/latest). "
+               "Setup: `docs/INSIGHTS.md`.",
+               h=3, desc="Reports are Markdown served by Molly; Grafana text panels cannot fetch them inline.")
     annotate_activity(d)
     return d
 

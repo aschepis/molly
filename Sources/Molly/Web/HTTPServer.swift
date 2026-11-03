@@ -118,6 +118,7 @@ enum HTTPRequestParser {
 final class Router {
     typealias Handler = (HTTPRequest) -> HTTPResponse
     private var routes: [(method: String, path: String, handler: Handler)] = []
+    private var prefixRoutes: [(method: String, prefix: String, handler: Handler)] = []
 
     func get(_ path: String, _ handler: @escaping Handler) {
         routes.append(("GET", path, handler))
@@ -127,8 +128,18 @@ final class Router {
         routes.append(("POST", path, handler))
     }
 
+    /// Matches any path under `prefix` (which must end in "/"); exact routes win.
+    func get(prefix: String, _ handler: @escaping Handler) {
+        prefixRoutes.append(("GET", prefix, handler))
+    }
+
     func route(_ request: HTTPRequest) -> HTTPResponse {
-        let matching = routes.filter { $0.path == request.path }
+        var matching = routes.filter { $0.path == request.path }
+        if matching.isEmpty {
+            matching = prefixRoutes
+                .filter { request.path.hasPrefix($0.prefix) && request.path.count > $0.prefix.count }
+                .map { ($0.method, request.path, $0.handler) }
+        }
         for route in matching {
             if route.method == request.method || (route.method == "GET" && request.method == "HEAD") {
                 return route.handler(request)

@@ -327,6 +327,16 @@
         "salt": "",
         "maxCardinality": 30
       }
+    },
+    "insights": {
+      "enabled": false,
+      "interval": 300,
+      "dailyAtHour": 21,
+      "weekly": true,
+      "model": "claude-sonnet-5-5",
+      "apiKey": "",
+      "backend": "auto",
+      "prometheusURL": "http://localhost:9090"
     }
   }
 }

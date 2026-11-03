@@ -38,4 +38,5 @@ _Screenshots of the Overview, Focus and Developer dashboards go here._
 - [Metrics](docs/METRICS.md): every metric name, label and unit
 - [Configuration](docs/CONFIG.md): every config key, label policies, example configs
 - [Hooks](docs/HOOKS.md): live Claude Code events via `molly hook` and `POST /event`
+- [Insights](docs/INSIGHTS.md): `molly insights` writes a Claude narrative of your day with recommendations
 - [Decisions](DECISIONS.md): why things are the way they are
