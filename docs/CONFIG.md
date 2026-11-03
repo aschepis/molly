@@ -518,12 +518,15 @@ Interval 60s, enabled by default. Receives `POST /event`, the target of
 |---|---|---|---|
 | `activeWindowSeconds` | number | `300` | a hook session counts as active this long after its last event |
 | `token` | string | `""` | when set, requests must carry `Authorization: Bearer <token>` |
-| `projects` | policy | enabled, denylist, 30 | the `project` label derived from the hook's `cwd` |
+| `projects` | policy | enabled, denylist, 30 | the `project` label derived from the hook's `cwd` (Claude Code hooks and the shell hook) |
 
 Permissions: none. Privacy: only `hook_event_name`, `tool_name`, `session_id`
 and the project name from `cwd` are used; prompts, tool input and transcript
 paths are discarded. Label values from payloads are sanitized and capped at 64
-characters.
+characters. The shell hook (`molly shell-hook`) posts source `shell` with the
+shell name, the last exit status and `cwd`; the path is reduced to a project
+name and never stored. The snippet bakes in `server.bind`, `server.port` and
+`token`, so re-run `molly shell-hook install` after changing them.
 
 ### insights
 

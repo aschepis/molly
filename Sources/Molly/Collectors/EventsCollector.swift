@@ -16,6 +16,8 @@ final class EventsCollector: Collector {
     static let sessionKey = "session_id"
     static let cwdKey = "cwd"
     static let claudeSource = "claude_code"
+    /// Shell prompt hooks (`molly shell-hook`) post this source with a cwd.
+    static let shellSource = "shell"
 
     let name = "events"
     let interval: TimeInterval
@@ -27,6 +29,8 @@ final class EventsCollector: Collector {
     private var hookEvents: Counter?
     private var sessionsActive: Gauge?
     private var lastEvent: Gauge?
+    private var shellPrompts: Counter?
+    private var shellNonZeroExits: Counter?
 
     private var sessions: [String: Date] = [:]
     private let lock = NSLock()
@@ -45,6 +49,8 @@ final class EventsCollector: Collector {
         hookEvents = registry.counter("molly_claude_hook_events_total", help: "Claude Code hook events received.", labels: ["event", "tool", "project"])
         sessionsActive = registry.gauge("molly_claude_hook_sessions_active", help: "Claude Code sessions seen by hooks within activeWindowSeconds and not ended.")
         lastEvent = registry.gauge("molly_claude_hook_last_event_timestamp_seconds", help: "Unix time of the last hook event.")
+        shellPrompts = registry.counter("molly_shell_prompts_total", help: "Shell prompts reported by the shell hook.", labels: ["shell"])
+        shellNonZeroExits = registry.counter("molly_shell_last_exit_nonzero_total", help: "Shell prompts whose previous command exited non-zero.", labels: ["shell"])
         sessionsActive?.set(0)
     }
 
@@ -72,8 +78,23 @@ final class EventsCollector: Collector {
         events?.add(value, labels: ["source": sanitize(source), "event": sanitize(event)])
         if source == EventsCollector.claudeSource {
             recordHook(event: event, object: object, value: value)
+        } else if source == EventsCollector.shellSource {
+            recordShellPrompt(object: object)
         }
         return .accepted
+    }
+
+    /// A shell prompt carries the cwd only to name the project; the path
+    /// itself is dropped after normalization.
+    private func recordShellPrompt(object: [String: JSONValue]) {
+        let shell = sanitize(object["shell"]?.stringValue ?? "unknown")
+        shellPrompts?.inc(labels: ["shell": shell])
+        if let exit = object["exit"]?.intValue, exit != 0 {
+            shellNonZeroExits?.inc(labels: ["shell": shell])
+        }
+        if let cwd = object[EventsCollector.cwdKey]?.stringValue, !cwd.isEmpty {
+            ProjectTracker.shared.report(project: ProjectName.normalize(path: cwd), source: .shell, at: now())
+        }
     }
 
     private func recordHook(event: String, object: [String: JSONValue], value: Double) {

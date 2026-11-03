@@ -354,14 +354,16 @@ Details: [group C](collectors/group-c.md#shell).
 
 ## projects (interval 60s, derived)
 
-Union of activity reported by `git` and `claude_code`. Policy `projects`
-governs `project`; when disabled the label is `redacted`. Source `shell` is
-not emitted. Details: [group C](collectors/group-c.md#projects).
+Union of activity reported by `git`, `claude_code`, Claude Code hooks and
+the shell hook (`molly shell-hook`, see [HOOKS.md](HOOKS.md#shell-hook)).
+Policy `projects` governs `project`; when disabled the label is `redacted`.
+Source `shell` only appears once the shell hook is installed.
+Details: [group C](collectors/group-c.md#projects).
 
 | metric | type | labels | unit | meaning |
 |---|---|---|---|---|
 | `molly_project_active` | gauge | `project` **policy** `projects` | info | always 1; activity within `activeWindowSeconds` |
-| `molly_project_last_activity_timestamp_seconds` | gauge | `project` **policy** `projects`, `source` (git, claude) | seconds (unix) | latest activity |
+| `molly_project_last_activity_timestamp_seconds` | gauge | `project` **policy** `projects`, `source` (git, claude, shell) | seconds (unix) | latest activity |
 | `molly_projects_active` | gauge | | count | active projects, not capped by the policy |
 
 ## power (interval 300s)
@@ -414,6 +416,8 @@ the payload carries no `cwd`. Details: [HOOKS.md](HOOKS.md).
 | `molly_claude_hook_events_total` | counter | `event`, `tool`, `project` **policy** `projects` | count | Claude Code hook events by hook name and tool; `tool` is empty for non-tool hooks |
 | `molly_claude_hook_sessions_active` | gauge | | count | hook sessions seen within `activeWindowSeconds` and not ended |
 | `molly_claude_hook_last_event_timestamp_seconds` | gauge | | seconds (unix) | time of the last hook event; absent until one arrives |
+| `molly_shell_prompts_total` | counter | `shell` | prompts | prompts reported by the shell hook (`molly shell-hook`) |
+| `molly_shell_last_exit_nonzero_total` | counter | `shell` | prompts | prompts whose previous command exited non-zero |
 
 ## insights (interval 300s, disabled by default)
 

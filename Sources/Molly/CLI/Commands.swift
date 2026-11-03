@@ -11,6 +11,8 @@ enum Help {
                      (--collector NAME to run only one; never advances saved cursors)
       hook           read a Claude Code hook payload on stdin and post it to /event
                      (hook snippet | hook install | hook uninstall manage ~/.claude/settings.json)
+      shell-hook     prompt hook that reports your shell's working directory to /event
+                     (shell-hook snippet | install | uninstall, --shell zsh|bash|fish)
       mcp            stdio MCP server with read-only query tools over Prometheus
                      (claude mcp add molly -- <absolute path to molly> mcp)
       insights       write a Claude-generated report for a day or week from Prometheus data
