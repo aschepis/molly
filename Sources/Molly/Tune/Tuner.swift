@@ -258,7 +258,7 @@ enum Tuner {
         "molly_claude_hook": "events", "molly_events": "events", "molly_claude": "claude_code",
         "molly_process_": "processes", "molly_agent_process": "processes",
         "molly_cpu": "system", "molly_memory": "system", "molly_swap": "system", "molly_disk": "system",
-        "molly_network": "system", "molly_battery": "system", "molly_display": "system", "molly_load": "system",
+        "molly_network": "network", "molly_network_wifi": "system", "molly_battery": "system", "molly_display": "system", "molly_load": "system",
         "molly_idle": "focus", "molly_user_active": "focus", "molly_screen": "focus", "molly_running_app": "focus",
         "molly_windows": "focus", "molly_app_": "focus", "molly_active_seconds": "focus", "molly_system_asleep": "focus",
         "molly_microphone": "meeting", "molly_camera": "meeting", "molly_meeting": "meeting",

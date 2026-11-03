@@ -73,14 +73,6 @@ final class SystemCollectorTests: XCTestCase {
         XCTAssertFalse(shouldReportMount(fstype: "smbfs", mountPoint: "/Volumes/nas", isLocal: false, totalBlocks: 100))
     }
 
-    func testVPNDetectionIgnoresLinkLocalTunnels() {
-        XCTAssertFalse(isVPNActive([InterfaceAddress(name: "utun0", kind: .ipv6LinkLocal), InterfaceAddress(name: "en0", kind: .ipv4)]))
-        XCTAssertTrue(isVPNActive([InterfaceAddress(name: "utun4", kind: .ipv4)]))
-        XCTAssertTrue(isVPNActive([InterfaceAddress(name: "ipsec0", kind: .ipv6)]))
-        XCTAssertTrue(isLinkLocalIPv6([0xfe, 0x80, 0, 0]))
-        XCTAssertFalse(isLinkLocalIPv6([0x26, 0x01]))
-    }
-
     func testCollectPublishesCoreFamiliesAndCPURatioOnSecondRun() throws {
         let registry = MetricsRegistry()
         let collector = try SystemCollector(settings: CollectorSettings(name: "system", raw: [:]))

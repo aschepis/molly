@@ -67,13 +67,6 @@ No policies except `wifi`. Details: [group A](collectors/group-a.md#system-inter
 | `molly_disk_write_bytes_total` | counter | `device` | bytes | bytes written |
 | `molly_disk_read_ops_total` | counter | `device` | ops | read operations |
 | `molly_disk_write_ops_total` | counter | `device` | ops | write operations |
-| `molly_network_receive_bytes_total` | counter | `interface` | bytes | received, skips `lo*` |
-| `molly_network_transmit_bytes_total` | counter | `interface` | bytes | sent |
-| `molly_network_receive_packets_total` | counter | `interface` | packets | received |
-| `molly_network_transmit_packets_total` | counter | `interface` | packets | sent |
-| `molly_network_receive_errors_total` | counter | `interface` | errors | receive errors |
-| `molly_network_transmit_errors_total` | counter | `interface` | errors | transmit errors |
-| `molly_network_vpn_active` | gauge | | bool | a VPN tunnel interface has a routable address |
 | `molly_network_wifi_connected` | gauge | | bool | Wi-Fi is associated; published when a Wi-Fi interface exists |
 | `molly_network_wifi_info` | gauge | `ssid` **policy** `wifi` | info | always 1. Only when `wifi` is enabled and macOS lets the process read the SSID |
 | `molly_battery_percent` | gauge | | percent 0..100 | charge; absent on Macs without a battery |
@@ -87,6 +80,27 @@ No policies except `wifi`. Details: [group A](collectors/group-a.md#system-inter
 | `molly_dark_mode` | gauge | | bool | system appearance is dark |
 | `molly_bluetooth_devices_connected` | gauge | | count | connected paired devices; absent when `bluetooth` is false |
 | `molly_audio_output_volume_ratio` | gauge | | ratio 0..1 | default output volume; absent if the device has no volume control |
+
+## network (interval 30s)
+
+No policies: `interface` is a device name such as `en0` or `utun3`. Probes are off unless configured.
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_network_primary_interface_info` | gauge | `interface`, `type` | info | always 1; interface holding the default route; `type` is wifi, ethernet, cellular, bridge, other or none |
+| `molly_network_connected` | gauge | | bool | a primary interface exists |
+| `molly_network_vpn_active` | gauge | | bool | a tunnel interface has a routable address, or a network service routes through one |
+| `molly_network_vpn_interfaces` | gauge | | count | tunnel interfaces that look like an active VPN |
+| `molly_network_receive_bytes_total` | counter | `interface` | bytes | received, skips `lo*` and interfaces that never carried traffic |
+| `molly_network_transmit_bytes_total` | counter | `interface` | bytes | sent |
+| `molly_network_receive_packets_total` | counter | `interface` | packets | received |
+| `molly_network_transmit_packets_total` | counter | `interface` | packets | sent |
+| `molly_network_receive_errors_total` | counter | `interface` | errors | receive errors |
+| `molly_network_transmit_errors_total` | counter | `interface` | errors | transmit errors |
+| `molly_network_interface_up` | gauge | `interface` | bool | interface is up and running |
+| `molly_network_probe_success` | gauge | | bool | last HEAD to `probeURL` got an HTTP response below 400; only when `probeURL` is set |
+| `molly_network_probe_latency_seconds` | gauge | | seconds | duration of the last successful probe; only when `probeURL` is set |
+| `molly_network_captive_portal` | gauge | | bool | the Apple captive-portal check was intercepted; only when `captiveCheck` is true |
 
 ## processes (interval 30s)
 

@@ -27,10 +27,6 @@ that is missing or fails is skipped (logged once at debug) without affecting the
 | `molly_disk_total_bytes` / `molly_disk_free_bytes` | gauge | `mount`, `fstype` | statfs; local volumes with non-zero size only; skips devfs/autofs and `/System/Volumes/*` except `Data`. Free is space available to users. |
 | `molly_disk_read_bytes_total` / `molly_disk_write_bytes_total` | counter | `device` | IOBlockStorageDriver Statistics; `device` is the BSD name (disk0) |
 | `molly_disk_read_ops_total` / `molly_disk_write_ops_total` | counter | `device` | |
-| `molly_network_receive_bytes_total` / `molly_network_transmit_bytes_total` | counter | `interface` | getifaddrs if_data (32-bit, wraparound handled). Skips `lo*` and interfaces that have never carried traffic. |
-| `molly_network_receive_packets_total` / `molly_network_transmit_packets_total` | counter | `interface` | |
-| `molly_network_receive_errors_total` / `molly_network_transmit_errors_total` | counter | `interface` | |
-| `molly_network_vpn_active` | gauge | | 1 when a utun/ipsec/ppp/tun/tap interface has an IPv4 or non-link-local IPv6 address (Tailscale counts) |
 | `molly_network_wifi_connected` | gauge | | CoreWLAN; 1 when associated. Always published when a Wi-Fi interface exists. |
 | `molly_network_wifi_info` | gauge (=1) | `ssid` **policy** `wifi` | only when the `wifi` policy is enabled AND macOS lets the process read the SSID |
 | `molly_battery_percent` | gauge | | IOPSCopyPowerSourcesInfo; absent on Macs without a battery |

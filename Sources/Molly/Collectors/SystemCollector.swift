@@ -128,28 +128,9 @@ func shouldReportMount(fstype: String, mountPoint: String, isLocal: Bool, totalB
     return true
 }
 
-struct InterfaceAddress: Equatable {
-    enum Kind { case ipv4, ipv6, ipv6LinkLocal }
-    let name: String
-    let kind: Kind
-}
-
-/// macOS keeps link-local-only utun interfaces up permanently; a real tunnel
-/// has a routable address.
-func isVPNActive(_ addresses: [InterfaceAddress]) -> Bool {
-    let prefixes = ["utun", "ipsec", "ppp", "tun", "tap"]
-    return addresses.contains { addr in
-        addr.kind != .ipv6LinkLocal && prefixes.contains { addr.name.hasPrefix($0) }
-    }
-}
-
-func isLinkLocalIPv6(_ bytes: [UInt8]) -> Bool {
-    bytes.count >= 2 && bytes[0] == 0xfe && (bytes[1] & 0xc0) == 0x80
-}
-
 // MARK: - Collector
 
-/// CPU, memory, disk, network, battery, displays and other machine vitals.
+/// CPU, memory, disk, Wi-Fi, battery, displays and other machine vitals.
 /// A source that is missing or fails is skipped (logged once at debug) so one
 /// flaky API never blanks the whole collector.
 final class SystemCollector: Collector {
@@ -158,7 +139,6 @@ final class SystemCollector: Collector {
     let interval: TimeInterval
 
     private static let clockTicksPerSecond = 100.0
-    private static let thirtyTwoBit = 4_294_967_296.0
 
     private let wifiFilter: LabelFilter
     private let bluetoothEnabled: Bool
@@ -166,7 +146,6 @@ final class SystemCollector: Collector {
 
     private var previousCPU: [CPUTicks] = []
     private var diskDeltas = DeltaTracker()
-    private var netDeltas = DeltaTracker(wrapAt: SystemCollector.thirtyTwoBit)
 
     private var m: Instruments?
 
@@ -197,13 +176,6 @@ final class SystemCollector: Collector {
         let diskWriteBytes: Counter
         let diskReadOps: Counter
         let diskWriteOps: Counter
-        let netRxBytes: Counter
-        let netTxBytes: Counter
-        let netRxPackets: Counter
-        let netTxPackets: Counter
-        let netRxErrors: Counter
-        let netTxErrors: Counter
-        let vpn: Gauge
         let wifiInfo: Gauge
         let wifiConnected: Gauge
         let batteryPercent: Gauge
@@ -220,7 +192,6 @@ final class SystemCollector: Collector {
     }
 
     func start(registry r: MetricsRegistry) throws {
-        let iface = ["interface"]
         let dev = ["device"]
         let mount = ["mount", "fstype"]
         m = Instruments(
@@ -243,13 +214,6 @@ final class SystemCollector: Collector {
             diskWriteBytes: r.counter("molly_disk_write_bytes_total", help: "Bytes written to storage.", labels: dev),
             diskReadOps: r.counter("molly_disk_read_ops_total", help: "Read operations.", labels: dev),
             diskWriteOps: r.counter("molly_disk_write_ops_total", help: "Write operations.", labels: dev),
-            netRxBytes: r.counter("molly_network_receive_bytes_total", help: "Bytes received.", labels: iface),
-            netTxBytes: r.counter("molly_network_transmit_bytes_total", help: "Bytes sent.", labels: iface),
-            netRxPackets: r.counter("molly_network_receive_packets_total", help: "Packets received.", labels: iface),
-            netTxPackets: r.counter("molly_network_transmit_packets_total", help: "Packets sent.", labels: iface),
-            netRxErrors: r.counter("molly_network_receive_errors_total", help: "Receive errors.", labels: iface),
-            netTxErrors: r.counter("molly_network_transmit_errors_total", help: "Transmit errors.", labels: iface),
-            vpn: r.gauge("molly_network_vpn_active", help: "1 when a VPN tunnel interface has a routable address."),
             wifiInfo: r.gauge("molly_network_wifi_info", help: "Connected Wi-Fi network (ssid label needs the wifi policy).", labels: ["ssid"]),
             wifiConnected: r.gauge("molly_network_wifi_connected", help: "1 when Wi-Fi is associated with a network."),
             batteryPercent: r.gauge("molly_battery_percent", help: "Battery charge, 0..100."),
@@ -277,7 +241,6 @@ final class SystemCollector: Collector {
         m.thermal.set(Double(ProcessInfo.processInfo.thermalState.rawValue))
         collectDisks(m)
         collectDiskIO(m)
-        collectNetwork(m)
         collectWiFi(m)
         collectBattery(m)
         collectDisplays(m)
@@ -463,52 +426,7 @@ final class SystemCollector: Collector {
         return nil
     }
 
-    // MARK: Network
-
-    private func collectNetwork(_ m: Instruments) {
-        var head: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&head) == 0, let first = head else { return skip("network", "getifaddrs failed") }
-        defer { freeifaddrs(head) }
-        var addresses: [InterfaceAddress] = []
-        var cursor: UnsafeMutablePointer<ifaddrs>? = first
-        while let entry = cursor {
-            let ifa = entry.pointee
-            cursor = ifa.ifa_next
-            guard let addr = ifa.ifa_addr else { continue }
-            let name = String(cString: ifa.ifa_name)
-            switch Int32(addr.pointee.sa_family) {
-            case AF_LINK:
-                guard !name.hasPrefix("lo"), let data = ifa.ifa_data else { continue }
-                recordInterface(m, name: name, data: data.assumingMemoryBound(to: if_data.self).pointee)
-            case AF_INET:
-                addresses.append(InterfaceAddress(name: name, kind: .ipv4))
-            case AF_INET6:
-                let bytes = addr.withMemoryRebound(to: sockaddr_in6.self, capacity: 1) { p in
-                    withUnsafeBytes(of: p.pointee.sin6_addr) { Array($0) }
-                }
-                addresses.append(InterfaceAddress(name: name, kind: isLinkLocalIPv6(bytes) ? .ipv6LinkLocal : .ipv6))
-            default:
-                continue
-            }
-        }
-        m.vpn.set(isVPNActive(addresses) ? 1 : 0)
-    }
-
-    private func recordInterface(_ m: Instruments, name: String, data: if_data) {
-        let labels = ["interface": name]
-        // Skip the many virtual interfaces (utun*, anpi*, ...) that never carry traffic.
-        let hasTraffic = data.ifi_ibytes > 0 || data.ifi_obytes > 0
-        let readings: [(String, Counter, UInt32)] = [
-            ("rb", m.netRxBytes, data.ifi_ibytes), ("tb", m.netTxBytes, data.ifi_obytes),
-            ("rp", m.netRxPackets, data.ifi_ipackets), ("tp", m.netTxPackets, data.ifi_opackets),
-            ("re", m.netRxErrors, data.ifi_ierrors), ("te", m.netTxErrors, data.ifi_oerrors),
-        ]
-        for (kind, counter, value) in readings {
-            let delta = netDeltas.delta("\(name)/\(kind)", Double(value))
-            guard hasTraffic else { continue }
-            counter.add(delta ?? 0, labels: labels)
-        }
-    }
+    // MARK: Wi-Fi
 
     private func collectWiFi(_ m: Instruments) {
         guard let wifi = CWWiFiClient.shared().interface() else { return skip("wifi", "no Wi-Fi interface") }

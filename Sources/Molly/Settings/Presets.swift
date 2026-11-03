@@ -553,6 +553,12 @@ enum Presets {
       "interval": 60,
       "path": "~/Library/Messages/chat.db"
     },
+    "network": {
+      "captiveCheck": false,
+      "enabled": true,
+      "interval": 30,
+      "probeURL": ""
+    },
     "notes": {
       "enabled": true,
       "folders": {

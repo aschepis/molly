@@ -42,6 +42,12 @@
         "maxCardinality": 0
       }
     },
+    "network": {
+      "enabled": true,
+      "interval": 30,
+      "probeURL": "",
+      "captiveCheck": false
+    },
     "processes": {
       "enabled": true,
       "interval": 30,
