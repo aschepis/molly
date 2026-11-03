@@ -320,3 +320,16 @@ not emitted. Details: [group C](collectors/group-c.md#projects).
 | `molly_project_active` | gauge | `project` **policy** `projects` | info | always 1; activity within `activeWindowSeconds` |
 | `molly_project_last_activity_timestamp_seconds` | gauge | `project` **policy** `projects`, `source` (git, claude) | seconds (unix) | latest activity |
 | `molly_projects_active` | gauge | | count | active projects, not capped by the policy |
+
+## events (interval 60s, pushed)
+
+Counts events pushed to `POST /event`, including Claude Code hooks sent by
+`molly hook`. Policy `projects` governs `project`; the label is `other` when
+the payload carries no `cwd`. Details: [HOOKS.md](HOOKS.md).
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_events_total` | counter | `source`, `event` | count | every accepted event, incremented by its `value` (default 1) |
+| `molly_claude_hook_events_total` | counter | `event`, `tool`, `project` **policy** `projects` | count | Claude Code hook events by hook name and tool; `tool` is empty for non-tool hooks |
+| `molly_claude_hook_sessions_active` | gauge | | count | hook sessions seen within `activeWindowSeconds` and not ended |
+| `molly_claude_hook_last_event_timestamp_seconds` | gauge | | seconds (unix) | time of the last hook event; absent until one arrives |

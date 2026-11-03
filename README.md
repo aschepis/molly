@@ -37,4 +37,5 @@ _Screenshots of the Overview, Focus and Developer dashboards go here._
 - [Architecture](docs/ARCHITECTURE.md): collectors, registry, privacy policies, data flow
 - [Metrics](docs/METRICS.md): every metric name, label and unit
 - [Configuration](docs/CONFIG.md): every config key, label policies, example configs
+- [Hooks](docs/HOOKS.md): live Claude Code events via `molly hook` and `POST /event`
 - [Decisions](DECISIONS.md): why things are the way they are

@@ -33,6 +33,7 @@ enum CollectorRegistry {
         try add("shell") { try ShellCollector(settings: $0) }
         // After git and claude_code so a once-run sees what they reported.
         try add("projects") { try ProjectsCollector(settings: $0) }
+        try add("events") { try EventsCollector(settings: $0) }
         return collectors
     }
 }
@@ -42,6 +43,6 @@ extension CollectorRegistry {
     static let knownNames: Set<String> = [
         "process", "system", "processes", "focus", "docker", "meeting",
         "browser", "messages", "notes", "knowledge", "calendar", "mail",
-        "git", "claude_code", "cursor", "codex", "shell", "projects",
+        "git", "claude_code", "cursor", "codex", "shell", "projects", "events",
     ]
 }
