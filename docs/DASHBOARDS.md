@@ -1,6 +1,6 @@
 # Dashboards
 
-Seven dashboards are provisioned into the Grafana folder "Molly" from
+Eight dashboards are provisioned into the Grafana folder "Molly" from
 `deploy/grafana/dashboards/`. All use the `molly-prometheus` datasource, refresh
 every 30 seconds, default to the last 24 hours, and carry `$user` and `$host`
 selectors (multi-select, default All) that filter every Molly query.
@@ -172,3 +172,18 @@ and top repos this week; the flow state timeline across the week.
 Look for: a week whose active hours rose while flow hours fell (busier, less
 focused), cost that grew faster than commits, and which day of the week the
 meetings land on.
+
+## Fleet (`molly-fleet`)
+
+Purpose: several machines reporting to one Prometheus, compared side by side.
+See [REMOTE.md](REMOTE.md) for the scrape and remote_write setups that feed it.
+
+Panels: a hosts table (Molly up, version, active now, focused app, battery,
+CPU, memory pressure, collectors failing, uptime) keyed by the `user` and
+`host` labels Molly puts on every series; per-host bars for active hours,
+commits and Claude cost over the trailing 24 hours; scrape duration per
+target; up and user-active timelines per host.
+
+Look for: a host whose Molly is up but whose collectors are failing (usually
+Full Disk Access missing on that machine), and a machine that is active but
+produces no commits (it is the meeting laptop).

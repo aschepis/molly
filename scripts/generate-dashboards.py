@@ -727,8 +727,50 @@ def week():
     return d
 
 
+# ------------------------------------------------------------------- fleet
+def fleet():
+    """Several machines reporting to one Prometheus: one row per host."""
+    d = Dash("molly-fleet", "Molly / Fleet", "Every machine running Molly, side by side: liveness, activity, cost, scrape health.")
+    d.row("Hosts")
+    table(d, "Hosts", [
+        m("molly_up"),
+        m("molly_build_info"),
+        m("molly_user_active"),
+        "label_replace(" + m("molly_focus_app") + ', "focused", "$1", "app", "(.*)")',
+        m("molly_battery_percent"),
+        m("molly_cpu_utilization_ratio"),
+        m("molly_memory_pressure_level"),
+        "count by (user, host) (" + m("molly_collector_enabled") + " == 1 and (time() - "
+        + m("molly_collector_last_success_timestamp_seconds") + ") > 600)",
+        "time() - " + m("molly_start_time_seconds")],
+        {"host": "Host", "user": "User", "version": "Version", "Value #A": "Molly up",
+         "Value #C": "Active now", "focused": "Focused app", "Value #E": "Battery",
+         "Value #F": "CPU", "Value #G": "Mem pressure", "Value #H": "Collectors failing",
+         "Value #I": "Uptime"},
+        units={"Battery": "percent", "CPU": "percentunit", "Uptime": "s"},
+        exclude=["Value #B", "Value #D", "app", "bundle_id"], h=9, sort_by="Host",
+        desc="One row per user/host. Collectors failing = enabled collectors with no success in 10 minutes. "
+             "Host and user are const labels on every Molly series, so each machine stays distinct.")
+    d.row("Today, per host")
+    per_host = dict(w=12, h=7, bars=True, min_=0)
+    timeseries(d, "Active hours today", [("sum by (host) (increase(" + m("molly_active_seconds_total") + "[1d])) / 3600", "{{host}}")],
+               unit="h", decimals=1, desc="Trailing 24 hours per host.", **per_host)
+    timeseries(d, "Commits today", [("sum by (host) (increase(" + m("molly_git_commits_total", 'author="me"') + "[1d]))", "{{host}}")],
+               decimals=0, desc="Your commits in the trailing 24 hours per host.", **per_host)
+    timeseries(d, "Claude cost today (est.)", [("sum by (host) (increase(" + m("molly_claude_estimated_cost_usd_total") + "[1d]))", "{{host}}")],
+               unit="currencyUSD", decimals=2, color=fixed(ORANGE), **per_host)
+    timeseries(d, "Scrape duration", [('scrape_duration_seconds{job="molly"}', "{{instance}}")], unit="s", w=12, min_=0,
+               desc="Built-in series per scrape target; one target per machine in prometheus.yml.")
+    d.row("Liveness")
+    state_timeline(d, "Molly up per host", [(m("molly_up"), "{{host}}")],
+                   mappings=mapping([(0, "down", CRIT), (1, "up", GOOD)]), h=5)
+    state_timeline(d, "User active per host", [(m("molly_user_active"), "{{host}}")],
+                   mappings=mapping([(0, "idle", GRAY), (1, "active", GOOD)]), h=5)
+    return d
+
+
 if __name__ == "__main__":
     out = sys.argv[1]
     os.makedirs(out, exist_ok=True)
-    for build in (overview, system, focus, developer, communication, health, week):
+    for build in (overview, system, focus, developer, communication, health, week, fleet):
         write(build(), out)
