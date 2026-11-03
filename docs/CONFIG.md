@@ -430,8 +430,48 @@ Interval 60s, enabled by default. The union of activity that `git` and `claude_c
 
 Permissions: none. Privacy: derived data only; nothing is read from disk.
 
+### power
+
+Interval 300s, enabled by default.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `backfillSeconds` | number | `86400` | on the first run, events this far before Molly started are counted, so a fresh install explains the last day |
+
+Permissions: none. Runs `pmset -g log` and `sysctl kern.boottime`. Privacy:
+only sleep, wake and dark wake lines are read. Wake reasons are mapped to a
+fixed set (lid, power button, user activity, scheduled, notification, other);
+raw reason text is never exported. Details: [group D](collectors/group-d.md#power).
+
+### builds
+
+Interval 15s, enabled by default.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `tools` | object | see `config/molly.example.json` | tool name to process-name patterns. A config entry replaces that tool's defaults; an empty list turns it off; a new key adds a tool |
+| `xcode` | bool | `true` | count Xcode build logs and measure DerivedData |
+| `derivedDataPath` | string | `~/Library/Developer/Xcode/DerivedData` | |
+| `derivedDataSeconds` | number | `1800` | minimum seconds between `du` runs (floor 60) |
+
+Patterns match the whole process name, case-insensitively; a trailing `*` is a
+prefix match. Permissions: none. Privacy: process names are matched in memory;
+only tool names from this config are exported. Details: [group D](collectors/group-d.md#builds).
+
+### tabs
+
+Interval 60s, **disabled by default**. Enable it with `"enabled": true`.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `browsers` | array of strings | all of `safari`, `chrome`, `brave`, `arc`, `edge`, `vivaldi` | which browsers to ask, when running |
+
+Permissions: Automation, one prompt per browser on first run. Privacy: only
+window and tab counts are requested; titles and URLs are never read.
+Details: [group D](collectors/group-d.md#tabs).
+
 ## Next steps
 
 - [METRICS.md](METRICS.md) lists the metrics each collector publishes.
 - [Getting started](GETTING-STARTED.md) covers permissions and the local stack.
-- [Collector deep dives](collectors/group-a.md): [B](collectors/group-b.md), [C](collectors/group-c.md).
+- [Collector deep dives](collectors/group-a.md): [B](collectors/group-b.md), [C](collectors/group-c.md), [D](collectors/group-d.md).
