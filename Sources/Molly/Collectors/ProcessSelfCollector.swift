@@ -8,6 +8,13 @@ final class ProcessSelfCollector: Collector {
     private var cpuSeconds: Counter?
     private var lastCPUSeconds: Double = 0
     private var threads: Gauge?
+    private var familyCount: Gauge?
+    private var seriesTotal: Gauge?
+    private var seriesByFamily: Gauge?
+    private weak var registry: MetricsRegistry?
+
+    /// Only the largest families get their own series; the rest would be noise.
+    static let topFamilies = 20
 
     init(settings: CollectorSettings) {
         interval = settings.interval(default: 30)
@@ -17,6 +24,10 @@ final class ProcessSelfCollector: Collector {
         residentBytes = registry.gauge("molly_self_resident_memory_bytes", help: "Resident memory of the Molly process.")
         cpuSeconds = registry.counter("molly_self_cpu_seconds_total", help: "CPU time consumed by the Molly process.")
         threads = registry.gauge("molly_self_threads", help: "Threads in the Molly process.")
+        familyCount = registry.gauge("molly_self_metric_families", help: "Metric families registered.")
+        seriesTotal = registry.gauge("molly_self_series_total", help: "Series across all families.")
+        seriesByFamily = registry.gauge("molly_self_series", help: "Series in the largest families.", labels: ["family"])
+        self.registry = registry
     }
 
     func collect() throws {
@@ -39,6 +50,14 @@ final class ProcessSelfCollector: Collector {
             lastCPUSeconds = total
         }
         threads?.set(threadCount())
+        if let registry {
+            let stats = registry.stats()
+            familyCount?.set(stats.count)
+            seriesTotal?.set(stats.reduce(0) { $0 + $1.series })
+            let top = stats.sorted { $0.series == $1.series ? $0.name < $1.name : $0.series > $1.series }
+                .prefix(ProcessSelfCollector.topFamilies)
+            seriesByFamily?.replaceAll(Dictionary(uniqueKeysWithValues: top.map { ($0.name, Double($0.series)) }), label: "family")
+        }
     }
 
     private func threadCount() -> Int {

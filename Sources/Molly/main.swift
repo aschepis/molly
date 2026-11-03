@@ -36,6 +36,9 @@ case "uninstall-agent":
 case "status":
     StatusCommand.run(commandArguments)
 
+case "tune":
+    TuneCommand.run(commandArguments)
+
 case "config-path":
     print(Paths.configFile.path)
 
