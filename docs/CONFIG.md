@@ -50,6 +50,8 @@ included.
 | `labels.extra` | object of strings | `{}` | more const labels on every series, for example `{"env": "laptop"}`. Names must be valid Prometheus label names. `user` and `host` here are overridden by `labels.user` and `labels.host` |
 | `links.grafana` | string | `"http://localhost:3030"` | URL opened by the menu bar item |
 | `links.prometheus` | string | `"http://localhost:9090"` | URL opened by the menu bar item |
+| `mcp.prometheusURL` | string | `links.prometheus` | Prometheus the `molly mcp` tools query |
+| `mcp.mollyURL` | string | `http://<server.bind>:<server.port>` | running Molly the `molly mcp` tools read `/metrics` and `/collectors` from |
 | `logLevel` | string | `"info"` | `debug`, `info`, `warn` or `error` |
 | `collectors` | object | `{}` | one object per collector, keyed by collector name |
 

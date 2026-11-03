@@ -32,9 +32,16 @@ struct Config {
         var prometheus = "http://localhost:9090"
     }
 
+    /// `molly mcp` reads these; both default to the stack and server above.
+    struct MCP: Equatable {
+        var prometheusURL: String?
+        var mollyURL: String?
+    }
+
     var server = Server()
     var labels = Labels()
     var links = Links()
+    var mcp = MCP()
     var logLevel = "info"
     var collectors: [String: JSONValue] = [:]
 
@@ -52,6 +59,9 @@ struct Config {
         all["host"] = labels.host ?? Config.defaultHost
         return all
     }
+
+    var mcpPrometheusURL: String { mcp.prometheusURL ?? links.prometheus }
+    var mcpMollyURL: String { mcp.mollyURL ?? "http://\(server.bind):\(server.port)" }
 
     func collector(_ name: String) -> CollectorSettings {
         CollectorSettings(name: name, raw: collectors[name]?.objectValue ?? [:])
@@ -106,6 +116,16 @@ struct Config {
             guard let o = links.objectValue else { throw ConfigError.invalid("links must be an object") }
             if let s = o["grafana"]?.stringValue { config.links.grafana = s }
             if let s = o["prometheus"]?.stringValue { config.links.prometheus = s }
+        }
+        if let mcp = root["mcp"] {
+            guard let o = mcp.objectValue else { throw ConfigError.invalid("mcp must be an object") }
+            for key in ["prometheusURL", "mollyURL"] {
+                guard let v = o[key] else { continue }
+                guard let s = v.stringValue, !s.isEmpty else {
+                    throw ConfigError.invalid("mcp.\(key) must be a non-empty string")
+                }
+                if key == "prometheusURL" { config.mcp.prometheusURL = s } else { config.mcp.mollyURL = s }
+            }
         }
         if let level = root["logLevel"] {
             guard let s = level.stringValue, Log.Level(rawValue: s) != nil else {
