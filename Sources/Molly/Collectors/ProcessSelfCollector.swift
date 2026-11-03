@@ -11,6 +11,7 @@ final class ProcessSelfCollector: Collector {
     private var familyCount: Gauge?
     private var seriesTotal: Gauge?
     private var seriesByFamily: Gauge?
+    private var utcOffset: Gauge?
     private weak var registry: MetricsRegistry?
 
     /// Only the largest families get their own series; the rest would be noise.
@@ -27,6 +28,8 @@ final class ProcessSelfCollector: Collector {
         familyCount = registry.gauge("molly_self_metric_families", help: "Metric families registered.")
         seriesTotal = registry.gauge("molly_self_series_total", help: "Series across all families.")
         seriesByFamily = registry.gauge("molly_self_series", help: "Series in the largest families.", labels: ["family"])
+        // Prometheus hour() is UTC; rules about "late night" need the box's offset, DST included.
+        utcOffset = registry.gauge("molly_local_utc_offset_seconds", help: "Local timezone offset from UTC, DST included.")
         self.registry = registry
     }
 
@@ -50,6 +53,7 @@ final class ProcessSelfCollector: Collector {
             lastCPUSeconds = total
         }
         threads?.set(threadCount())
+        utcOffset?.set(Double(TimeZone.current.secondsFromGMT()))
         if let registry {
             let stats = registry.stats()
             familyCount?.set(stats.count)

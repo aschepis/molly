@@ -33,6 +33,7 @@ Published by the collector manager and the `process` collector (interval 30s).
 | `molly_self_cpu_seconds_total` | counter | | seconds | cumulative CPU time of the Molly process |
 | `molly_self_threads` | gauge | | count | threads in the Molly process |
 | `molly_self_metric_families` | gauge | | count | metric families registered, populated or not |
+| `molly_local_utc_offset_seconds` | gauge | | seconds | local timezone offset from UTC including DST; `molly:local_utc_offset_hours` derives from it |
 | `molly_self_series_total` | gauge | | count | series across all families (what `/metrics` renders) |
 | `molly_self_series` | gauge | `family` | count | series in each of the 20 largest families; reset every run |
 | `molly_collector_runs_total` | counter | `collector` | runs | collector runs |

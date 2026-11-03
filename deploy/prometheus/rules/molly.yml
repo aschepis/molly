@@ -82,8 +82,9 @@ groups:
   - name: molly-gaming
     interval: 60s
     rules:
+      # Derived from the daemon so DST changes follow automatically; -5 only until the first scrape.
       - record: molly:local_utc_offset_hours
-        expr: vector(-5)
+        expr: max(molly_local_utc_offset_seconds) / 3600 or vector(-5)
       - record: molly:gaming_seconds:increase1h
         expr: sum by (user, host) (increase(molly_gaming_platform_seconds_total[1h]))
       - record: molly:gaming_seconds:increase1d

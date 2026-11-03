@@ -70,4 +70,13 @@ final class MetricsTests: XCTestCase {
         let total = (0..<4).map { c.value(labels: ["k": String($0)]) ?? 0 }.reduce(0, +)
         XCTAssertEqual(total, 1000)
     }
+
+    func testSelfCollectorPublishesLocalUTCOffset() throws {
+        let registry = MetricsRegistry(constLabels: [:])
+        let collector = ProcessSelfCollector(settings: CollectorSettings(name: "process", raw: [:]))
+        try collector.start(registry: registry)
+        try collector.collect()
+        let expected = "molly_local_utc_offset_seconds \(TimeZone.current.secondsFromGMT())"
+        XCTAssertTrue(registry.render().contains(expected), registry.render())
+    }
 }
