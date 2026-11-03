@@ -452,6 +452,19 @@ enum Presets {
       "interval": 5,
       "maxGapSeconds": 60
     },
+    "forensics": {
+      "backfillSeconds": 86400,
+      "enabled": true,
+      "interval": 300,
+      "processes": {
+        "enabled": true,
+        "hash": false,
+        "maxCardinality": 30,
+        "mode": "denylist",
+        "patterns": [],
+        "salt": ""
+      }
+    },
     "git": {
       "activeDays": 30,
       "authorEmails": [],

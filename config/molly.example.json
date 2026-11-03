@@ -318,6 +318,19 @@
       "interval": 300,
       "backfillSeconds": 86400
     },
+    "forensics": {
+      "enabled": true,
+      "interval": 300,
+      "backfillSeconds": 86400,
+      "processes": {
+        "enabled": true,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 30
+      }
+    },
     "builds": {
       "enabled": true,
       "interval": 15,

@@ -511,6 +511,20 @@ only sleep, wake and dark wake lines are read. Wake reasons are mapped to a
 fixed set (lid, power button, user activity, scheduled, notification, other);
 raw reason text is never exported. Details: [group D](collectors/group-d.md#power).
 
+### forensics
+
+Interval 300s, enabled by default.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `backfillSeconds` | number | `86400` | on the first run, shutdowns and reports this far before Molly started are counted; boots are never backfilled |
+| `processes` | policy | enabled, denylist, 30 | the `process` label of `molly_crash_reports_by_process_total` |
+
+Permissions: none. Runs `sysctl -n kern.boottime` and `last -y shutdown`, and
+lists `~/Library/Logs/DiagnosticReports` and `/Library/Logs/DiagnosticReports`
+by filename and modification time. Only the first line of an `.ips` file (its
+JSON header) is read, and only for its process name.
+
 ### builds
 
 Interval 15s, enabled by default.

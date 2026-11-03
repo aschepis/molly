@@ -73,6 +73,7 @@ enum Tuner {
         "projects": ["project": "projects"],
         "shell": ["command": "commands", "remote_host": "hosts"],
         "events": ["project": "projects"],
+        "forensics": ["process": "processes"],
         "hardware": ["name": "devices"],
         "system": ["ssid": "wifi"],
     ]
@@ -265,7 +266,8 @@ enum Tuner {
         "molly_message": "messages", "molly_xcode": "builds", "molly_build": "builds",
         "molly_usb": "hardware", "molly_audio": "hardware", "molly_external_displays": "hardware",
         "molly_docked": "hardware", "molly_lid": "hardware", "molly_power_adapter": "hardware",
-        "molly_project": "projects", "molly_self": "process", "molly_collector": "process",
+        "molly_boot": "forensics", "molly_uptime": "forensics", "molly_shutdowns": "forensics",
+        "molly_crash": "forensics", "molly_last_crash": "forensics", "molly_project": "projects", "molly_self": "process", "molly_collector": "process",
     ]
 
     /// Maps a metric family to its collector by the longest matching prefix.

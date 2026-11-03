@@ -65,6 +65,22 @@
         "textFormat": "screen locked",
         "tagKeys": "",
         "useValueForTime": false
+      },
+      {
+        "name": "Rebooted",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#d03b3b",
+        "expr": "changes(molly_boot_timestamp_seconds{user=~\"$user\",host=~\"$host\"}[1m]) > 0",
+        "step": "15s",
+        "titleFormat": "reboot",
+        "textFormat": "machine restarted",
+        "tagKeys": "",
+        "useValueForTime": false
       }
     ]
   },
