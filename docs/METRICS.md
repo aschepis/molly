@@ -155,6 +155,45 @@ No policies. A proxy for being on a call. Details: [group A](collectors/group-a.
 | `molly_camera_activations_total` | counter | | events | idle to in-use transitions |
 | `molly_meetings_total` | counter | | events | neither in use to either in use |
 
+## input (interval 5s, default disabled)
+
+No policies. Needs Accessibility. Counts only, never keycodes or positions.
+Details: [group A](collectors/group-a.md#input-interval-5s-default-disabled).
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_input_available` | gauge | | bool | the event tap is installed |
+| `molly_input_events_total` | counter | `kind` | events | key, click or scroll events |
+| `molly_input_keys_per_minute` | gauge | | events | key events in the trailing 60s |
+| `molly_input_clicks_per_minute` | gauge | | events | clicks in the trailing 60s |
+| `molly_input_scrolls_per_minute` | gauge | | events | scroll events in the trailing 60s |
+
+## clipboard (interval 2s)
+
+No policies. Contents are never read. Details: [group A](collectors/group-a.md#clipboard-interval-2s).
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_clipboard_changes_total` | counter | `type` | events | changes by text, image, file, url, other |
+| `molly_clipboard_last_change_timestamp_seconds` | gauge | | unix time | last change |
+| `molly_clipboard_content_bytes` | gauge | | bytes | size of the last item's primary representation |
+
+## hardware (interval 30s)
+
+Policy `devices` governs `name`. Details: [group A](collectors/group-a.md#hardware-interval-30s).
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_usb_devices` | gauge | | count | external USB devices attached |
+| `molly_usb_device_info` | gauge | `name` **policy** `devices` | info | 1 per device; only when `devices` is enabled |
+| `molly_audio_devices` | gauge | `direction` | count | audio devices with input or output streams |
+| `molly_audio_default_output_info` | gauge | `name` **policy** `devices` | info | default output device; only when `devices` is enabled |
+| `molly_audio_default_input_info` | gauge | `name` **policy** `devices` | info | default input device; only when `devices` is enabled |
+| `molly_external_displays` | gauge | | count | displays that are not built in |
+| `molly_docked` | gauge | | bool | external displays >= `dockedMinExternalDisplays` |
+| `molly_power_adapter_watts` | gauge | | watts | connected adapter rating, -1 when none |
+| `molly_lid_closed` | gauge | | bool | clamshell closed; absent when unreadable |
+
 ## browser (interval 60s)
 
 Policy `domains` (default disabled) governs `domain`. Details: [group B](collectors/group-b.md#browser).

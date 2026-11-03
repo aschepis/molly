@@ -100,6 +100,27 @@
       "enabled": true,
       "interval": 5
     },
+    "input": {
+      "enabled": false,
+      "interval": 5
+    },
+    "clipboard": {
+      "enabled": true,
+      "interval": 2
+    },
+    "hardware": {
+      "enabled": true,
+      "interval": 30,
+      "dockedMinExternalDisplays": 1,
+      "devices": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 20
+      }
+    },
     "browser": {
       "enabled": true,
       "interval": 60,
