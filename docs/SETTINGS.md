@@ -24,8 +24,8 @@ you can set here, and the file stays the source of truth for `molly validate`,
 
 | tab | what it holds |
 |---|---|
-| Collectors | every collector: on/off, poll interval, the permission it needs and a button to the matching System Settings pane when the daemon reports it unavailable |
-| Privacy | every sensitive label dimension from [PRIVACY.md](PRIVACY.md): record real names or not, allowlist or denylist, patterns, hashing, cardinality limit, plus the Strict / Balanced / Developer presets |
+| Collectors | every collector in registry order, opt-in ones under "Needs extra permission": on/off, poll interval (1 s to a day), a live status pill from the running daemon (ok with age, errors, unavailable, waiting, off, or "starts on Apply" for a collector the daemon is not running yet), and when the daemon reports it unavailable the permission it needs with a button to the matching System Settings pane. A search box filters by name; "Reset intervals to defaults" writes every catalog default back |
+| Privacy | every sensitive label dimension from [PRIVACY.md](PRIVACY.md), grouped by collector (groups of a disabled collector are greyed and marked "collector off"): "Record actual values" on or off, and when on a denylist/allowlist choice, patterns one per line (`*` wildcard, bare domains match subdomains), hashing with a salt indicator and "Regenerate salt", and a distinct-value limit (0 = unlimited). The Strict / Balanced / Developer presets sit at the top. Each row also shows what has actually left this machine: the daemon's `/privacy` counts (passed, other, redacted, hashed) fetched when the tab opens and on Refresh |
 | Server | bind address and port, Grafana and Prometheus links, log level, extra const labels, the hook token |
 | Agents | the insights collector (backend, model, schedule, API key) and the MCP Prometheus URL |
 | Maintenance | forget data per collector, Prometheus retention |
