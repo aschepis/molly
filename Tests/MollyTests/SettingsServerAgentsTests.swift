@@ -64,4 +64,11 @@ final class SettingsServerAgentsTests: XCTestCase {
         XCTAssertTrue(model.isDirty)
         XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
     }
+
+    func testGatherWithoutFallbackThrowsWhenDaemonIsDown() throws {
+        let config = try Config.parse(Data(#"{"server": {"bind": "127.0.0.1", "port": 1}}"#.utf8))
+        XCTAssertThrowsError(try TuneCommand.gather(config: config, inProcessFallback: false)) { error in
+            XCTAssertTrue(error is TuneCommand.StatsUnavailable)
+        }
+    }
 }

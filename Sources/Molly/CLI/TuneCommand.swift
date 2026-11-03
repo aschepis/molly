@@ -57,13 +57,22 @@ enum TuneCommand {
 
     // MARK: gathering
 
-    static func gather(config: Config) throws -> TuneInput {
+    struct StatsUnavailable: Error, CustomStringConvertible {
+        let base: String
+        var description: String { "no /stats on \(base); is the daemon running?" }
+    }
+
+    // The in-process fallback flips StateStore persistence off for the whole
+    // process, so callers inside the daemon must opt out of it.
+    static func gather(config: Config, inProcessFallback: Bool = true) throws -> TuneInput {
         let base = "http://\(config.server.bind):\(config.server.port)"
         var families: [FamilyStats] = []
         var statuses: [TuneInput.CollectorStatus] = []
         if let stats = fetchJSON(base + "/stats") {
             families = parseFamilies(stats["families"] as? [[String: Any]] ?? [])
             statuses = parseCollectors(stats["collectors"] as? [[String: Any]] ?? [])
+        } else if !inProcessFallback {
+            throw StatsUnavailable(base: base)
         } else {
             FileHandle.standardError.write(Data("note: no /stats on \(base); running collectors once in-process\n".utf8))
             let (f, s) = try inProcessStats(config: config)

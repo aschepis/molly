@@ -88,6 +88,6 @@ enum AgentActions {
 
     static func runTune() throws -> [Recommendation] {
         let config = try Config.load()
-        return Tuner.recommend(input: try TuneCommand.gather(config: config))
+        return Tuner.recommend(input: try TuneCommand.gather(config: config, inProcessFallback: false))
     }
 }
