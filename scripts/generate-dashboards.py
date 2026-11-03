@@ -501,6 +501,11 @@ def system():
     stat(d, "Time remaining", m("molly_battery_time_remaining_seconds"), unit="s", w=6, h=3, spark=False,
          mappings=[{"type": "range", "options": {"from": -1, "to": -1, "result": {"text": "unknown"}}}], instant=True)
     stat(d, "Output volume", m("molly_audio_output_volume_ratio"), unit="percentunit", w=6, h=3, spark=False, decimals=0, instant=True)
+    bargauge(d, "Energy impact by process (selected range)",
+             [("topk(10, avg_over_time(" + m("molly_energy_impact", 'process!=""') + "[$__range]))", "{{process}}")],
+             w=12, h=9, desc="Average energy impact as reported by top; a unitless score for comparison.")
+    timeseries(d, "Energy impact", [(m("molly_energy_impact"), "{{process}}")], w=12, h=9, stack=True, min_=0,
+               desc="Stacked top processes. Names are hidden when the energy.processes policy is disabled.")
     d.row("Processes")
     bargauge(d, "Top processes by CPU", [("topk(10, " + m("molly_process_cpu_ratio") + ")", "{{name}}")],
              unit="percentunit", w=12, h=9, desc="Share of one core; may exceed 100% for multithreaded apps.")

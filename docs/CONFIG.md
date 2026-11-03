@@ -249,6 +249,18 @@ same name, a new name adds an agent, and an empty list removes one.
 Permissions: none; only processes you may inspect are seen. Privacy: names and
 resource use only. Command lines, arguments, paths and environment are never read.
 
+### energy
+
+Interval 30s, enabled by default. Energy impact per process from `top`.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `topN` | int | `15` | processes and apps kept per metric, minimum 1 |
+| `processes` | policy | enabled, denylist, 25 | process and app names. When disabled only the total is published |
+
+Permissions: none. Runs `top -l 2 -s 1`, about two seconds per run. Privacy:
+names and a number; command lines and arguments are never read.
+
 ### focus
 
 Interval 5s plus app, sleep, wake and lock notifications. Enabled by default.

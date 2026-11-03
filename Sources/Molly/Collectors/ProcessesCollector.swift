@@ -196,7 +196,7 @@ final class ProcessesCollector: Collector {
                              residentBytes: Double(info.pti_resident_size))
     }
 
-    private static func displayName(pid: pid_t) -> String? {
+    static func displayName(pid: pid_t) -> String? {
         var nameBuffer = [CChar](repeating: 0, count: 256)
         let nameLength = proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
         // proc_name truncates at 31 bytes; the executable path has the full name.
