@@ -10,8 +10,11 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
-      - --storage.tsdb.retention.time=2y
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-2y}
       - --web.enable-lifecycle
+      # Needed by `molly export` (TSDB snapshots) and `molly prune` (delete_series).
+      # Only reachable from this machine; remove it if you expose port 9090.
+      - --web.enable-admin-api
     ports:
       - "9090:9090"
     extra_hosts:

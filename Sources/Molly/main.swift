@@ -43,6 +43,12 @@ case "tune":
 case "privacy":
     PrivacyCommand.run(commandArguments)
 
+case "export":
+    ExportCommand.run(commandArguments)
+
+case "prune":
+    PruneCommand.run(commandArguments)
+
 case "config-path":
     print(Paths.configFile.path)
 

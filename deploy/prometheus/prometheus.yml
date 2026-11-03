@@ -14,3 +14,20 @@ scrape_configs:
   - job_name: prometheus
     static_configs:
       - targets: ["localhost:9090"]
+
+# Forward everything to a hosted Prometheus-compatible backend (Grafana Cloud,
+# a home server running Prometheus/Mimir/VictoriaMetrics). Molly itself stays
+# pull-only; this is the local Prometheus pushing its copy. Prometheus does not
+# expand environment variables in this file: paste the real URL and credentials,
+# or render the file from a template before `docker compose up`.
+# See docs/REMOTE.md.
+#
+# remote_write:
+#   - url: https://prometheus-prod-XX-prod-us-east-0.grafana.net/api/prom/push
+#     basic_auth:
+#       username: "123456"            # Grafana Cloud instance id
+#       password_file: /etc/prometheus/remote_write_token   # mount a file with the API token
+#     write_relabel_configs:
+#       - source_labels: [job]
+#         regex: molly
+#         action: keep                # ship Molly's series only

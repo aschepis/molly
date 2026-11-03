@@ -38,10 +38,16 @@ struct Config {
         var mollyURL: String?
     }
 
+    /// `molly export` reads this to find the Prometheus TSDB for snapshots.
+    struct Export: Equatable {
+        var prometheusDataDir: String?
+    }
+
     var server = Server()
     var labels = Labels()
     var links = Links()
     var mcp = MCP()
+    var export = Export()
     var logLevel = "info"
     var collectors: [String: JSONValue] = [:]
 
@@ -125,6 +131,13 @@ struct Config {
                     throw ConfigError.invalid("mcp.\(key) must be a non-empty string")
                 }
                 if key == "prometheusURL" { config.mcp.prometheusURL = s } else { config.mcp.mollyURL = s }
+            }
+        }
+        if let export = root["export"] {
+            guard let o = export.objectValue else { throw ConfigError.invalid("export must be an object") }
+            if let v = o["prometheusDataDir"] {
+                guard let s = v.stringValue else { throw ConfigError.invalid("export.prometheusDataDir must be a string") }
+                config.export.prometheusDataDir = s.isEmpty ? nil : s
             }
         }
         if let level = root["logLevel"] {

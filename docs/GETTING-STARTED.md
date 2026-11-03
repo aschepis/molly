@@ -88,8 +88,18 @@ MOLLY_DATA_DIR=~/MollyData docker compose up -d
 
 To back up or move your history, run `make stack-down`, copy the folder, and
 bring the stack up on the new machine with `MOLLY_DATA_DIR` pointing at the copy.
-Retention is two years. Molly's own state (import cursors, config) lives in
-`~/Library/Application Support/Molly`.
+Retention is two years by default; change it with `PROMETHEUS_RETENTION`
+(`PROMETHEUS_RETENTION=90d docker compose up -d`) or prune on demand with
+`molly prune --older-than 30d`. Molly's own state (import cursors, config)
+lives in `~/Library/Application Support/Molly`.
+
+`molly export` writes a dated tarball (config with secrets redacted, cursors,
+insights reports, a `/metrics` snapshot, and a Prometheus TSDB snapshot) to
+`~/Library/Application Support/Molly/backups/`; `molly export --restore
+<tarball>` prints the manual restore steps. Snapshots and pruning use the
+Prometheus admin API, which the compose file enables with
+`--web.enable-admin-api`; stacks started before that flag existed need
+`make stack-down && make stack-up` once.
 
 ## Using a remote Prometheus
 
@@ -119,8 +129,8 @@ scrape_configs:
 The `user` and `host` labels Molly adds keep several machines apart, and the
 dashboards' `$user` and `$host` selectors pick between them.
 
-Prometheus `remote_write` (Molly pushing to a hosted backend instead of being
-scraped) is not implemented yet; scraping is the supported path.
+To ship the local Prometheus' copy to Grafana Cloud or a home server, or to
+watch several machines on one Fleet dashboard, see [REMOTE.md](REMOTE.md).
 
 ## Troubleshooting
 

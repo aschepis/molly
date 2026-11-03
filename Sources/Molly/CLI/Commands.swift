@@ -23,6 +23,10 @@ enum Help {
       tune           recommend config changes from registry size, collector health and scrape stats
                      (--json for machine output; --apply merges the patches into config.json with a backup)
       privacy        every sensitive label dimension, its policy, and decision counts (--json)
+      export         back up config, state, insights, /metrics and a Prometheus TSDB snapshot to a tarball
+                     (--out DIR | --include-secrets | --restore TARBALL prints the manual restore steps)
+      prune          delete Molly samples older than a cutoff from Prometheus
+                     (--older-than 30d|12h|2w, --dry-run; needs the admin API)
       config-path    print the config file location
       version        print the version
 

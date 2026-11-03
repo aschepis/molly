@@ -16,6 +16,9 @@
     "prometheusURL": "http://localhost:9090",
     "mollyURL": "http://127.0.0.1:9765"
   },
+  "export": {
+    "prometheusDataDir": ""
+  },
   "logLevel": "info",
   "collectors": {
     "process": {
