@@ -21,6 +21,9 @@ case "once":
 case "hook":
     HookCommand.run(commandArguments)
 
+case "shell-hook":
+    ShellHookCommand.run(commandArguments)
+
 case "mcp":
     MCPCommand.run(commandArguments)
 case "insights":

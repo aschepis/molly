@@ -252,7 +252,8 @@ is never stored, logged or exported, and arguments never appear in any label.
 With both policies disabled (default) names and hosts are not even extracted and
 only counts are published. History files that do not exist are skipped; if none
 exist the collector reports unavailable. `cwd` is not available from any of the
-formats, so `shell` does not feed the `projects` collector.
+history formats; the prompt hook from `molly shell-hook` (see
+[HOOKS.md](../HOOKS.md#shell-hook)) supplies it to the `projects` collector.
 
 ```json
 "shell": { "shells": ["zsh"],
@@ -273,12 +274,12 @@ else last path component). Register order puts it after `git` and `claude_code`.
 | metric | type | labels |
 |---|---|---|
 | `molly_project_active` | gauge (=1) | `project`: activity within `activeWindowSeconds` |
-| `molly_project_last_activity_timestamp_seconds` | gauge | `project`, `source` (`git`/`claude`) |
+| `molly_project_last_activity_timestamp_seconds` | gauge | `project`, `source` (`git`/`claude`/`shell`) |
 | `molly_projects_active` | gauge | count of active projects (not capped by the policy) |
 
 Projects idle longer than `retentionSeconds` are dropped; at most
-`maxCardinality` projects (most recent first) are labeled. Source `shell` exists
-in the label set but is never emitted.
+`maxCardinality` projects (most recent first) are labeled. Source `shell` is
+emitted once the shell hook (`molly shell-hook install`) is in place.
 
 | key | default | |
 |---|---|---|

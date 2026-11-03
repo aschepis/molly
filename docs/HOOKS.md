@@ -95,3 +95,34 @@ characters.
 `molly hook` reads it from the same config. The endpoint only listens on
 `server.bind` (loopback by default), so the token matters only if you bind
 to a LAN address.
+
+## Shell hook
+
+Shell history has no working directory, so the `projects` collector could
+not see what you do in a terminal. The shell hook fixes that: a prompt hook
+posts `{"source":"shell","event":"prompt","shell":"zsh","exit":0,"cwd":"..."}`
+to `/event` after every command. Molly keeps only the project name derived
+from `cwd` (`owner/repo` under `github.com`, else the last path component),
+run through the `events.projects` policy, plus the shell name and whether the
+last command failed.
+
+```sh
+molly shell-hook snippet                 # print the zsh block
+molly shell-hook snippet --shell bash    # or fish
+molly shell-hook install [--shell zsh]   # append the block to ~/.zshrc (backup first)
+molly shell-hook uninstall               # remove exactly that block
+```
+
+The block is delimited by `# >>> molly shell hook >>>` and
+`# <<< molly shell hook <<<`, so `install` is idempotent and `uninstall`
+touches nothing else. It runs `curl` in the background with a 0.3 s timeout
+and discards all output, so a stopped Molly never slows the prompt. Set
+`MOLLY_SHELL_HOOK=0` in a shell to pause it there. Directories whose path
+contains a double quote are skipped rather than mis-encoded. The snippet
+bakes in `server.bind`, `server.port` and `events.token` from the config at
+the time you run it; re-run `install` after changing them.
+
+Metrics: `molly_shell_prompts_total{shell}`,
+`molly_shell_last_exit_nonzero_total{shell}`, and
+`molly_project_last_activity_timestamp_seconds{source="shell"}` via the
+`projects` collector.
