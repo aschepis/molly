@@ -24,7 +24,7 @@ enum ShellError: Error, CustomStringConvertible {
 enum Shell {
     static func run(_ command: String, _ arguments: [String] = [],
                     timeout: TimeInterval = 10, currentDirectory: String? = nil,
-                    environment: [String: String]? = nil) throws -> ShellResult {
+                    environment: [String: String]? = nil, input: Data? = nil) throws -> ShellResult {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: command.hasPrefix("/") ? command : "/usr/bin/env")
         process.arguments = command.hasPrefix("/") ? arguments : [command] + arguments
@@ -34,11 +34,18 @@ enum Shell {
         let err = Pipe()
         process.standardOutput = out
         process.standardError = err
-        process.standardInput = FileHandle.nullDevice
+        let stdin = input.map { _ in Pipe() }
+        process.standardInput = stdin ?? FileHandle.nullDevice
         do {
             try process.run()
         } catch {
             throw ShellError.launchFailed(command, error.localizedDescription)
+        }
+        if let stdin, let input {
+            DispatchQueue.global(qos: .utility).async {
+                stdin.fileHandleForWriting.write(input)
+                try? stdin.fileHandleForWriting.close()
+            }
         }
         // Drain pipes on background threads so a chatty command cannot deadlock.
         var outData = Data()

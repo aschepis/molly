@@ -13,8 +13,26 @@ enum Routes {
             /stats       registry size per family plus collector status (JSON)
             /config      effective configuration (JSON, secrets redacted)
             /privacy     every sensitive label dimension, its policy, and decision counts (JSON)
+            /insights/latest        newest daily insights report (Markdown)
+            /insights/<YYYY-MM-DD>  that day's report; add -week for a week
 
             """)
+        }
+        let insights = InsightsStore()
+        router.get("/insights/latest") { _ in
+            guard let latest = insights.latest() else {
+                return .text("no insights yet: run `molly insights` or enable the insights collector\n", status: 404)
+            }
+            return .text(latest.text, contentType: "text/markdown; charset=utf-8")
+        }
+        router.get(prefix: "/insights/") { request in
+            var name = String(request.path.dropFirst("/insights/".count))
+            let kind: InsightsDigest.Kind = name.hasSuffix("-week") ? .week : .day
+            if kind == .week { name = String(name.dropLast("-week".count)) }
+            guard DigestBuilder.parseDate(name) != nil, let text = insights.read(kind: kind, date: name) else {
+                return .notFound()
+            }
+            return .text(text, contentType: "text/markdown; charset=utf-8")
         }
         router.get("/metrics") { _ in
             .text(manager.registry.render(), contentType: "text/plain; version=0.0.4; charset=utf-8")
@@ -81,7 +99,7 @@ enum Routes {
         guard case .object(let o) = value else { return value }
         var out: [String: JSONValue] = [:]
         for (k, v) in o {
-            out[k] = k == "salt" ? .string("***") : redactSalts(v)
+            out[k] = (k == "salt" || k == "apiKey") && v != .string("") ? .string("***") : redactSalts(v)
         }
         return .object(out)
     }

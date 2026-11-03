@@ -525,6 +525,24 @@ and the project name from `cwd` are used; prompts, tool input and transcript
 paths are discarded. Label values from payloads are sanitized and capped at 64
 characters.
 
+### insights
+
+Interval 300s, **disabled by default**. Writes a Claude-generated daily (and
+weekly) report from Prometheus data; every report costs API money or
+subscription budget. See [INSIGHTS.md](INSIGHTS.md).
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `dailyAtHour` | number | `21` | local hour (0-23) after which today's report is generated once |
+| `weekly` | bool | `true` | also write last week's report on Mondays |
+| `model` | string | `claude-sonnet-5-5` | model for the `api` backend |
+| `apiKey` | string | `""` | Claude API key; `ANTHROPIC_API_KEY` in the environment wins. Redacted in `/config` |
+| `backend` | string | `auto` | `auto` (key, else CLI), `api`, or `cli` |
+| `prometheusURL` | string | `links.prometheus` | where to read the history from |
+
+Permissions: none. Privacy: only the policy-filtered digest of aggregate
+numbers is sent, and only to the backend you configured.
+
 ## Auditing what leaves the box
 
 Every `LabelPolicy` is registered with a privacy audit when its collector

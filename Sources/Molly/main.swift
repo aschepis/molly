@@ -23,6 +23,8 @@ case "hook":
 
 case "mcp":
     MCPCommand.run(commandArguments)
+case "insights":
+    InsightsCommand.run(commandArguments)
 
 case "doctor":
     DoctorCommand.run(commandArguments)
