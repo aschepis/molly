@@ -77,7 +77,7 @@ final class EnergyCollector: Collector {
     func start(registry: MetricsRegistry) throws {
         impact = registry.gauge("molly_energy_impact", help: "Energy impact of the top processes by name, as top reports it.", labels: ["process"])
         impactByApp = registry.gauge("molly_energy_impact_by_app", help: "Energy impact of the top applications; helpers without an app count under their process name.", labels: ["app"])
-        total = registry.gauge("molly_energy_impact_total", help: "Energy impact summed over every process, not only the top N.")
+        total = registry.gauge("molly_energy_impact_sum", help: "Energy impact summed over every process, not only the top N.")
     }
 
     func collect() throws {

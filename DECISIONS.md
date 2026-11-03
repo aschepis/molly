@@ -192,12 +192,12 @@ paths, to keep the hook path to a dictionary lookup.
 `powermetrics` needs root, which Molly never has; `top -stats pid,command,power`
 prints the same energy-impact score unprivileged. It is run with two samples
 (`-l 2 -s 1`) because the first always reads zero, and with no `-n` so
-`molly_energy_impact_total` covers every process, not just the top N. top cuts
+`molly_energy_impact_sum` covers every process, not just the top N. top cuts
 COMMAND to 16 characters, so names are resolved from the pid with the libproc
 helper `ProcessesCollector` already has; the truncated text is only a fallback
 for pids that vanished or cannot be inspected. One `top` call replaces a
 separate `ps` batch and keeps the pid and the score from the same instant.
 `molly_energy_impact_by_app` uses `NSRunningApplication` only for regular apps;
 helpers keep their process name rather than being guessed into an app. The
-total is a gauge named `_total` because a sum of scores is not a counter; the
-name was asked for explicitly.
+total is `molly_energy_impact_sum`, a gauge: a sum of scores is not a counter,
+so the `_total` suffix is wrong for it.

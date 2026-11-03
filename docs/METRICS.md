@@ -132,7 +132,7 @@ Values are the "energy impact" `top` reports, a unitless score; sort order matte
 |---|---|---|---|---|
 | `molly_energy_impact` | gauge | `process` **policy** `processes` | score | top `topN` processes by name, helpers summed |
 | `molly_energy_impact_by_app` | gauge | `app` **policy** `processes` | score | top `topN`; a regular GUI app owns its own pid, everything else keeps its process name |
-| `molly_energy_impact_total` | gauge | | score | sum over every process, not only the top `topN`; always published |
+| `molly_energy_impact_sum` | gauge | | score | sum over every process, not only the top `topN`; always published |
 
 ## focus (interval 5s plus notification observers)
 

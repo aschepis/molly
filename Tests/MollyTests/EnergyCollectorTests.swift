@@ -46,7 +46,7 @@ final class EnergyCollectorTests: XCTestCase {
         try collector.start(registry: registry)
         try collector.collect()
         let text = registry.render()
-        XCTAssertTrue(text.contains("molly_energy_impact_total"))
+        XCTAssertTrue(text.contains("molly_energy_impact_sum"))
         XCTAssertTrue(text.contains("molly_energy_impact{"))
     }
 }
