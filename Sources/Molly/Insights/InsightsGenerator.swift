@@ -113,16 +113,18 @@ final class InsightsGenerator {
     let user: String
     let host: String
     private let client: PrometheusClient
+    private let extraQueries: [DigestQuery]
     private let makeCompleter: () throws -> NarrativeCompleter
     private var lastGenerated: Gauge?
     private var generations: Counter?
 
     init(client: PrometheusClient, store: InsightsStore, user: String, host: String,
-         makeCompleter: @escaping () throws -> NarrativeCompleter) {
+         extraQueries: [DigestQuery] = [], makeCompleter: @escaping () throws -> NarrativeCompleter) {
         self.client = client
         self.store = store
         self.user = user
         self.host = host
+        self.extraQueries = extraQueries
         self.makeCompleter = makeCompleter
     }
 
@@ -139,7 +141,8 @@ final class InsightsGenerator {
     }
 
     func digest(kind: InsightsDigest.Kind, date: Date, now: Date = Date()) -> InsightsDigest {
-        DigestBuilder.build(client: client, kind: kind, date: date, user: user, host: host, now: now)
+        DigestBuilder.build(client: client, kind: kind, date: date, user: user, host: host, now: now,
+                            queries: DigestQueries.all + extraQueries)
     }
 
     /// Generates (or returns the cached) report for the period containing `date`.

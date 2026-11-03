@@ -1,6 +1,6 @@
 # Dashboards
 
-Eight dashboards are provisioned into the Grafana folder "Molly" from
+Nine dashboards are provisioned into the Grafana folder "Molly" from
 `deploy/grafana/dashboards/`. All use the `molly-prometheus` datasource, refresh
 every 30 seconds, default to the last 24 hours, and carry `$user` and `$host`
 selectors (multi-select, default All) that filter every Molly query.
@@ -40,6 +40,8 @@ from a single scrape. The dashboards below use them.
 | `molly:claude_tool_calls:rate1h` | tool calls in the last hour |
 | `molly:active_hours:1d`, `molly:meeting_hours:1d` | trailing 24h totals |
 | `molly:focus_top_app_seconds:1d` | top 5 apps by focus time, trailing 24h |
+| `molly:health_sleep_minutes:last_night` | minutes asleep last night, from the health collector |
+| `molly:active_unbroken_hours:1d` | hours in the last day with no 5 minute idle gap; stands in for "longest sedentary stretch", which Molly cannot see without per-minute steps |
 
 The flow thresholds are a starting point. Change them in the rules file, run
 `curl -X POST localhost:9090/-/reload`, and every panel follows.
@@ -57,6 +59,7 @@ user/host labels.
 | `MollyDown` | the molly target has been down for 5 minutes | the menu bar app is not running or not reachable; `molly status` |
 | `LongSessionNoBreak` | `molly_user_active` stayed 1 for 2 hours | no 5 minute idle gap; take a break |
 | `NoBreakFourHours` | the same for 4 hours | |
+| `NotStandingEnough` | active 90 minutes while neither stand hours nor steps changed, and the phone posted in that window | stand up; only fires with the health collector on |
 | `HighMemoryPressure` | pressure level 2 or more for 10 minutes | macOS is compressing memory |
 | `MemoryPressureCritical` | pressure level 4 for 5 minutes | expect swapping and stalls |
 | `BatteryLow` | under 15% and not on AC | |
@@ -158,6 +161,33 @@ timeline of alert history (see [Alerts](#alerts)).
 Look for: a collector whose last-success age is far beyond its interval
 (failing or missing permission), error counts that keep rising, and scrape
 duration approaching the 15 second scrape interval.
+
+## Body (`molly-body`)
+
+Purpose: set Apple Health numbers against how you worked. Needs the `health`
+collector ([HEALTH.md](HEALTH.md)); every panel is empty until the iPhone
+Shortcut has posted. Default range is 14 days.
+
+Panels: today tiles (steps, stand hours, exercise, active energy, resting HR,
+HRV, sleep last night, bedtime); sleep vs flow hours and vs app switching;
+bedtime; stand hours vs unbroken active hours; steps vs active hours; exercise
+vs commits; daylight; resting HR vs meeting hours and HRV vs interruptions
+(seven day rolling); a grid of the remaining types; and a pipeline row (age of
+the last post, samples accepted and rejected).
+
+Daily series work with live and imported data: each is
+`molly_health_yesterday offset -1d or molly_health_today or
+last_over_time(molly_health_day[1d] offset -12h)`, so a day shows its final
+total once it is over, the running total while it is in progress, and the
+`molly health import` value for history with no live data. Where Molly has no
+counterpart series the health series stands alone and the panel description
+says so: bedtime (no late-night work or gaming rule) and daylight (no
+afternoon-focus rule). Work-side series (flow, active hours, commits) are the
+trailing 24 hours, so they line up with a calendar day only at its end.
+
+Look for: short nights followed by low flow or fast switching, a resting heart
+rate that climbs through a meeting-heavy week, and days with many active hours
+and few steps.
 
 ## Week (`molly-week`)
 

@@ -32,6 +32,8 @@ struct DigestQuery: Equatable {
     enum Shape: Equatable {
         case scalar
         case breakdown(label: String)
+        /// The query yields an index into `labels`; only the label is reported.
+        case bucket(labels: [String])
     }
 
     let key: String
@@ -42,6 +44,10 @@ struct DigestQuery: Equatable {
 
     static func scalar(_ key: String, _ title: String, _ unit: String, _ promql: String) -> DigestQuery {
         DigestQuery(key: key, title: title, unit: unit, shape: .scalar, promql: promql)
+    }
+
+    static func bucket(_ key: String, _ title: String, labels: [String], _ promql: String) -> DigestQuery {
+        DigestQuery(key: key, title: title, unit: "", shape: .bucket(labels: labels), promql: promql)
     }
 
     static func breakdown(_ key: String, _ title: String, _ unit: String, by label: String, _ promql: String) -> DigestQuery {
@@ -108,6 +114,46 @@ enum DigestQueries {
         .scalar("battery_min_percent", "Battery minimum", "%", "min(min_over_time(molly_battery_percent{s}[{r}]))"),
         .scalar("molly_collector_errors", "Molly collector errors", "", "sum(increase(molly_collector_errors_total{s}[{r}]))"),
     ]
+
+    /// Thresholds for the coarse health buckets; nothing finer reaches the
+    /// model unless `collectors.health.detailedInsights` is true.
+    static let shortSleepMinutes = 360
+    static let longSleepMinutes = 540
+    static let lowSteps = 5000
+    static let highSteps = 12000
+    static let restingHeartRateShiftBpm = 2
+    static let restingBaselineRange = "28d"
+
+    static let healthCoarse: [DigestQuery] = {
+        let sleep = "max(max_over_time(molly_health_sleep_minutes_last_night{s}[{r}]))"
+        let steps = "max(max_over_time(molly_health_today{s,type=\"steps\"}[{r}]))"
+        let recent = "avg(avg_over_time(molly_health_today{s,type=\"resting_heart_rate_bpm\"}[{r}]))"
+        let baseline = "avg(avg_over_time(molly_health_today{s,type=\"resting_heart_rate_bpm\"}[\(restingBaselineRange)]))"
+        return [
+            .bucket("health_sleep", "Sleep last night", labels: ["short", "ok", "long"],
+                    "(\(sleep) >= bool \(shortSleepMinutes)) + (\(sleep) > bool \(longSleepMinutes))"),
+            .bucket("health_movement", "Movement", labels: ["low", "ok", "high"],
+                    "(\(steps) >= bool \(lowSteps)) + (\(steps) > bool \(highSteps))"),
+            .bucket("health_rest", "Resting heart rate vs your 4-week norm", labels: ["down", "flat", "up"],
+                    "(\(recent) > bool (\(baseline) + \(restingHeartRateShiftBpm))) + 1 - (\(recent) < bool (\(baseline) - \(restingHeartRateShiftBpm)))"),
+        ]
+    }()
+
+    static let healthDetailed: [DigestQuery] = [
+        .scalar("health_sleep_minutes", "Sleep last night", "min", "max(max_over_time(molly_health_sleep_minutes_last_night{s}[{r}]))"),
+        .scalar("health_steps", "Steps (best day)", "", "max(max_over_time(molly_health_today{s,type=\"steps\"}[{r}]))"),
+        .scalar("health_exercise_minutes", "Exercise minutes (best day)", "min", "max(max_over_time(molly_health_today{s,type=\"exercise_minutes\"}[{r}]))"),
+        .scalar("health_stand_hours", "Stand hours (best day)", "h", "max(max_over_time(molly_health_today{s,type=\"stand_hours\"}[{r}]))"),
+        .scalar("health_resting_hr", "Resting heart rate (avg)", "bpm", "avg(avg_over_time(molly_health_today{s,type=\"resting_heart_rate_bpm\"}[{r}]))"),
+        .scalar("health_hrv", "HRV (avg)", "ms", "avg(avg_over_time(molly_health_today{s,type=\"hrv_ms\"}[{r}]))"),
+    ]
+
+    /// Health queries to add to the digest: none unless the collector is on.
+    static func health(config: Config) -> [DigestQuery] {
+        let settings = config.collector("health")
+        guard settings.enabled(default: false) else { return [] }
+        return settings.bool("detailedInsights", default: false) ? healthCoarse + healthDetailed : healthCoarse
+    }
 
     static func selector(user: String, host: String) -> String {
         "user=\"\(user)\",host=\"\(host)\""
@@ -177,6 +223,12 @@ enum DigestBuilder {
                         continue
                     }
                     digest.scalars[query.key] = round(value * precision) / precision
+                case .bucket(let labels):
+                    guard let value = samples.first?.value, value.isFinite, labels.indices.contains(Int(value)) else {
+                        digest.missing.append(query.key)
+                        continue
+                    }
+                    digest.scalars[query.key] = value.rounded()
                 case .breakdown(let label):
                     var values: [String: Double] = [:]
                     for sample in samples where sample.value.isFinite && sample.value > 0 {
@@ -198,7 +250,7 @@ enum DigestBuilder {
 
 extension InsightsDigest {
     /// Compact Markdown: one line per number, grouped in query order.
-    func markdown(queries: [DigestQuery] = DigestQueries.all) -> String {
+    func markdown(queries: [DigestQuery] = DigestQueries.all + DigestQueries.healthCoarse + DigestQueries.healthDetailed) -> String {
         var out = "## Digest: \(kind == .day ? "day" : "week of") \(date) (\(user)@\(host))\n"
         out += "Window: \(Self.timestamp(from)) to \(Self.timestamp(to))\n\n"
         for query in queries {
@@ -206,6 +258,9 @@ extension InsightsDigest {
             case .scalar:
                 guard let value = scalars[query.key] else { continue }
                 out += "- \(query.title): \(Self.number(value))\(Self.unitSuffix(query.unit))\n"
+            case .bucket(let labels):
+                guard let value = scalars[query.key], labels.indices.contains(Int(value)) else { continue }
+                out += "- \(query.title): \(labels[Int(value)])\n"
             case .breakdown:
                 guard let values = breakdowns[query.key], !values.isEmpty else { continue }
                 let ranked = values.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }

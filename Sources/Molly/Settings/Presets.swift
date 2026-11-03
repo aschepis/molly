@@ -485,6 +485,14 @@ enum Presets {
       "enabled": true,
       "interval": 30
     },
+    "health": {
+      "allowRemoteBind": false,
+      "detailedInsights": false,
+      "enabled": false,
+      "interval": 60,
+      "maxAgeSeconds": 604800,
+      "token": ""
+    },
     "input": {
       "enabled": false,
       "interval": 5

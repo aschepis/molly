@@ -156,7 +156,9 @@ def today_stat(d, title, expr, unit="short", w=4, h=4, decimals=0, desc=""):
 
 
 def timeseries(d, title, items, unit="short", w=12, h=8, stack=False, bars=False,
-               min_=None, max_=None, desc="", color=None, fill=10, th=None, decimals=None):
+               min_=None, max_=None, desc="", color=None, fill=10, th=None, decimals=None,
+               right_axis=None):
+    """right_axis: {legend name: unit} for series drawn against a second y axis."""
     custom = {
         "drawStyle": "bars" if bars else "line", "lineWidth": 2,
         "fillOpacity": 60 if bars else fill, "showPoints": "never", "spanNulls": False,
@@ -176,10 +178,14 @@ def timeseries(d, title, items, unit="short", w=12, h=8, stack=False, bars=False
     if th:
         defaults["thresholds"] = thresholds(th)
     n = len(items)
+    overrides = [{"matcher": {"id": "byName", "options": name},
+                  "properties": [{"id": "custom.axisPlacement", "value": "right"},
+                                 {"id": "unit", "value": axis_unit}]}
+                 for name, axis_unit in (right_axis or {}).items()]
     d.add({
         "type": "timeseries", "title": title, "description": desc,
         "targets": targets(items),
-        "fieldConfig": {"defaults": defaults, "overrides": []},
+        "fieldConfig": {"defaults": defaults, "overrides": overrides},
         "options": {
             "legend": {"displayMode": "table" if n > 1 else "list", "placement": "bottom",
                        "showLegend": n > 1, "calcs": ["lastNotNull"] if n > 1 else []},
@@ -768,9 +774,96 @@ def fleet():
                    mappings=mapping([(0, "idle", GRAY), (1, "active", GOOD)]), h=5)
     return d
 
+# -------------------------------------------------------------------- body
+def hday(type_name):
+    """One day's value of a health type, from whichever source has it.
+
+    Live data: the yesterday gauge read a day ahead is that day's final total,
+    and the today gauge covers the day still in progress. Imported history is
+    molly_health_day, one sample at noon, held for the whole local day."""
+    t = 'type="%s"' % type_name
+    return ("(max(" + m("molly_health_yesterday", t) + " offset -1d) or max(" + m("molly_health_today", t) + ")"
+            " or max(last_over_time(" + m("molly_health_day", t) + "[1d] offset -12h)))")
+
+
+def body():
+    d = Dash("molly-body", "Molly / Body",
+             "Apple Health numbers from the iPhone Shortcut, set against how you worked. Needs collectors.health.",
+             time_from="now-14d")
+    live = "Live from the health collector (docs/HEALTH.md); empty until the Shortcut has posted."
+    d.row("Today")
+    for title, type_name, unit, decimals in [
+            ("Steps", "steps", "short", 0), ("Stand hours", "stand_hours", "short", 0),
+            ("Exercise", "exercise_minutes", "m", 0), ("Active energy", "active_energy_kcal", "kcal", 0),
+            ("Resting HR", "resting_heart_rate_bpm", "none", 0), ("HRV", "hrv_ms", "ms", 0)]:
+        stat(d, title, "max(" + m("molly_health_today", 'type="%s"' % type_name) + ")", unit=unit, w=3, h=4,
+             decimals=decimals, spark=False, instant=True, desc=live + " So far today.")
+    stat(d, "Sleep last night", m("molly:health_sleep_minutes:last_night"), unit="m", w=3, h=4, decimals=0,
+         spark=False, instant=True, desc="Minutes asleep in the night that ended this morning (yesterday's until today's arrives).")
+    stat(d, "Bedtime", "max(" + m("molly_health_bedtime_seconds") + ")", unit="dtdurations", w=3, h=4, spark=False,
+         instant=True, desc="Time after the previous midnight, so 24 hours 30 min is 00:30.")
+
+    d.row("Sleep and the next day")
+    sleep_h = "(" + hday("sleep_minutes") + ") / 60"
+    timeseries(d, "Sleep vs flow hours", [(sleep_h, "sleep h"), (m("molly:flow_minutes:increase1d") + " / 60", "flow h (trailing 24h)")],
+               unit="h", decimals=1, min_=0,
+               desc="Does a short night cost flow? Sleep is the night ending that morning. Flow is molly:flow_minutes:increase1d, a trailing 24 hours.")
+    timeseries(d, "Sleep vs app switching", [(sleep_h, "sleep h"), ("avg_over_time(" + m("molly:switch_rate:5m") + "[1d])", "switches/min (24h avg)")],
+               unit="h", decimals=1, min_=0, right_axis={"switches/min (24h avg)": "short"},
+               desc="Tired days tend to switch more. Switch rate is the 24 hour average of molly:switch_rate:5m, on the right axis.")
+    timeseries(d, "Bedtime", [("(" + hday("bedtime") + ") / 3600", "bedtime (h after midnight)")],
+               unit="h", decimals=1,
+               desc="Hours after midnight, so 24.5 is 00:30. No counterpart series yet: Molly has no recording rule for late-night work or gaming, so bedtime is shown alone.")
+    timeseries(d, "Stand hours vs unbroken active hours", [(hday("stand_hours"), "stand hours"), (m("molly:active_unbroken_hours:1d"), "hours with no break (trailing 24h)")],
+               decimals=0, min_=0,
+               desc="Molly cannot see steps by the minute, so the longest sedentary stretch is approximated by molly:active_unbroken_hours:1d: hours in the last day with no 5 minute idle gap.")
+
+    d.row("Movement and work")
+    timeseries(d, "Steps vs active hours", [(hday("steps"), "steps"), (m("molly:active_hours:1d"), "active hours (trailing 24h)")],
+               unit="short", decimals=0, min_=0, right_axis={"active hours (trailing 24h)": "h"},
+               desc="Long machine days and walking compete. Active hours on the right axis.")
+    timeseries(d, "Exercise vs commits", [(hday("exercise_minutes"), "exercise min"), (m("molly:commits:increase1d"), "commits (trailing 24h)")],
+               decimals=0, min_=0, right_axis={"commits (trailing 24h)": "short"},
+               desc="Commits are the trailing 24 hours, so a day lines up only at its end.")
+    timeseries(d, "Daylight", [(hday("daylight_minutes"), "daylight min")], unit="m", decimals=0, min_=0,
+               desc="Minutes in daylight. No afternoon-focus series exists yet (no hour-of-day recording rule), so daylight is shown alone.")
+
+    d.row("Recovery vs load (7-day rolling)")
+    rolling = lambda expr: "avg_over_time((" + expr + ")[7d:1h])"
+    timeseries(d, "Resting HR vs meeting hours", [(rolling(hday("resting_heart_rate_bpm")), "resting HR bpm"),
+                                                  ("avg_over_time(" + m("molly:meeting_hours:1d") + "[7d])", "meeting hours/day")],
+               decimals=1, right_axis={"meeting hours/day": "h"},
+               desc="A rising resting heart rate with a heavy meeting week is worth noticing. Seven day averages; meeting hours on the right axis.")
+    timeseries(d, "HRV vs interruptions", [(rolling(hday("hrv_ms")), "HRV ms"),
+                                           ("avg_over_time(" + m("molly:interruptions:increase1h") + "[7d])", "interruptions/h")],
+               decimals=1, right_axis={"interruptions/h": "short"},
+               desc="HRV tends to fall when days are fragmented. Interruptions are the approximation in molly:interruptions:increase1h; seven day averages, on the right axis.")
+
+    d.row("Other signals")
+    for title, type_name, unit in [
+            ("Active energy", "active_energy_kcal", "kcal"), ("Walking distance", "walking_distance_m", "lengthm"),
+            ("Flights climbed", "flights_climbed", "short"), ("VO2 max", "vo2max", "short"),
+            ("Body mass", "body_mass_kg", "masskg"), ("Respiratory rate", "respiratory_rate", "short"),
+            ("Blood oxygen", "blood_oxygen_ratio", "percentunit"), ("Wrist temperature change", "wrist_temperature_delta_c", "celsius"),
+            ("Headphone audio", "headphone_audio_db", "dB"), ("Mindful minutes", "mindful_minutes", "m"),
+            ("Sleep in bed", "sleep_in_bed_minutes", "m"), ("Wake time", "wake_time", "s")]:
+        timeseries(d, title, [(hday(type_name), title)], unit=unit, w=6, h=6, decimals=1,
+                   desc="Daily value, live or imported. Empty if the Shortcut does not send this type.")
+
+    d.row("Pipeline")
+    stat(d, "Last post", "time() - max(" + m("molly_health_last_post_timestamp_seconds") + ")", unit="s", w=6, h=4,
+         spark=False, instant=True, th=[(None, GOOD), (7200, WARN), (86400, CRIT)],
+         desc="Time since the phone last posted. Green under 2 hours; the Shortcut should run hourly.")
+    timeseries(d, "Samples accepted (per hour)", [("sum by (type) (increase(" + m("molly_health_samples_total") + "[1h]))", "{{type}}")],
+               w=9, h=4, bars=True, stack=True, min_=0, decimals=0)
+    timeseries(d, "Samples rejected (per hour)", [("sum by (reason) (increase(" + m("molly_health_samples_rejected_total") + "[1h]))", "{{reason}}")],
+               w=9, h=4, bars=True, stack=True, min_=0, decimals=0,
+               desc="bad_type, bad_value, bad_time or too_old. Anything here means the Shortcut payload needs a look.")
+    return d
+
 
 if __name__ == "__main__":
     out = sys.argv[1]
     os.makedirs(out, exist_ok=True)
-    for build in (overview, system, focus, developer, communication, health, week, fleet):
+    for build in (overview, system, focus, developer, communication, health, body, week, fleet):
         write(build(), out)

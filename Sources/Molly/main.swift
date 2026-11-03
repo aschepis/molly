@@ -49,6 +49,9 @@ case "privacy":
 case "export":
     ExportCommand.run(commandArguments)
 
+case "health":
+    HealthCommand.run(commandArguments)
+
 case "prune":
     PruneCommand.run(commandArguments)
 

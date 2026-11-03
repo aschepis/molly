@@ -81,6 +81,7 @@ enum CollectorCatalog {
         CollectorInfo(name: "media", title: "Media", summary: "Whether Music or Spotify is playing, optionally the track.", defaultEnabled: false, defaultInterval: 15, permission: .automation),
         CollectorInfo(name: "titles", title: "Window titles", summary: "The frontmost window's title, normalised and capped.", defaultEnabled: false, defaultInterval: 5, permission: .screenRecording),
         CollectorInfo(name: "events", title: "Claude Code hooks", summary: "Live events posted by `molly hook` from Claude Code sessions.", defaultEnabled: true, defaultInterval: 60, permission: .none),
+        CollectorInfo(name: "health", title: "Health (iPhone)", summary: "Steps, sleep, heart rate and more, pushed by an iPhone Shortcut. Stays on this machine; needs a token.", defaultEnabled: false, defaultInterval: 60, permission: .none),
         CollectorInfo(name: "insights", title: "Insights", summary: "Daily and weekly Claude narratives of your metrics.", defaultEnabled: false, defaultInterval: 300, permission: .none),
     ]
 

@@ -8,11 +8,12 @@ Molly always labels the collected data with the current user and hostname, allow
 
 ## Status
 
-Working MVP plus three feature loops. 27 collectors (system vitals, focus and
+Working MVP plus three feature loops. 28 collectors (system vitals, focus and
 idle, processes, Docker, meetings, browsers, Messages, Notes, Calendar, Mail,
 Screen Time, git, Claude Code, Cursor, Codex, shell, projects, Claude Code
-hooks, input, clipboard, hardware, power, builds, tabs, media, window titles)
-expose about 1,000 series; eight provisioned Grafana dashboards; 33
+hooks, input, clipboard, hardware, power, builds, tabs, media, window titles) plus an opt-in `health` collector fed by an iPhone Shortcut
+(Apple Health: steps, sleep, heart rate, with a Body dashboard)
+expose about 1,000 series; nine provisioned Grafana dashboards; 33
 Prometheus recording and alert rules; `molly insights`, `molly mcp`,
 `molly tune`, `molly privacy`, `molly export`. Every sensitive label
 dimension is governed by an allowlist/denylist policy and the most sensitive
@@ -47,6 +48,7 @@ _Screenshots of the Overview, Focus and Developer dashboards go here._
 - [Metrics](docs/METRICS.md): every metric name, label and unit
 - [Configuration](docs/CONFIG.md): every config key, label policies, example configs
 - [Hooks](docs/HOOKS.md): live Claude Code events via `molly hook` and `POST /event`
+- [Health](docs/HEALTH.md): opt-in Apple Health data from an iPhone Shortcut, a Body dashboard, and `molly health import` for history
 - [MCP](docs/MCP.md): `molly mcp`, read-only query tools for Claude Code and other MCP clients
 - [Privacy](docs/PRIVACY.md): every sensitive label dimension, its default, and `/privacy` for auditing
 - [Insights](docs/INSIGHTS.md): `molly insights` writes a Claude narrative of your day with recommendations

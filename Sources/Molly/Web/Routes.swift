@@ -9,6 +9,7 @@ enum Routes {
             /metrics     Prometheus exposition
             /healthz     liveness
             /event       POST a JSON event (see docs/HOOKS.md)
+            /health      POST Apple Health samples from an iPhone Shortcut (see docs/HEALTH.md)
             /collectors  per-collector status (JSON)
             /stats       registry size per family plus collector status (JSON)
             /config      effective configuration (JSON, secrets redacted)
@@ -45,6 +46,18 @@ enum Routes {
             switch events.handle(body: request.body, authorization: request.headers["authorization"]) {
             case .accepted: return HTTPResponse(status: 204, headers: [:], body: Data())
             case .unauthorized: return .text("unauthorized\n", status: 401)
+            case .badRequest(let why): return .text("bad request: \(why)\n", status: 400)
+            }
+        }
+        router.post("/health") { request in
+            guard let health = manager.collector(as: HealthCollector.self) else {
+                return .text("health collector disabled\n", status: 503)
+            }
+            switch health.handle(body: request.body, authorization: request.headers["authorization"]) {
+            case .accepted(let accepted, let rejected):
+                return .json(["accepted": accepted, "rejected": rejected])
+            case .unauthorized: return .text("unauthorized\n", status: 401)
+            case .forbidden: return .text("health data stays local: see docs/HEALTH.md\n", status: 403)
             case .badRequest(let why): return .text("bad request: \(why)\n", status: 400)
             }
         }
@@ -100,7 +113,7 @@ enum Routes {
         guard case .object(let o) = value else { return value }
         var out: [String: JSONValue] = [:]
         for (k, v) in o {
-            out[k] = (k == "salt" || k == "apiKey") && v != .string("") ? .string("***") : redactSalts(v)
+            out[k] = (k == "salt" || k == "apiKey" || k == "token") && v != .string("") ? .string("***") : redactSalts(v)
         }
         return .object(out)
     }

@@ -364,6 +364,14 @@
         "maxCardinality": 30
       }
     },
+    "health": {
+      "enabled": false,
+      "interval": 60,
+      "token": "",
+      "maxAgeSeconds": 604800,
+      "allowRemoteBind": false,
+      "detailedInsights": false
+    },
     "insights": {
       "enabled": false,
       "interval": 300,

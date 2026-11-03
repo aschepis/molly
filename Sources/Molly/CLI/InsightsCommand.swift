@@ -62,6 +62,7 @@ enum InsightsCommand {
                 client: client, store: InsightsStore(),
                 user: config.constLabels["user"] ?? Config.defaultUser,
                 host: config.constLabels["host"] ?? Config.defaultHost,
+                extraQueries: DigestQueries.health(config: config),
                 makeCompleter: { try NarrativeBackend.make(choice: settings.backend, apiKey: settings.apiKey, model: settings.model) })
             let kind: InsightsDigest.Kind = options.week ? .week : .day
             let date = options.day.flatMap { DigestBuilder.parseDate($0) } ?? Date()
