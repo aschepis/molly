@@ -81,12 +81,6 @@ user may inspect are seen; root daemons are skipped.
 | `molly_agent_processes` | gauge | `agent` | one series per configured agent, 0 when none running |
 | `molly_agent_process_cpu_ratio` | gauge | `agent` | summed CPU ratio; absent on the first run |
 
-Naming deviation: METRICS-PLAN.md calls the memory metric
-`molly_process_resident_memory_bytes`, but the always-on `process` collector
-(ProcessSelfCollector) already registers that name without labels, and the
-registry aborts on a name registered with two label sets. This collector uses
-`molly_process_resident_memory_bytes` instead.
-
 When the `names` policy is disabled, only the agent metrics are published.
 
 Config keys:
