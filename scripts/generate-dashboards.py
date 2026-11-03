@@ -322,6 +322,9 @@ def overview():
          desc="Commits today across tracked repos.", instant=True)
     today_stat(d, "Claude tokens", "sum(increase(" + m("molly_claude_tokens_total") + "[$__range]))",
                unit="short", h=5, desc="Input, output and cache tokens since midnight.")
+    stat(d, "Anomalies firing", 'count(ALERTS{alertstate="firing", severity="info", alertname!="MollyDown"}) or vector(0)',
+         w=4, h=5, spark=False, decimals=0, instant=True, th=[(None, GOOD), (1, WARN)],
+         desc="Informational alerts currently firing (see Health > Alerts). Built-in series; not filtered by user/host.")
     d.row("Output today")
     stat(d, "Messages sent", "sum(" + m("molly_messages_today", 'direction="sent"') + ")", w=6, h=4, spark=False,
          decimals=0, instant=True)
@@ -643,6 +646,18 @@ def health():
          "Value #C": "Runs", "Value #D": "Errors", "Value #E": "Last duration"},
         units={"Last success age": "s", "Last duration": "s"}, h=12, sort_by="Last success age",
         desc="Last success age well above the collector interval means it is failing or unavailable.")
+    d.row("Alerts")
+    table(d, "Firing alerts", [
+        # Seconds since the alert became active where Prometheus tracks it (alerts with a `for`),
+        # 0 for alerts that fire immediately.
+        '(ALERTS{alertstate="firing"} * on (alertname, user, host) group_left () (time() - ALERTS_FOR_STATE)) '
+        'or (ALERTS{alertstate="firing"} * 0)'],
+        {"alertname": "Alert", "severity": "Severity", "collector": "Collector", "Value": "Active for"},
+        units={"Active for": "s"}, exclude=["alertstate"], h=8, sort_by="Active for",
+        desc="Every alert currently firing, from deploy/prometheus/rules/molly.yml. All are informational.")
+    state_timeline(d, "Alert history", [('ALERTS{alertstate="firing"}', "{{alertname}}")],
+                   mappings=mapping([(1, "firing", WARN)]), h=7,
+                   desc="When each alert was firing over the selected range. Built-in series; not filtered by user/host.")
     return d
 
 

@@ -191,8 +191,13 @@ struct CollectorSettings {
         }
     }
 
+    /// Compiles the policy and registers it with the privacy audit so
+    /// `/privacy` can list every sensitive dimension without collector code.
     func filter(_ key: String, defaults: LabelPolicy = LabelPolicy()) throws -> LabelFilter {
-        try policy(key, defaults: defaults).compile()
+        let p = try policy(key, defaults: defaults)
+        let dimension = "\(name).\(key)"
+        PrivacyAudit.shared.register(dimension: dimension, collector: name, key: key, policy: p)
+        return try LabelFilter(policy: p, dimension: dimension)
     }
 
     func section(_ key: String) -> CollectorSettings {

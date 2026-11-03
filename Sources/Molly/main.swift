@@ -38,6 +38,8 @@ case "status":
 
 case "tune":
     TuneCommand.run(commandArguments)
+case "privacy":
+    PrivacyCommand.run(commandArguments)
 
 case "config-path":
     print(Paths.configFile.path)

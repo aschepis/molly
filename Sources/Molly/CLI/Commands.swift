@@ -20,6 +20,7 @@ enum Help {
       status         launch agent state, /healthz, and the Prometheus target
       tune           recommend config changes from registry size, collector health and scrape stats
                      (--json for machine output; --apply merges the patches into config.json with a backup)
+      privacy        every sensitive label dimension, its policy, and decision counts (--json)
       config-path    print the config file location
       version        print the version
 

@@ -12,6 +12,7 @@ enum Routes {
             /collectors  per-collector status (JSON)
             /stats       registry size per family plus collector status (JSON)
             /config      effective configuration (JSON, secrets redacted)
+            /privacy     every sensitive label dimension, its policy, and decision counts (JSON)
 
             """)
         }
@@ -41,6 +42,12 @@ enum Routes {
                 "seriesTotal": families.reduce(0) { $0 + ($1["series"] as? Int ?? 0) },
                 "collectors": collectorsJSON(manager),
             ])
+        }
+        router.get("/privacy") { _ in
+            .json(PrivacyAudit.shared.report(
+                constLabels: config.constLabels,
+                collectorsOn: manager.collectors.map { $0.name },
+                disabledByDefault: CollectorRegistry.disabledByDefault))
         }
         router.get("/config") { _ in
             var collectors: [String: Any] = [:]

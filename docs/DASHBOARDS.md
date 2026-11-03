@@ -44,6 +44,33 @@ from a single scrape. The dashboards below use them.
 The flow thresholds are a starting point. Change them in the rules file, run
 `curl -X POST localhost:9090/-/reload`, and every panel follows.
 
+## Alerts
+
+The same rules file defines informational alerts (`severity: info`). Nothing
+pages; they appear in Health > Alerts (a table of what is firing and a
+timeline of when each fired) and as the "Anomalies firing" tile on Overview.
+Prometheus exposes them as the built-in `ALERTS` series, which carries no
+user/host labels.
+
+| alert | fires when | what it means |
+|---|---|---|
+| `MollyDown` | the molly target has been down for 5 minutes | the menu bar app is not running or not reachable; `molly status` |
+| `LongSessionNoBreak` | `molly_user_active` stayed 1 for 2 hours | no 5 minute idle gap; take a break |
+| `NoBreakFourHours` | the same for 4 hours | |
+| `HighMemoryPressure` | pressure level 2 or more for 10 minutes | macOS is compressing memory |
+| `MemoryPressureCritical` | pressure level 4 for 5 minutes | expect swapping and stalls |
+| `BatteryLow` | under 15% and not on AC | |
+| `SwitchRateSpike` | 15 minutes of switching at twice your 7 day median, while active | an unusually fragmented stretch |
+| `ActiveDayNoCommits` | 6+ active hours and no commit of yours today, weekday evening (UTC hour 22+) | a day that did not land in git; edit the hour for your timezone |
+| `HighClaudeSpend` | estimated Claude spend in 24h above `molly:claude_spend_threshold_usd` (50) | change the threshold in the rules file |
+| `MeetingMarathon` | microphone or camera in use for more than 4 hours in 24h | |
+| `DiskAlmostFull` | less than 10% free on the data volume for 10 minutes | |
+| `CollectorFailing` | more than 5 errors from one collector in 30 minutes (codex excluded) | `molly doctor`; usually a permission |
+| `ScrapeLarge` | more than 5000 samples per scrape for 10 minutes | a label policy's `maxCardinality` is too generous; see `/privacy` |
+
+Alerts that need a baseline (`SwitchRateSpike`) stay silent until the stack
+has about a week of data.
+
 ## Overview (`molly-overview`)
 
 Purpose: the one-screen answer to "how was today".
@@ -122,7 +149,9 @@ Purpose: is Molly itself working.
 
 Panels: Molly up, Prometheus target state, paused, version, uptime, threads;
 scrape duration, Molly's memory and CPU; collector runs, errors and duration
-per collector; a status table with enabled flag, age of last success, totals.
+per collector; a status table with enabled flag, age of last success, totals;
+an Alerts row with every firing alert (and how long it has been active) and a
+timeline of alert history (see [Alerts](#alerts)).
 
 Look for: a collector whose last-success age is far beyond its interval
 (failing or missing permission), error counts that keep rising, and scrape
