@@ -21,6 +21,7 @@ Under launchd the variables must be set in the agent plist, not your shell.
 | `molly validate [path]` | parses the file (default: the config file), constructs every enabled collector, prints `ok: <path>`, the const labels and the enabled collectors. Prints `warning: unknown collector sections: ...` for misspelled section names. Exits 1 with a message on a hard error, such as invalid JSON or a bad policy |
 | `molly once [--collector NAME]` | runs collectors once and prints the metrics text; policies still apply |
 | `molly doctor` | checks permissions, ports and the local stack |
+| `molly settings [tab]` | asks the running daemon to open the Settings window, optionally on `collectors`, `privacy`, `server`, `agents` or `maintenance`. `--close` hides it. Exits 1 when `/healthz` does not answer. Used by `scripts/snap-settings.sh` |
 
 `validate` does not catch a misspelled key inside a collector section.
 Unknown keys, and values of the wrong type for a plain key, are ignored and the

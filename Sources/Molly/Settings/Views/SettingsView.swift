@@ -7,24 +7,30 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TabView {
+            TabView(selection: model.binding(\.selectedTab)) {
                 CollectorsTab()
                     .tabItem { Label("Collectors", systemImage: "square.stack.3d.up") }
+                    .tag(SettingsTab.collectors)
                 PrivacyTab()
                     .tabItem { Label("Privacy", systemImage: "hand.raised") }
+                    .tag(SettingsTab.privacy)
                 ServerTab()
                     .tabItem { Label("Server", systemImage: "network") }
+                    .tag(SettingsTab.server)
                 AgentsTab()
                     .tabItem { Label("Agents", systemImage: "sparkles") }
+                    .tag(SettingsTab.agents)
                 MaintenanceTab()
                     .tabItem { Label("Maintenance", systemImage: "wrench.and.screwdriver") }
+                    .tag(SettingsTab.maintenance)
             }
             .padding([.horizontal, .top], 12)
             Divider()
             SettingsFooter()
                 .padding(12)
         }
-        .frame(minWidth: 720, minHeight: 520)
+        .frame(minWidth: SettingsWindowController.defaultSize.width,
+               minHeight: SettingsWindowController.defaultSize.height)
     }
 }
 

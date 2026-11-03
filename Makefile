@@ -1,4 +1,4 @@
-.PHONY: build release test run once doctor stack-up stack-down stack-logs app icon dist install uninstall install-agent uninstall-agent check-dashboards verify-signature notarize
+.PHONY: build release test run once doctor stack-up stack-down stack-logs app icon dist install uninstall install-agent uninstall-agent check-dashboards snap-settings snap-dashboards snapshots verify-signature notarize
 
 build:
 	swift build
@@ -94,6 +94,16 @@ install-agent:
 
 uninstall-agent:
 	swift run -q molly uninstall-agent
+
+# Needs the installed Molly.app running (or MOLLY_BIN pointing at a running daemon's binary).
+snap-settings:
+	scripts/snap-settings.sh
+
+# Starts the compose "render" profile; RANGE=7d changes the time window.
+snap-dashboards:
+	scripts/snap-dashboards.sh $(or $(RANGE),24h)
+
+snapshots: snap-settings snap-dashboards
 
 check-dashboards:
 	scripts/check-dashboards.sh docs/METRICS.md

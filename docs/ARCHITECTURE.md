@@ -131,3 +131,9 @@ Docker Desktop forwards that to the host's loopback, which is why Molly can
 stay bound to 127.0.0.1. Recording rules and informational alerts live in
 `deploy/prometheus/rules/molly.yml`. Both services keep their data in
 `${MOLLY_DATA_DIR:-./data}` so one folder holds all history.
+
+An optional `renderer` service (grafana-image-renderer) sits behind the compose
+profile `render` and is not started by default. `make snap-dashboards` starts it
+and saves each dashboard as `docs/screenshots/dashboard-<uid>.png`;
+`make snap-settings` does the same for the Settings tabs via `molly settings`;
+`make snapshots` runs both. PNGs are git-ignored.
