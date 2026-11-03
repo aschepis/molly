@@ -88,3 +88,35 @@ format is unverified (no Codex on this machine), Orion's history schema is
 assumed to match Safari, Brave/Arc were installed but had no History file,
 and the shell gives the `projects` collector no signal because shell history
 has no working directory.
+
+## 2026-11-03 Ideation loops ran as forks, not fresh subagents
+
+For loop 1 I first used fresh subagents; three of them (on a different
+model) refused to edit without your in-person confirmation of the global
+"explain then wait" rule and could not be unblocked by me. Those tasks and
+all later loop work ran as forks of this session, which carry your original
+goal message. Both kinds committed on their own branches in git worktrees
+and were merged by hand; conflicts were only ever "both sides appended".
+
+## 2026-11-03 Dashboards are generated, never hand-edited
+
+`scripts/generate-dashboards.py` is the source of truth for all eight
+dashboards; `make check-dashboards` verifies every metric name against
+`docs/METRICS.md`. Hand edits to the JSON are overwritten on the next run.
+
+## 2026-11-03 Prometheus admin API is enabled on the local stack
+
+`molly export` takes TSDB snapshots and `molly prune` deletes series, both
+of which need `--web.enable-admin-api`. The stack binds 9090 on localhost
+only; do not publish it beyond the machine with that flag on (REMOTE.md).
+
+## 2026-11-03 Window titles and media tracks hash by default
+
+These are the leakiest labels Molly can hold, so their policies ship with
+`hash: true` even once you opt the collector in. Plain text needs an explicit
+`"hash": false`.
+
+## 2026-11-03 `messages` on by default, `mail` off
+
+Counts only, never content or contacts. You listed messages sent as a
+must-have; Mail stayed off because its schema is inferred and less tested.

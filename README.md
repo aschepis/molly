@@ -8,7 +8,16 @@ Molly always labels the collected data with the current user and hostname, allow
 
 ## Status
 
-Early development. The Swift skeleton, metrics registry, privacy policies, menu bar app, deployment stack, six Grafana dashboards and launchd integration are in place; all collectors are implemented; see [docs/METRICS.md](docs/METRICS.md) and [docs/CONFIG.md](docs/CONFIG.md).
+Working MVP plus three feature loops. 27 collectors (system vitals, focus and
+idle, processes, Docker, meetings, browsers, Messages, Notes, Calendar, Mail,
+Screen Time, git, Claude Code, Cursor, Codex, shell, projects, Claude Code
+hooks, input, clipboard, hardware, power, builds, tabs, media, window titles)
+expose about 1,000 series; eight provisioned Grafana dashboards; 33
+Prometheus recording and alert rules; `molly insights`, `molly mcp`,
+`molly tune`, `molly privacy`, `molly export`. Every sensitive label
+dimension is governed by an allowlist/denylist policy and the most sensitive
+ones are off by default. See [docs/METRICS.md](docs/METRICS.md),
+[docs/CONFIG.md](docs/CONFIG.md) and [docs/PRIVACY.md](docs/PRIVACY.md).
 
 ## Quick start
 
@@ -41,4 +50,8 @@ _Screenshots of the Overview, Focus and Developer dashboards go here._
 - [MCP](docs/MCP.md): `molly mcp`, read-only query tools for Claude Code and other MCP clients
 - [Privacy](docs/PRIVACY.md): every sensitive label dimension, its default, and `/privacy` for auditing
 - [Insights](docs/INSIGHTS.md): `molly insights` writes a Claude narrative of your day with recommendations
+- [Tuning](docs/TUNING.md): `molly tune` recommendations from registry size and collector health
+- [Remote](docs/REMOTE.md): scraping from another machine, remote_write, fleets
+- [Roadmap](docs/ROADMAP.md) and [Ideation log](docs/IDEATION-LOG.md): what could come next and what the three loops built
 - [Decisions](DECISIONS.md): why things are the way they are
+- [Questions](QUESTIONS.md): things only you can answer, with the defaults taken meanwhile

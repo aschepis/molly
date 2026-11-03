@@ -62,7 +62,7 @@ One real narrative was generated through the CLI backend to prove the path;
 its headline finding was that code is being produced faster than it can be
 reviewed.
 
-## Loop 3: product and operations (planned)
+## Loop 3: product and operations (2026-11-03)
 
 Theme: make Molly something you install once and forget, and give the
 `projects` collector the signal it is missing.
@@ -81,4 +81,21 @@ Picked:
    tarball, `molly prune`, remote_write and Grafana Cloud docs, a fleet
    dashboard variable for multiple hosts.
 
-Outcome: (pending)
+Outcome: all four shipped and merged. `molly shell-hook` (zsh/bash/fish
+prompt hook posting the working directory to `POST /event`, so `projects`
+now has a shell source and `molly_shell_prompts_total` exists); Launch at
+Login via SMAppService from Molly.app, a generated app icon, Status/Run
+Doctor/Open Latest Insights menu items, `make dist`; opt-in `media` and
+`titles` collectors with hashing on by default; `molly export` (config,
+state, insights, metrics snapshot, Prometheus TSDB snapshot in one tarball),
+`molly prune`, the "Molly / Fleet" dashboard, `PROMETHEUS_RETENTION`, and
+docs/REMOTE.md. The stack now runs with `--web.enable-admin-api`. Tests went
+from 262 to 307.
+
+## Where the next loop would go
+
+From `docs/ROADMAP.md`, the highest-value unbuilt items: a per-collector key
+manifest so `molly validate` catches typos; retention of raw-ish dimensions
+(titles) separate from aggregates; Reminders/Things counts; Xcode build
+durations from `.xcactivitylog` headers; notarized releases via
+`brew install --cask`; and a weekly email digest built on `molly insights`.

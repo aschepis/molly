@@ -51,3 +51,25 @@ installed; `molly hook snippet` prints what it would add.
 inside a section (each collector reads its keys dynamically). A typo like
 `intervl` is ignored. Fixing this needs a per-collector key manifest; on the
 roadmap, not done.
+
+## Screen Recording for window titles
+The `titles` collector (loop 3) needs Screen Recording for the molly
+binary/Molly.app and hashes titles by default. Default: collector off.
+
+## Automation prompts for media (Music/Spotify)
+The `media` collector asks each player via AppleScript, one prompt per app.
+Default: collector off.
+
+## Insights backend and budget
+`molly insights` uses `ANTHROPIC_API_KEY` if set, else the `claude` CLI on
+your subscription. The scheduled daily run (`collectors.insights`) is off by
+default; I generated exactly one real report during development, into a
+scratch folder. Default: off; `molly insights --digest-only` is free.
+
+## Prometheus admin API is now on
+Needed for `molly export` snapshots and `molly prune`. Fine on localhost;
+if you ever expose 9090, turn it off or put auth in front.
+
+## Shell hook install
+`molly shell-hook install` appends a block to your rc file with a backup. Not
+run on this machine. Default: `molly shell-hook snippet` to inspect first.
