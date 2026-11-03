@@ -202,7 +202,7 @@ Same shape as claude_code where the format allows: `molly_codex_sessions_active`
 | `molly_shell_commands_total` | counter | `shell` |
 | `molly_shell_commands_today` | gauge | `shell` |
 | `molly_shell_command_names_total` | counter | `command` (first word, basename) **policy** `commands` (default disabled; allowlist recommended; maxCardinality 50) |
-| `molly_shell_network_hosts_total` | counter | `host` **policy** `hosts` (default disabled) | hosts from curl/wget/ssh/scp/http(s) URLs in commands |
+| `molly_shell_network_hosts_total` | counter | `remote_host` **policy** `hosts` (default disabled) | hosts from curl/wget/ssh/scp/http(s) URLs in commands |
 Arguments are never stored or exported.
 
 ### `projects` (interval 60s; derived)
