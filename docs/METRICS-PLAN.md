@@ -215,4 +215,4 @@ shell (cwd when available). Collectors publish into a shared `ProjectTracker`.
 | `molly_projects_active` | gauge | |
 
 ## Self (`process`, already implemented)
-`molly_process_resident_memory_bytes`, `molly_process_cpu_seconds_total`, `molly_process_threads`, plus `molly_up`, `molly_paused`, `molly_build_info{version}`, `molly_start_time_seconds`.
+`molly_self_resident_memory_bytes`, `molly_self_cpu_seconds_total`, `molly_self_threads`, plus `molly_up`, `molly_paused`, `molly_build_info{version}`, `molly_start_time_seconds`.

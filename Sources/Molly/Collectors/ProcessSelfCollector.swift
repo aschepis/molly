@@ -13,9 +13,9 @@ final class ProcessSelfCollector: Collector {
     }
 
     func start(registry: MetricsRegistry) throws {
-        residentBytes = registry.gauge("molly_process_resident_memory_bytes", help: "Resident memory of the Molly process.")
-        cpuSeconds = registry.gauge("molly_process_cpu_seconds_total", help: "CPU time consumed by the Molly process.")
-        threads = registry.gauge("molly_process_threads", help: "Threads in the Molly process.")
+        residentBytes = registry.gauge("molly_self_resident_memory_bytes", help: "Resident memory of the Molly process.")
+        cpuSeconds = registry.gauge("molly_self_cpu_seconds_total", help: "CPU time consumed by the Molly process.")
+        threads = registry.gauge("molly_self_threads", help: "Threads in the Molly process.")
     }
 
     func collect() throws {

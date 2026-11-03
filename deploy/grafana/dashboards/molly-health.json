@@ -451,7 +451,7 @@
             "type": "prometheus",
             "uid": "molly-prometheus"
           },
-          "expr": "molly_process_threads{user=~\"$user\",host=~\"$host\"}",
+          "expr": "molly_self_threads{user=~\"$user\",host=~\"$host\"}",
           "legendFormat": "__auto"
         }
       ],
@@ -568,7 +568,7 @@
             "type": "prometheus",
             "uid": "molly-prometheus"
           },
-          "expr": "molly_process_resident_memory_bytes{user=~\"$user\",host=~\"$host\",name=\"\"}",
+          "expr": "molly_self_resident_memory_bytes{user=~\"$user\",host=~\"$host\"}",
           "legendFormat": "{{host}} RSS"
         }
       ],
@@ -632,7 +632,7 @@
             "type": "prometheus",
             "uid": "molly-prometheus"
           },
-          "expr": "rate(molly_process_cpu_seconds_total{user=~\"$user\",host=~\"$host\"}[$__rate_interval])",
+          "expr": "rate(molly_self_cpu_seconds_total{user=~\"$user\",host=~\"$host\"}[$__rate_interval])",
           "legendFormat": "{{host}}"
         }
       ],
