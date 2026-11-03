@@ -82,6 +82,19 @@ enum Presets {
       "path": "",
       "stats": false
     },
+    "energy": {
+      "enabled": true,
+      "interval": 30,
+      "processes": {
+        "enabled": false,
+        "hash": false,
+        "maxCardinality": 25,
+        "mode": "denylist",
+        "patterns": [],
+        "salt": ""
+      },
+      "topN": 15
+    },
     "focus": {
       "apps": {
         "enabled": false,
@@ -434,6 +447,19 @@ enum Presets {
       "interval": 60,
       "path": "",
       "stats": false
+    },
+    "energy": {
+      "enabled": true,
+      "interval": 30,
+      "processes": {
+        "enabled": true,
+        "hash": false,
+        "maxCardinality": 25,
+        "mode": "denylist",
+        "patterns": [],
+        "salt": ""
+      },
+      "topN": 15
     },
     "events": {
       "activeWindowSeconds": 300,
@@ -879,6 +905,19 @@ enum Presets {
       "interval": 60,
       "path": "",
       "stats": false
+    },
+    "energy": {
+      "enabled": true,
+      "interval": 30,
+      "processes": {
+        "enabled": true,
+        "hash": false,
+        "maxCardinality": 25,
+        "mode": "denylist",
+        "patterns": [],
+        "salt": ""
+      },
+      "topN": 15
     },
     "focus": {
       "apps": {

@@ -31,6 +31,19 @@
         "maxCardinality": 0
       }
     },
+    "energy": {
+      "enabled": true,
+      "interval": 30,
+      "topN": 15,
+      "processes": {
+        "enabled": true,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 25
+      }
+    },
     "processes": {
       "enabled": true,
       "interval": 30,

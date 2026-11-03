@@ -58,6 +58,7 @@ enum CollectorCatalog {
         CollectorInfo(name: "system", title: "System", summary: "CPU, memory, disk, battery, thermal state, Bluetooth and Wi-Fi.", defaultEnabled: true, defaultInterval: 15, permission: .none),
         CollectorInfo(name: "network", title: "Network", summary: "Primary interface and its type, VPN state, per-interface traffic and optional reachability probes.", defaultEnabled: true, defaultInterval: 30, permission: .none),
         CollectorInfo(name: "processes", title: "Processes", summary: "Top CPU and memory consumers, plus running AI agent processes.", defaultEnabled: true, defaultInterval: 30, permission: .none),
+        CollectorInfo(name: "energy", title: "Energy", summary: "Energy impact of the processes and apps using the most power.", defaultEnabled: true, defaultInterval: 30, permission: .none),
         CollectorInfo(name: "focus", title: "Focus", summary: "Frontmost app, idle time, screen lock, sleep and wake, app launches.", defaultEnabled: true, defaultInterval: 5, permission: .none),
         CollectorInfo(name: "docker", title: "Docker", summary: "Running containers and, optionally, their CPU and memory.", defaultEnabled: true, defaultInterval: 60, permission: .none),
         CollectorInfo(name: "meeting", title: "Meetings", summary: "Whether the microphone or camera is in use, as a meeting signal.", defaultEnabled: true, defaultInterval: 5, permission: .none),
