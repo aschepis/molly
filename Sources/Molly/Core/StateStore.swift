@@ -4,6 +4,10 @@ import Foundation
 /// last seen commit) so counters survive restarts without double counting.
 /// One JSON file per collector under the state folder.
 final class StateStore {
+    /// `molly once` runs beside a daemon; it must read cursors but never
+    /// advance them, or it would steal deltas the daemon should count.
+    static var persistenceEnabled = true
+
     private let url: URL
     private var values: [String: JSONValue]
     private let lock = NSLock()
@@ -38,6 +42,7 @@ final class StateStore {
     func set(_ key: String, _ value: Int) { set(key, .number(Double(value))) }
 
     func save() throws {
+        guard StateStore.persistenceEnabled else { return }
         lock.lock()
         let snapshot = values
         lock.unlock()

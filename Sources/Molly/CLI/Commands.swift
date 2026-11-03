@@ -8,7 +8,7 @@ enum Help {
 
       run            start the menu bar app and the /metrics endpoint (default)
       once           run every collector once and print the metrics text
-                     (--collector NAME to run only one; --no-sensitive hides nothing, policies still apply)
+                     (--collector NAME to run only one; never advances saved cursors)
       doctor         check permissions, ports, and the local Prometheus/Grafana stack
       validate       parse the config file and report problems
       install-agent  start Molly at login (writes ~/Library/LaunchAgents/com.aschepis.molly.plist)
@@ -33,6 +33,7 @@ enum OnceCommand {
         do {
             let config = try Config.load()
             Log.minimumLevel = Log.Level(rawValue: config.logLevel) ?? .info
+            StateStore.persistenceEnabled = false
             let registry = MetricsRegistry(constLabels: config.constLabels)
             var collectors = try CollectorRegistry.makeCollectors(config: config)
             if let only {

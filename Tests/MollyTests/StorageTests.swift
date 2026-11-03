@@ -82,3 +82,16 @@ final class StorageTests: XCTestCase {
         XCTAssertNotNil(Shell.which("ls"))
     }
 }
+
+final class StateStorePersistenceTests: XCTestCase {
+    func testSaveIsSkippedWhenPersistenceDisabled() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("molly-state-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        StateStore.persistenceEnabled = false
+        defer { StateStore.persistenceEnabled = true }
+        let store = StateStore(collector: "x", folder: folder)
+        store.set("cursor", 1)
+        try store.save()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: folder.appendingPathComponent("x.json").path))
+    }
+}

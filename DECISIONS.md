@@ -57,3 +57,34 @@ because it survives restarts and reads naturally on a dashboard.
 Your global CLAUDE.md asks me to describe existing code and wait before
 editing. The repo had only a README and the goal was set as an autonomous
 session, so I proceeded; this file is the substitute for that conversation.
+
+## 2026-11-03 Self-process metrics renamed to `molly_self_*`
+
+The plan used `molly_process_resident_memory_bytes` both for Molly's own RSS
+and for the top-N per-process gauge. The registry refuses one name with two
+label sets, so the self metrics became `molly_self_resident_memory_bytes`,
+`molly_self_cpu_seconds_total`, `molly_self_threads`.
+
+## 2026-11-03 `remote_host`, not `host`, for shell network hosts
+
+`host` is a const label on every series, so the shell collector's network
+host dimension is `remote_host`. It is disabled by default like every
+sensitive dimension.
+
+## 2026-11-03 `molly once` never advances cursors
+
+`once` runs beside the daemon for debugging. If it saved cursors it would
+consume history deltas the daemon should count, so `StateStore` persistence
+is switched off in that command. Counters printed by `once` are therefore
+mostly zero; use the `*_today` gauges or the daemon for real numbers.
+
+## 2026-11-03 Four parallel agents built the collectors in git worktrees
+
+Groups: A (system, processes, focus, docker, meeting), B (browser, messages,
+notes, knowledge, calendar, mail), C (git, claude_code, cursor, codex, shell,
+projects), D (Docker stack, dashboards, packaging, docs). Their per-group
+notes are in `docs/collectors/`. Known gaps they reported: Codex session
+format is unverified (no Codex on this machine), Orion's history schema is
+assumed to match Safari, Brave/Arc were installed but had no History file,
+and the shell gives the `projects` collector no signal because shell history
+has no working directory.
