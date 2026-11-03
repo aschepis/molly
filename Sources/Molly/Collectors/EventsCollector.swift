@@ -4,6 +4,7 @@ import Foundation
 /// producer (`molly hook`); any script can post `{"source","event"}`.
 /// Nothing from a payload is stored except the few label values below.
 final class EventsCollector: Collector {
+    static let projectsDefaults = LabelPolicy(enabled: true, mode: .denylist, maxCardinality: 30)
     enum Outcome: Equatable {
         case accepted
         case unauthorized
@@ -40,7 +41,7 @@ final class EventsCollector: Collector {
         interval = settings.interval(default: 60)
         activeWindow = settings.double("activeWindowSeconds", default: 300)
         token = settings.string("token", default: "")
-        projectsFilter = try settings.filter("projects", defaults: LabelPolicy(enabled: true, mode: .denylist, maxCardinality: 30))
+        projectsFilter = try settings.filter("projects", defaults: EventsCollector.projectsDefaults)
         self.now = now
     }
 

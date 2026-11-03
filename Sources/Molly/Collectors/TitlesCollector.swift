@@ -66,6 +66,7 @@ struct TitlesState: Equatable {
 /// The frontmost window's title, hashed by default. Needs Screen Recording
 /// permission: without it CGWindowListCopyWindowInfo omits titles entirely.
 final class TitlesCollector: Collector {
+    static let titlesDefaults = LabelPolicy(enabled: true, mode: .denylist, hash: true, maxCardinality: 100)
     let name = "titles"
     let interval: TimeInterval
 
@@ -85,9 +86,9 @@ final class TitlesCollector: Collector {
          hasPermission: @escaping () -> Bool = { CGPreflightScreenCaptureAccess() },
          frontWindow: @escaping () -> WindowTitle? = TitlesCollector.systemFrontWindow) throws {
         interval = settings.interval(default: 5)
-        titleFilter = try settings.filter("titles", defaults: LabelPolicy(enabled: true, mode: .denylist, hash: true, maxCardinality: 100))
+        titleFilter = try settings.filter("titles", defaults: TitlesCollector.titlesDefaults)
         // Same policy the focus collector reads, so app names agree across both.
-        appFilter = try config.collector("focus").filter("apps", defaults: LabelPolicy(enabled: true, mode: .denylist))
+        appFilter = try config.collector("focus").filter("apps", defaults: FocusCollector.appsDefaults)
         titleCardinality = CardinalityGuard(limit: titleFilter.maxCardinality)
         self.hasPermission = hasPermission
         self.frontWindow = frontWindow

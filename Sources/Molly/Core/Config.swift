@@ -43,11 +43,19 @@ struct Config {
         var prometheusDataDir: String?
     }
 
+    /// The local Docker stack, written by the Settings window's retention knob.
+    struct Stack: Equatable {
+        static let defaultRetention = "2y"
+        var retention = Stack.defaultRetention
+        var composeDir: String?
+    }
+
     var server = Server()
     var labels = Labels()
     var links = Links()
     var mcp = MCP()
     var export = Export()
+    var stack = Stack()
     var logLevel = "info"
     var collectors: [String: JSONValue] = [:]
 
@@ -140,6 +148,19 @@ struct Config {
                 config.export.prometheusDataDir = s.isEmpty ? nil : s
             }
         }
+        if let stack = root["stack"] {
+            guard let o = stack.objectValue else { throw ConfigError.invalid("stack must be an object") }
+            if let v = o["retention"] {
+                guard let s = v.stringValue, PrometheusDuration.isValid(s) else {
+                    throw ConfigError.invalid("stack.retention must be a Prometheus duration like 90d or 2y")
+                }
+                config.stack.retention = s
+            }
+            if let v = o["composeDir"] {
+                guard let s = v.stringValue else { throw ConfigError.invalid("stack.composeDir must be a string") }
+                config.stack.composeDir = s.isEmpty ? nil : s
+            }
+        }
         if let level = root["logLevel"] {
             guard let s = level.stringValue, Log.Level(rawValue: s) != nil else {
                 throw ConfigError.invalid("logLevel must be debug|info|warn|error")
@@ -215,5 +236,17 @@ struct CollectorSettings {
 
     func section(_ key: String) -> CollectorSettings {
         CollectorSettings(name: "\(name).\(key)", raw: raw[key]?.objectValue ?? [:])
+    }
+}
+
+/// Prometheus duration syntax (`--storage.tsdb.retention.time`): one or more
+/// `<number><unit>` groups, units ms, s, m, h, d, w, y.
+enum PrometheusDuration {
+    private static let pattern = try? NSRegularExpression(pattern: "^([0-9]+(ms|s|m|h|d|w|y))+$")
+
+    static func isValid(_ text: String) -> Bool {
+        guard let pattern else { return false }
+        let range = NSRange(text.startIndex..., in: text)
+        return pattern.firstMatch(in: text, range: range) != nil
     }
 }

@@ -88,6 +88,7 @@ enum CalendarQueries {
 }
 
 final class CalendarCollector: Collector {
+    static let calendarsDefaults = LabelPolicy(enabled: false, mode: .denylist, maxCardinality: 50)
     static let defaultPaths = [
         "~/Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb",
         "~/Library/Calendars/Calendar.sqlitedb",
@@ -110,7 +111,7 @@ final class CalendarCollector: Collector {
     init(settings: CollectorSettings, now: @escaping () -> Date = Date.init, calendar: Calendar = .current) throws {
         interval = settings.interval(default: 300)
         configuredPath = settings.raw["path"]?.stringValue.map(Paths.expand)
-        calendarFilter = try settings.filter("calendars", defaults: LabelPolicy(enabled: false, mode: .denylist, maxCardinality: 50))
+        calendarFilter = try settings.filter("calendars", defaults: CalendarCollector.calendarsDefaults)
         self.now = now
         self.calendar = calendar
     }

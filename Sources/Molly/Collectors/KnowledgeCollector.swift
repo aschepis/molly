@@ -64,6 +64,7 @@ enum KnowledgeQueries {
 }
 
 final class KnowledgeCollector: Collector {
+    static let appsDefaults = LabelPolicy(enabled: true, mode: .denylist, maxCardinality: 50)
     static let defaultPath = "~/Library/Application Support/Knowledge/knowledgeC.db"
 
     let name = "knowledge"
@@ -87,7 +88,7 @@ final class KnowledgeCollector: Collector {
     init(settings: CollectorSettings, stateFolder: URL = Paths.stateFolder, now: @escaping () -> Date = Date.init, calendar: Calendar = .current) throws {
         interval = settings.interval(default: 60)
         path = Paths.expand(settings.string("path", default: KnowledgeCollector.defaultPath))
-        appFilter = try settings.filter("apps", defaults: LabelPolicy(enabled: true, mode: .denylist, maxCardinality: 50))
+        appFilter = try settings.filter("apps", defaults: KnowledgeCollector.appsDefaults)
         store = StateStore(collector: "knowledge", folder: stateFolder)
         self.now = now
         self.calendar = calendar

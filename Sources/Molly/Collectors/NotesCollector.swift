@@ -48,6 +48,7 @@ enum NotesQueries {
 }
 
 final class NotesCollector: Collector {
+    static let foldersDefaults = LabelPolicy(enabled: false, mode: .denylist, maxCardinality: 50)
     static let defaultPath = "~/Library/Group Containers/group.com.apple.notes/NoteStore.sqlite"
     static let cursorKey = "cursor.seconds"
 
@@ -72,7 +73,7 @@ final class NotesCollector: Collector {
     init(settings: CollectorSettings, stateFolder: URL = Paths.stateFolder, now: @escaping () -> Date = Date.init, calendar: Calendar = .current) throws {
         interval = settings.interval(default: 120)
         path = Paths.expand(settings.string("path", default: NotesCollector.defaultPath))
-        folderFilter = try settings.filter("folders", defaults: LabelPolicy(enabled: false, mode: .denylist, maxCardinality: 50))
+        folderFilter = try settings.filter("folders", defaults: NotesCollector.foldersDefaults)
         store = StateStore(collector: "notes", folder: stateFolder)
         self.now = now
         self.calendar = calendar

@@ -59,6 +59,8 @@ writes them after backing the file up next to it. See [TUNING.md](TUNING.md).
 | `mcp.prometheusURL` | string | `links.prometheus` | Prometheus the `molly mcp` tools query |
 | `mcp.mollyURL` | string | `http://<server.bind>:<server.port>` | running Molly the `molly mcp` tools read `/metrics` and `/collectors` from |
 | `export.prometheusDataDir` | string | checkout's `deploy/data/prometheus`, else `~/Library/Application Support/Molly/prometheus` | where the Prometheus TSDB lives on disk, so `molly export` can copy snapshots. Set it when you started the stack with `MOLLY_DATA_DIR` (or export that variable) |
+| `stack.retention` | string | `"2y"` | Prometheus retention the Settings window applies to the local stack (`PROMETHEUS_RETENTION` in `deploy/.env`). A Prometheus duration: `90d`, `26w`, `2y` |
+| `stack.composeDir` | string | the checkout's `deploy/` folder, found like `export.prometheusDataDir` | where `docker-compose.yml` lives, so the retention knob can rewrite `.env` and recreate Prometheus |
 | `logLevel` | string | `"info"` | `debug`, `info`, `warn` or `error` |
 | `collectors` | object | `{}` | one object per collector, keyed by collector name |
 

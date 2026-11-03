@@ -14,6 +14,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: nil, keyEquivalent: "")
     private let statusSubmenu = NSMenu(title: "Status")
     private let isBundled = MenuModel.isBundled(bundleURL: Bundle.main.bundleURL)
+    private var settingsModel: SettingsModel?
 
     init(runtime: Runtime) {
         self.runtime = runtime
@@ -52,6 +53,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(item("Run Doctor", #selector(runDoctor), key: "d"))
         menu.addItem(item("Open Data Folder", #selector(openDataFolder)))
+        menu.addItem(item("Settings…", #selector(openSettings), key: ","))
         menu.addItem(item("Reload Config", #selector(reloadConfig), key: "r"))
         // SMAppService only works from an app bundle; `swift run` users get the
         // LaunchAgent path (`molly install-agent`) instead.
@@ -156,13 +158,40 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     @objc private func reloadConfig() {
-        runtime.stop()
         do {
-            runtime = try Runtime.start()
-            Log.info("config reloaded")
+            try reloadRuntime()
         } catch {
             Log.error("reload failed: \(error)")
         }
+    }
+
+    /// Tears the runtime down and builds it again from the config on disk.
+    /// Shared by the menu item and the Settings window's Apply button.
+    private func reloadRuntime() throws {
+        runtime.stop()
+        runtime = try Runtime.start()
+        Log.info("config reloaded")
+    }
+
+    @objc private func openSettings() {
+        do {
+            let model = try settingsModel ?? makeSettingsModel()
+            settingsModel = model
+            // Pick up hand edits made since the window was last open, unless
+            // they would clobber something typed but not yet applied.
+            if !model.isDirty { try model.reloadFromDisk() }
+            SettingsWindowController.show(model: model)
+        } catch {
+            Log.error("cannot open settings: \(error)")
+            notify(title: "Molly settings", body: "\(error)")
+        }
+    }
+
+    private func makeSettingsModel() throws -> SettingsModel {
+        try SettingsModel.load(
+            reload: { [weak self] in try self?.reloadRuntime() },
+            pauseCollectors: { [weak self] in self?.runtime.manager.pause() },
+            collectorStatuses: { [weak self] in self?.runtime.manager.allStatuses ?? [] })
     }
 
     @objc private func quit() {

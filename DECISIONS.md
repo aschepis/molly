@@ -128,3 +128,18 @@ keep running with no listener, so `/healthz` answered from the wrong process
 and nobody noticed. `run` now treats a listener failure as fatal
 (`Runtime.listenerFailure`, injectable for tests); `KeepAlive` brings it back
 once the port is free, throttled by launchd's default interval.
+
+## 2026-11-03 Settings window writes sorted JSON and never touches Prometheus
+
+The Settings window edits the config through `ConfigDocument`, which keeps the
+file as a `JSONValue` tree so keys it does not know about survive a save.
+`JSONValue.object` is an unordered dictionary, so the writer sorts keys: a
+stable order makes the timestamped backups (`config.json.bak-*`, ten kept)
+diffable, at the cost of losing whatever order a hand-edited file had.
+Comments were never possible in JSON, so nothing else is lost.
+
+"Forget data" only deletes a collector's cursor file under `state/`. Deleting
+the matching series from Prometheus needs the admin API and a metric-prefix
+match that `molly prune` does not have yet; doing it silently would also
+surprise anyone keeping long history on purpose. The tab says so and points
+to `molly prune`.

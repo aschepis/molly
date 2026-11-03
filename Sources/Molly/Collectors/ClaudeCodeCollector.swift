@@ -134,6 +134,7 @@ struct RecentIDs {
 /// tool names, timestamps and the working directory; message text is never
 /// examined or stored.
 final class ClaudeCodeCollector: Collector {
+    static let projectsDefaults = LabelPolicy(enabled: true, mode: .denylist, maxCardinality: 30)
     let name = "claude_code"
     let interval: TimeInterval
 
@@ -173,8 +174,7 @@ final class ClaudeCodeCollector: Collector {
         historyFile = Paths.expand(settings.string("historyFile", default: "~/.claude/history.jsonl"))
         activeWindow = settings.double("activeWindowSeconds", default: 300)
         sessionGap = settings.double("sessionGapSeconds", default: 1800)
-        let defaults = LabelPolicy(enabled: true, mode: .denylist, maxCardinality: 30)
-        projectLimiter = LabelLimiter(filter: try settings.filter("projects", defaults: defaults))
+        projectLimiter = LabelLimiter(filter: try settings.filter("projects", defaults: ClaudeCodeCollector.projectsDefaults))
         pricing = ClaudePricing.table(from: settings)
         store = StateStore(collector: "claude_code", folder: stateFolder)
         offsets = OffsetTable(store: store)

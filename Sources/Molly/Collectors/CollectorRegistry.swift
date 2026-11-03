@@ -5,7 +5,7 @@ import Foundation
 enum CollectorRegistry {
     /// Collectors that need an explicit opt-in because of permissions or
     /// sensitivity. Must match the `defaultEnabled: false` lines below.
-    static let disabledByDefault: Set<String> = ["input", "mail", "tabs", "media", "titles"]
+    static let disabledByDefault: Set<String> = ["input", "mail", "tabs", "media", "titles", "insights"]
 
     static func makeCollectors(config: Config) throws -> [Collector] {
         var collectors: [Collector] = []

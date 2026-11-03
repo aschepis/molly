@@ -77,6 +77,7 @@ enum Routes {
                 "labels": config.constLabels,
                 "logLevel": config.logLevel,
                 "links": ["grafana": config.links.grafana, "prometheus": config.links.prometheus],
+                "stack": ["retention": config.stack.retention, "composeDir": config.stack.composeDir ?? ""],
                 "collectors": collectors,
             ])
         }

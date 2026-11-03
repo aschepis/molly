@@ -90,6 +90,7 @@ struct MediaState {
 /// triggers one Automation permission prompt per app. An app that is not
 /// running is never asked, so Molly never launches one.
 final class MediaCollector: Collector {
+    static let tracksDefaults = LabelPolicy(enabled: false, mode: .denylist, hash: true, maxCardinality: 100)
     let name = "media"
     let interval: TimeInterval
 
@@ -113,7 +114,7 @@ final class MediaCollector: Collector {
          runScript: @escaping (String) throws -> ShellResult = { try Shell.run("osascript", ["-e", $0], timeout: MediaCollector.scriptTimeout) }) throws {
         interval = settings.interval(default: 15)
         labels = settings.strings("apps").map { $0.lowercased() }
-        trackFilter = try settings.filter("tracks", defaults: LabelPolicy(enabled: false, mode: .denylist, hash: true, maxCardinality: 100))
+        trackFilter = try settings.filter("tracks", defaults: MediaCollector.tracksDefaults)
         runningBundleIDs = running
         self.runScript = runScript
     }

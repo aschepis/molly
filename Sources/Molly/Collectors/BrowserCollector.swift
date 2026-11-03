@@ -175,6 +175,7 @@ enum BrowserDetector {
 }
 
 final class BrowserCollector: Collector {
+    static let domainsDefaults = LabelPolicy(enabled: false, mode: .denylist, maxCardinality: 50)
     let name = "browser"
     let interval: TimeInterval
 
@@ -199,7 +200,7 @@ final class BrowserCollector: Collector {
         interval = settings.interval(default: 60)
         allowed = Set(settings.strings("browsers").map { $0.lowercased() })
         extras = BrowserDetector.parseExtras(settings)
-        domainFilter = try settings.filter("domains", defaults: LabelPolicy(enabled: false, mode: .denylist, maxCardinality: 50))
+        domainFilter = try settings.filter("domains", defaults: BrowserCollector.domainsDefaults)
         store = StateStore(collector: "browser", folder: stateFolder)
         self.now = now
         self.calendar = calendar

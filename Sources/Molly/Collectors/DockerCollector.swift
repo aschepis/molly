@@ -99,6 +99,7 @@ enum DockerParse {
 /// `molly_docker_available 0` and becomes unavailable when there is no CLI or
 /// the daemon is not running (Docker Desktop quit).
 final class DockerCollector: Collector {
+    static let containersDefaults = LabelPolicy(enabled: true, mode: .denylist)
     let name = "docker"
     let interval: TimeInterval
 
@@ -119,7 +120,7 @@ final class DockerCollector: Collector {
 
     init(settings: CollectorSettings) throws {
         interval = settings.interval(default: 60)
-        containerFilter = try settings.filter("containers", defaults: LabelPolicy(enabled: true, mode: .denylist))
+        containerFilter = try settings.filter("containers", defaults: DockerCollector.containersDefaults)
         statsEnabled = settings.bool("stats", default: false)
         pathOverride = settings.string("path", default: "")
     }

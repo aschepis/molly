@@ -153,6 +153,7 @@ func isLinkLocalIPv6(_ bytes: [UInt8]) -> Bool {
 /// A source that is missing or fails is skipped (logged once at debug) so one
 /// flaky API never blanks the whole collector.
 final class SystemCollector: Collector {
+    static let wifiDefaults = LabelPolicy(enabled: false)
     let name = "system"
     let interval: TimeInterval
 
@@ -171,7 +172,7 @@ final class SystemCollector: Collector {
 
     init(settings: CollectorSettings) throws {
         interval = settings.interval(default: 15)
-        wifiFilter = try settings.filter("wifi", defaults: LabelPolicy(enabled: false))
+        wifiFilter = try settings.filter("wifi", defaults: SystemCollector.wifiDefaults)
         bluetoothEnabled = settings.bool("bluetooth", default: true)
     }
 
@@ -637,7 +638,7 @@ enum CoreAudioProbe {
 enum GroupADoctor {
     static func checks(config: Config) -> [DoctorCommand.Check] {
         var checks: [DoctorCommand.Check] = []
-        let policy = (try? config.collector("system").filter("wifi", defaults: LabelPolicy(enabled: false))) ?? .disabled
+        let policy = (try? config.collector("system").filter("wifi", defaults: SystemCollector.wifiDefaults)) ?? .disabled
         if policy.enabled {
             let visible = CWWiFiClient.shared().interface()?.ssid() != nil
             checks.append(DoctorCommand.Check(name: "wifi ssid", ok: visible,

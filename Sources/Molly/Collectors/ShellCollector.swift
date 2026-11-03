@@ -295,6 +295,8 @@ enum ShellParsing {
 /// Shell history: how many commands, optionally which programs and which
 /// network hosts. Arguments and command text are never stored or exported.
 final class ShellCollector: Collector {
+    static let commandsDefaults = LabelPolicy(enabled: false, mode: .allowlist, maxCardinality: 50)
+    static let hostsDefaults = LabelPolicy(enabled: false, mode: .denylist, maxCardinality: 50)
     let name = "shell"
     let interval: TimeInterval
 
@@ -332,8 +334,8 @@ final class ShellCollector: Collector {
             Source(shell: "fish", format: .fish, path: Paths.expand(settings.string("fishHistory", default: "~/.local/share/fish/fish_history"))),
         ]
         sources = candidates.filter { enabledShells.contains($0.shell) }
-        commandLimiter = LabelLimiter(filter: try settings.filter("commands", defaults: LabelPolicy(enabled: false, mode: .allowlist, maxCardinality: 50)))
-        hostLimiter = LabelLimiter(filter: try settings.filter("hosts", defaults: LabelPolicy(enabled: false, mode: .denylist, maxCardinality: 50)))
+        commandLimiter = LabelLimiter(filter: try settings.filter("commands", defaults: ShellCollector.commandsDefaults))
+        hostLimiter = LabelLimiter(filter: try settings.filter("hosts", defaults: ShellCollector.hostsDefaults))
         store = StateStore(collector: "shell", folder: stateFolder)
         offsets = OffsetTable(store: store)
         self.startedAt = startedAt

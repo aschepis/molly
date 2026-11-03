@@ -39,6 +39,7 @@ enum USBFilter {
 /// power adapter, the lid. "Docked at the desk" versus "on the couch" is a
 /// genuinely different work mode and this captures it for free.
 final class HardwareCollector: Collector {
+    static let devicesDefaults = LabelPolicy(enabled: false, mode: .denylist, maxCardinality: 20)
     let name = "hardware"
     let interval: TimeInterval
     private let minExternalDisplays: Int
@@ -58,7 +59,7 @@ final class HardwareCollector: Collector {
     init(settings: CollectorSettings) throws {
         interval = settings.interval(default: 30)
         minExternalDisplays = settings.int("dockedMinExternalDisplays", default: 1)
-        devices = try settings.filter("devices", defaults: LabelPolicy(enabled: false, mode: .denylist, maxCardinality: 20))
+        devices = try settings.filter("devices", defaults: HardwareCollector.devicesDefaults)
     }
 
     func start(registry r: MetricsRegistry) throws {

@@ -108,6 +108,7 @@ struct CardinalityGuard {
 /// App focus, presence, sleep/lock and window counts. Event-driven for
 /// transitions, plus a poll for idle time (which has no notification).
 final class FocusCollector: Collector {
+    static let appsDefaults = LabelPolicy(enabled: true, mode: .denylist)
     let name = "focus"
     let interval: TimeInterval
 
@@ -146,7 +147,7 @@ final class FocusCollector: Collector {
 
     init(settings: CollectorSettings) throws {
         interval = settings.interval(default: 5)
-        appFilter = try settings.filter("apps", defaults: LabelPolicy(enabled: true, mode: .denylist))
+        appFilter = try settings.filter("apps", defaults: FocusCollector.appsDefaults)
         cardinality = CardinalityGuard(limit: appFilter.maxCardinality)
         state = FocusState(idleThreshold: settings.double("idleThresholdSeconds", default: 300),
                            maxGap: settings.double("maxGapSeconds", default: 60))

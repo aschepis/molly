@@ -93,6 +93,8 @@ enum GitParsing {
 /// Repositories under configured roots: commits, churn, dirtiness, sync state.
 /// Only reads via read-only git commands (GIT_OPTIONAL_LOCKS=0).
 final class GitCollector: Collector {
+    static let reposDefaults = LabelPolicy(enabled: true, mode: .denylist, maxCardinality: 50)
+    static let branchesDefaults = LabelPolicy(enabled: true, mode: .denylist)
     let name = "git"
     let interval: TimeInterval
 
@@ -156,9 +158,8 @@ final class GitCollector: Collector {
         activeDays = max(1, settings.int("activeDays", default: 30))
         skipDirs = Set(settings.strings("skipDirs", default: GitCollector.defaultSkipDirs))
         configuredEmails = settings.strings("authorEmails").map { $0.lowercased() }
-        let reposDefaults = LabelPolicy(enabled: true, mode: .denylist, maxCardinality: 50)
-        repoFilter = try settings.filter("repos", defaults: reposDefaults)
-        branchFilter = try settings.filter("branches", defaults: LabelPolicy(enabled: true, mode: .denylist))
+        repoFilter = try settings.filter("repos", defaults: GitCollector.reposDefaults)
+        branchFilter = try settings.filter("branches", defaults: GitCollector.branchesDefaults)
         commitLimiter = LabelLimiter(filter: repoFilter)
         store = StateStore(collector: "git", folder: stateFolder)
         self.tracker = tracker

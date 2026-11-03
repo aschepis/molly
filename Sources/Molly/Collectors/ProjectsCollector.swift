@@ -3,6 +3,7 @@ import Foundation
 /// Which projects are being worked on, derived from what the git and
 /// claude_code collectors report to the shared ProjectTracker.
 final class ProjectsCollector: Collector {
+    static let projectsDefaults = LabelPolicy(enabled: true, mode: .denylist, maxCardinality: 30)
     let name = "projects"
     let interval: TimeInterval
 
@@ -19,7 +20,7 @@ final class ProjectsCollector: Collector {
         interval = settings.interval(default: 60)
         activeWindow = settings.double("activeWindowSeconds", default: 1800)
         retention = settings.double("retentionSeconds", default: 86400)
-        filter = try settings.filter("projects", defaults: LabelPolicy(enabled: true, mode: .denylist, maxCardinality: 30))
+        filter = try settings.filter("projects", defaults: ProjectsCollector.projectsDefaults)
         self.tracker = tracker
     }
 

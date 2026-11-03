@@ -83,6 +83,7 @@ enum AgentMatcher {
 
 /// Top-N processes by CPU and memory, plus per-AI-agent process counts.
 final class ProcessesCollector: Collector {
+    static let namesDefaults = LabelPolicy(enabled: true, mode: .denylist, maxCardinality: 25)
     let name = "processes"
     let interval: TimeInterval
 
@@ -109,7 +110,7 @@ final class ProcessesCollector: Collector {
 
     init(settings: CollectorSettings) throws {
         interval = settings.interval(default: 30)
-        nameFilter = try settings.filter("names", defaults: LabelPolicy(enabled: true, mode: .denylist, maxCardinality: 25))
+        nameFilter = try settings.filter("names", defaults: ProcessesCollector.namesDefaults)
         topN = max(1, settings.int("topN", default: 25))
         agents = AgentMatcher.merged(config: settings.raw["agents"]?.objectValue)
     }
