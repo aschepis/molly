@@ -17,6 +17,12 @@ if [ -z "${GF_SECURITY_ADMIN_PASSWORD:-}" ] && [ -f "$root/deploy/.env" ]; then
   password="${from_env:-$password}"
 fi
 
+# Compose bind-mounts ./data, so running it from a worktree would move the
+# shared containers' databases under that worktree and lose them when it goes.
+if [ -f "$root/.git" ]; then
+  echo "refusing to run docker compose from a worktree ($root); run from the main checkout" >&2
+  exit 2
+fi
 (cd "$root/deploy" && docker compose --profile render up -d grafana renderer)
 
 for _ in $(seq 1 60); do

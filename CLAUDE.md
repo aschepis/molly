@@ -106,5 +106,9 @@ docs/
   2001; Chrome is microseconds since 1601. Use `CocoaTime`.
 - Sleep/wake come from `NSWorkspace.shared.notificationCenter`; screen
   lock/unlock from `DistributedNotificationCenter` (`com.apple.screenIsLocked`).
+- Never run `docker compose` or `make stack-up`/`snap-dashboards` from a git
+  worktree: compose bind-mounts `deploy/data` relative to the checkout, so the
+  shared containers get recreated on the worktree's copy and Grafana loses its
+  database when the worktree is removed. Only the main checkout owns the stack.
 - `swift run` shows the status item without an app bundle because `run` sets
   `.accessory` activation policy and calls `app.run()`.
