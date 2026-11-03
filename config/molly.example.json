@@ -369,6 +369,24 @@
         "maxCardinality": 100
       }
     },
+    "gaming": {
+      "enabled": true,
+      "interval": 5,
+      "steamPath": "~/Library/Application Support/Steam",
+      "libraryIntervalSeconds": 300,
+      "extraGameBundleIds": [],
+      "extraProcessNames": [],
+      "gpuThreshold": 0.3,
+      "maxGapSeconds": 180,
+      "games": {
+        "enabled": false,
+        "mode": "denylist",
+        "patterns": [],
+        "hash": false,
+        "salt": "",
+        "maxCardinality": 30
+      }
+    },
     "titles": {
       "enabled": false,
       "interval": 5,

@@ -47,6 +47,7 @@ enum CollectorRegistry {
         try add("builds") { BuildsCollector(settings: $0) }
         try add("tabs", defaultEnabled: false) { TabsCollector(settings: $0) }
         try add("media", defaultEnabled: false) { try MediaCollector(settings: $0) }
+        try add("gaming") { try GamingCollector(settings: $0) }
         try add("titles", defaultEnabled: false) { try TitlesCollector(settings: $0, config: config) }
         try add("events") { try EventsCollector(settings: $0) }
         try add("insights", defaultEnabled: false) { try InsightsCollector(settings: $0, config: config) }
@@ -60,6 +61,6 @@ extension CollectorRegistry {
         "process", "system", "network", "processes", "focus", "docker", "meeting", "input", "clipboard", "hardware",
         "browser", "messages", "notes", "knowledge", "calendar", "reminders", "mail",
         "git", "claude_code", "cursor", "codex", "shell", "projects",
-        "power", "forensics", "builds", "tabs", "events", "insights", "media", "titles",
+        "power", "forensics", "builds", "tabs", "events", "insights", "media", "gaming", "titles",
     ]
 }

@@ -48,6 +48,7 @@ processes) and are easy to turn off.
 | `shell.hosts` | off, denylist, max 50 | hostnames found in curl, ssh, scp and URL arguments | `molly_shell_network_hosts_total` |
 | `system.wifi` | off | the Wi-Fi SSID (needs Location Services) | `molly_network_wifi_info` |
 | `media.tracks` | off, denylist, hash on, max 100 | current track and artist names from Music or Spotify (collector itself is opt-in) | `molly_media_track_info` |
+| `gaming.games` | off, denylist, max 30 | game titles from Steam manifests, CrossOver executables and game apps (Steam account files are never read) | `molly_gaming_seconds_total`, `molly_gaming_launches_total`, `molly_gaming_playtime_minutes`, `molly_gaming_last_played_timestamp_seconds` |
 | `titles.titles` | on, denylist, hash on, max 100 | the frontmost window's title, normalised and truncated to 80 characters (collector itself is opt-in and needs Screen Recording) | `molly_focus_window_info`, `molly_focus_window_seconds_total` |
 
 Not policy-governed, by design, because they are fixed small sets or your own

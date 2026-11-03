@@ -57,7 +57,7 @@ for t in sorted(missing):
 for t in sorted(undefined_recordings):
     print("undefined recording rule: %s (%s)" % (t, ", ".join(sorted(undefined_recordings[t]))))
 
-full = {"Commits", "Meeting", "Calendar event", "Claude session", "Sleep", "Wake", "Locked", "Rebooted"}
+full = {"Commits", "Meeting", "Calendar event", "Claude session", "Sleep", "Wake", "Locked", "Rebooted", "Gaming"}
 expected_annotations = {
     "molly-overview": full,
     "molly-week": full,

@@ -8,11 +8,11 @@ Molly always labels the collected data with the current user and hostname, allow
 
 ## Status
 
-Working MVP plus three feature loops. 27 collectors (system vitals, focus and
+Working MVP plus three feature loops. 28 collectors (system vitals, focus and
 idle, processes, Docker, meetings, browsers, Messages, Notes, Calendar, Mail,
 Screen Time, git, Claude Code, Cursor, Codex, shell, projects, Claude Code
-hooks, input, clipboard, hardware, power, builds, tabs, media, window titles)
-expose about 1,000 series; eight provisioned Grafana dashboards; 33
+hooks, input, clipboard, hardware, power, builds, tabs, media, gaming, window titles)
+expose about 1,000 series; nine provisioned Grafana dashboards; 39
 Prometheus recording and alert rules; `molly insights`, `molly mcp`,
 `molly tune`, `molly privacy`, `molly export`. Every sensitive label
 dimension is governed by an allowlist/denylist policy and the most sensitive

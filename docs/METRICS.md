@@ -460,6 +460,28 @@ Policy `tracks` governs `track` and `artist`. A player that is not running has n
 | `molly_media_track_changes_total` | counter | `app` | count | the (track, artist) pair changed while playing |
 | `molly_media_track_info` | gauge | `app`, `track`, `artist` **policy** `tracks` | info | 1 for the current track; only when the policy is enabled, hashed by default |
 
+## gaming (interval 5s, Steam files every 300s)
+
+Policy `games` governs the `game` label (off by default). Without it you still get time, sessions and platform; per-game series, playtime and last played are absent. A session starts when a game process is running and is frontmost (Steam and CrossOver games also count when the GPU device utilisation stays above `gpuThreshold` for two samples) and ends after `maxGapSeconds` without that. Remote play (Steam Link, Moonlight) and native games count only while frontmost. If there is no Steam, CrossOver or game app at all, the collector reports itself unavailable once and does nothing.
+
+| metric | type | labels | unit | meaning |
+|---|---|---|---|---|
+| `molly_gaming_active` | gauge | `platform` (steam, crossover, native, remote) | bool | 1 while a session is open on that platform |
+| `molly_gaming_platform_seconds_total` | counter | `platform` | seconds | gaming time, never carries a game name |
+| `molly_gaming_seconds_total` | counter | `platform`, `game` **policy** `games` | seconds | gaming time per game; only when the policy is enabled |
+| `molly_gaming_session_seconds` | gauge | | seconds | length of the open session; 0 when idle |
+| `molly_gaming_sessions_total` | counter | `platform` | count | sessions started; a session resumed after a Molly restart is not counted again |
+| `molly_gaming_launches_total` | counter | `platform`, `game` **policy** `games` | count | game processes that appeared, plus Steam launches seen only in `LastPlayed`; only when the policy is enabled |
+| `molly_gaming_playtime_minutes` | gauge | `game` **policy** `games` | minutes | lifetime Steam playtime from `localconfig.vdf`; policy only |
+| `molly_gaming_last_played_timestamp_seconds` | gauge | `game` **policy** `games` | timestamp | Steam `LastPlayed`; policy only |
+| `molly_gaming_installed_games` | gauge | `platform` (steam, native) | count | fully installed Steam games, and App Store game apps |
+| `molly_gaming_library_bytes` | gauge | `platform` (steam) | bytes | `SizeOnDisk` of installed Steam games |
+| `molly_gaming_controller_connected` | gauge | `kind` (gamepad, extended) | count | controllers GameController.framework lists |
+| `molly_gaming_controller_seconds_total` | counter | | seconds | gaming time with a controller attached |
+| `molly_gpu_utilization_ratio` | gauge | `kind` (device, renderer, tiler) | ratio 0..1 | busiest IOAccelerator's `PerformanceStatistics`; absent where the GPU does not report them |
+
+Only game names, playtime and last-played are read from Steam. `loginusers.vdf`, friends, chat and achievements are never opened.
+
 ## titles (interval 5s, disabled by default)
 
 Policy `titles` governs `title` (hashed by default); `app` follows the focus collector's `apps` policy. Needs Screen Recording.

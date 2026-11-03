@@ -82,6 +82,7 @@ enum CollectorCatalog {
         CollectorInfo(name: "builds", title: "Builds", summary: "Compiler and test runner processes, as build activity.", defaultEnabled: true, defaultInterval: 15, permission: .none),
         CollectorInfo(name: "tabs", title: "Browser tabs", summary: "Open tab and window counts per browser via AppleScript.", defaultEnabled: false, defaultInterval: 60, permission: .automation),
         CollectorInfo(name: "media", title: "Media", summary: "Whether Music or Spotify is playing, optionally the track.", defaultEnabled: false, defaultInterval: 15, permission: .automation),
+        CollectorInfo(name: "gaming", title: "Gaming", summary: "Steam, CrossOver, App Store games and controller use; no account data.", defaultEnabled: true, defaultInterval: 5, permission: .none),
         CollectorInfo(name: "titles", title: "Window titles", summary: "The frontmost window's title, normalised and capped.", defaultEnabled: false, defaultInterval: 5, permission: .screenRecording),
         CollectorInfo(name: "events", title: "Claude Code hooks", summary: "Live events posted by `molly hook` from Claude Code sessions.", defaultEnabled: true, defaultInterval: 60, permission: .none),
         CollectorInfo(name: "insights", title: "Insights", summary: "Daily and weekly Claude narratives of your metrics.", defaultEnabled: false, defaultInterval: 300, permission: .none),

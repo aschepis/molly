@@ -76,6 +76,25 @@ groups:
       - record: molly:focus_top_app_seconds:1d
         expr: topk(5, sum by (user, host, app) (increase(molly_focus_seconds_total[1d])))
 
+  # Gaming. The late-night window is evaluated on whole-hour steps of the 1h rule:
+  # a step whose local hour is 0..5 covers 23:00 to 05:00. Prometheus hour() is
+  # UTC, so edit the offset below (whole hours, no DST handling) for your timezone.
+  - name: molly-gaming
+    interval: 60s
+    rules:
+      - record: molly:local_utc_offset_hours
+        expr: vector(-5)
+      - record: molly:gaming_seconds:increase1h
+        expr: sum by (user, host) (increase(molly_gaming_platform_seconds_total[1h]))
+      - record: molly:gaming_seconds:increase1d
+        expr: sum by (user, host) (increase(molly_gaming_platform_seconds_total[1d]))
+      - record: molly:gaming_late_night_seconds:increase1d
+        expr: >
+          sum_over_time(
+            (molly:gaming_seconds:increase1h
+              and on () ((hour() + scalar(molly:local_utc_offset_hours) + 24) % 24 <= 5))[1d:1h]
+          )
+
   - name: molly-alerts
     rules:
       - alert: MollyDown
@@ -96,6 +115,14 @@ groups:
         annotations:
           summary: 2 hours of continuous activity
           description: No 5 minute idle gap on {{ $labels.host }} for 2 hours. Stand up, drink water.
+
+      - alert: LongGamingSession
+        expr: molly_gaming_session_seconds > 3 * 3600
+        labels:
+          severity: info
+        annotations:
+          summary: 3 hours in one gaming session
+          description: "A gaming session on {{ $labels.host }} has run {{ $value | humanizeDuration }}. Time for a break."
 
       - alert: HighMemoryPressure
         expr: molly_memory_pressure_level >= 2
@@ -159,6 +186,18 @@ groups:
         annotations:
           summary: 6+ active hours and no commits today
           description: "{{ $value | printf \"%.1f\" }} active hours on {{ $labels.host }} with nothing committed. Meetings, reading, or work outside git?"
+
+      - alert: WindDownGaming
+        # Fires for 30 minutes after a session starts if the trailing 24 hours were already
+        # more than 8 active hours; the session counter only moves when a session begins.
+        expr: >
+          sum by (user, host) (increase(molly_gaming_sessions_total[30m])) > 0
+          and on (user, host) molly:active_hours:1d > 8
+        labels:
+          severity: info
+        annotations:
+          summary: Gaming started after a long day
+          description: "A gaming session began on {{ $labels.host }} after more than 8 active hours in the last 24."
 
       - alert: MemoryPressureCritical
         expr: molly_memory_pressure_level >= 4

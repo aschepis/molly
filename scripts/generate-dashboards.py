@@ -10,6 +10,7 @@ BLUE = "#2a78d6"
 ORANGE = "#eb6834"
 GOOD, WARN, SERIOUS, CRIT = "#0ca30c", "#fab219", "#ec835a", "#d03b3b"
 GRAY = "#898781"
+PURPLE = "#8e6bd6"
 RI = "$__rate_interval"
 
 
@@ -189,8 +190,10 @@ def timeseries(d, title, items, unit="short", w=12, h=8, stack=False, bars=False
 
 
 def bargauge(d, title, items, unit="short", w=12, h=8, desc="", th=None, min_=0, max_=None,
-             color=None, decimals=None):
+             color=None, decimals=None, no_value=None):
     defaults = {"unit": unit, "color": color or fixed(), "min": min_, "mappings": []}
+    if no_value:
+        defaults["noValue"] = no_value
     if max_ is not None:
         defaults["max"] = max_
     if decimals is not None:
@@ -307,6 +310,9 @@ ANNOTATIONS = {
     "VPN": dict(
         expr=m("molly_network_vpn_active") + " == 1",
         color=GOOD, title_format="VPN", text_format="tunnel active", region=True),
+    "Gaming": dict(
+        expr="max by (user, host) (" + m("molly_gaming_active") + ") == 1",
+        color=PURPLE, title_format="gaming", text_format="gaming session active", region=True),
 }
 
 DASHBOARD_ANNOTATIONS = {
@@ -800,6 +806,80 @@ def week():
     return d
 
 
+# -------------------------------------------------------------------- play
+GAMES_OFF = "games label disabled (set collectors.gaming.games.enabled to see titles)"
+# Local hours 0..5 on the 1h gaming rule cover 23:00 to 05:00; the offset lives in molly.yml.
+LATE_NIGHT = ("(" + m("molly:gaming_seconds:increase1h") + " and on () ((hour() + scalar(molly:local_utc_offset_hours) + 24) % 24 <= 5))")
+
+
+def play():
+    d = Dash("molly-play", "Molly / Play", "Gaming against working time: sessions, games, controller use and GPU load.",
+             time_from="now-7d")
+    gaming_seconds = "sum(increase(" + m("molly_gaming_platform_seconds_total") + "[$__range]))"
+    sessions = "sum(increase(" + m("molly_gaming_sessions_total") + "[$__range]))"
+    d.row("This week")
+    stat(d, "Gaming hours", gaming_seconds + " / 3600", unit="h", w=4, h=4, decimals=1, spark=False, instant=True,
+         desc="Time with a game frontmost, or a Steam or CrossOver game keeping the GPU busy.")
+    stat(d, "Sessions", sessions, w=4, h=4, decimals=0, spark=False, instant=True,
+         desc="Sessions started in the selected range.")
+    stat(d, "Longest session", "max(max_over_time(" + m("molly_gaming_session_seconds") + "[$__range]))", unit="s",
+         w=4, h=4, spark=False, instant=True)
+    stat(d, "Average session", gaming_seconds + " / clamp_min(" + sessions + ", 1)", unit="s", w=4, h=4, spark=False,
+         instant=True)
+    stat(d, "Late-night gaming", "sum(sum_over_time(" + LATE_NIGHT + "[$__range:1h]))", unit="s", w=4, h=4,
+         spark=False, instant=True, th=[(None, GOOD), (1, WARN), (3600, SERIOUS)],
+         desc="Gaming between 23:00 and 05:00 local time. The timezone offset is molly:local_utc_offset_hours in molly.yml.")
+    stat(d, "Gaming after a long day",
+         "sum(sum_over_time((round(sum by (user, host) (increase(" + m("molly_gaming_sessions_total") + "[5m])))"
+         " and on (user, host) (" + m("molly:active_hours:1d") + " > 8))[$__range:5m]))",
+         w=4, h=4, decimals=0, spark=False, instant=True, th=[(None, GOOD), (1, WARN)],
+         desc="Sessions that started when the previous 24 hours already held more than 8 active hours (5 minute resolution).")
+    d.row("Gaming against working")
+    daily = dict(w=12, h=8, bars=True, stack=True, min_=0, unit="h", decimals=1)
+    timeseries(d, "Gaming vs working hours per day", [
+        ("clamp_min(sum by (host) (" + m("molly:active_hours:1d") + ") - sum by (host) (" + m("molly:gaming_seconds:increase1d") + ") / 3600, 0)", "working {{host}}"),
+        ("sum by (host) (" + m("molly:gaming_seconds:increase1d") + ") / 3600", "gaming {{host}}")],
+        desc="Each bar is the trailing 24 hours. Gaming is part of active time, so working is active minus gaming.", **daily)
+    timeseries(d, "Late-night gaming per day", [("sum by (host) (" + m("molly:gaming_late_night_seconds:increase1d") + ")", "{{host}}")],
+               unit="s", w=12, h=8, bars=True, min_=0, color=fixed(PURPLE),
+               desc="Gaming between 23:00 and 05:00 local time in the trailing 24 hours.")
+    d.row("Sessions")
+    timeseries(d, "Session length", [("max by (host) (" + m("molly_gaming_session_seconds") + ")", "{{host}}")],
+               unit="s", w=12, h=8, min_=0, color=fixed(PURPLE), fill=25,
+               desc="Each ramp is one session growing; its peak is the session's length.")
+    state_timeline(d, "Gaming session", [(m("molly_gaming_active"), "{{platform}}")], mappings=YESNO("playing", PURPLE),
+                   w=12, h=8, desc="A bar means a session was open on that platform.")
+    d.row("What you played")
+    bargauge(d, "Games by time", [("topk(10, sum by (game) (increase(" + m("molly_gaming_seconds_total") + "[$__range])))", "{{game}}")],
+             unit="s", w=8, h=9, color=fixed(PURPLE), no_value=GAMES_OFF,
+             desc="Needs the collectors.gaming.games policy; with it off the series are absent and this panel says so.")
+    bargauge(d, "Lifetime Steam playtime", [("topk(10, " + m("molly_gaming_playtime_minutes") + ")", "{{game}}")],
+             unit="m", w=8, h=9, color=fixed(PURPLE), no_value=GAMES_OFF,
+             desc="From Steam's localconfig.vdf, updated when a game exits.")
+    piechart(d, "Time by platform", [("sum by (platform) (increase(" + m("molly_gaming_platform_seconds_total") + "[$__range]))", "{{platform}}")],
+             unit="s", w=8, h=9)
+    d.row("Controller and GPU")
+    piechart(d, "Controller vs keyboard and mouse", [
+        ("sum(increase(" + m("molly_gaming_controller_seconds_total") + "[$__range]))", "controller"),
+        ("clamp_min(" + gaming_seconds + " - sum(increase(" + m("molly_gaming_controller_seconds_total") + "[$__range])), 0)",
+         "keyboard and mouse")],
+        unit="s", w=8, h=8, desc="Gaming time with a controller attached against the rest.")
+    timeseries(d, "GPU utilisation during sessions", [(
+        m("molly_gpu_utilization_ratio") + " and on (user, host) (max by (user, host) (" + m("molly_gaming_active") + ") == 1)",
+        "{{kind}}")], unit="percentunit", w=16, h=8, min_=0, max_=1,
+        desc="Device, renderer and tiler utilisation, only while a gaming session is open.")
+    d.row("Library")
+    stat(d, "Installed Steam games", m("molly_gaming_installed_games", 'platform="steam"'), w=6, h=4, decimals=0,
+         spark=False, instant=True)
+    stat(d, "Steam library size", m("molly_gaming_library_bytes", 'platform="steam"'), unit="bytes", w=6, h=4,
+         spark=False, instant=True)
+    stat(d, "Controllers connected", "sum(" + m("molly_gaming_controller_connected") + ")", w=6, h=4, decimals=0,
+         spark=False, instant=True)
+    stat(d, "Gaming now", "max(" + m("molly_gaming_active") + ")", w=6, h=4, spark=False, instant=True,
+         mappings=mapping([(0, "idle", GRAY), (1, "playing", PURPLE)]))
+    return d
+
+
 # ------------------------------------------------------------------- fleet
 def fleet():
     """Several machines reporting to one Prometheus: one row per host."""
@@ -845,5 +925,5 @@ def fleet():
 if __name__ == "__main__":
     out = sys.argv[1]
     os.makedirs(out, exist_ok=True)
-    for build in (overview, system, focus, developer, communication, health, week, fleet):
+    for build in (overview, system, focus, developer, communication, health, week, play, fleet):
         write(build(), out)

@@ -145,6 +145,22 @@
         "textFormat": "machine restarted",
         "tagKeys": "",
         "useValueForTime": false
+      },
+      {
+        "name": "Gaming",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#8a5cd6",
+        "expr": "max by (user, host) (molly_gaming_active{user=~\"$user\",host=~\"$host\"}) == 1",
+        "step": "15s",
+        "titleFormat": "gaming",
+        "textFormat": "gaming session active",
+        "tagKeys": "",
+        "useValueForTime": false
       }
     ]
   },

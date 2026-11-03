@@ -22,6 +22,7 @@ let package = Package(
                 .linkedFramework("IOBluetooth"),
                 .linkedFramework("CoreAudio"),
                 .linkedFramework("CoreMediaIO"),
+                .linkedFramework("GameController"),
             ]
         ),
         .testTarget(

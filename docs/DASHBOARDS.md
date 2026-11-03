@@ -1,6 +1,6 @@
 # Dashboards
 
-Eight dashboards are provisioned into the Grafana folder "Molly" from
+Nine dashboards are provisioned into the Grafana folder "Molly" from
 `deploy/grafana/dashboards/`. All use the `molly-prometheus` datasource, refresh
 every 30 seconds, default to the last 24 hours, and carry `$user` and `$host`
 selectors (multi-select, default All) that filter every Molly query.
@@ -33,6 +33,9 @@ dashboard lists which ones it carries. Toggle them at the top of a dashboard.
 | Sleep | `increase(molly_sleep_events_total[1m]) > 0` | Overview, Week, Health, System |
 | Wake | `increase(molly_wake_events_total[1m]) > 0` | Overview, Week, Health, System |
 | Locked (region) | `molly_screen_locked == 1` | Overview, Week, Focus, Health |
+| Rebooted | `changes(molly_boot_timestamp_seconds[1m]) > 0` | Overview, Week, Health |
+| VPN (region) | `molly_network_vpn_active == 1` | System |
+| Gaming (region) | `molly_gaming_active == 1` | Overview, Week |
 
 Claude sessions come from the session-file counter rather than
 `molly_claude_hook_events_total{event="SessionStart"}` because hooks are opt-in.
@@ -53,6 +56,9 @@ from a single scrape. The dashboards below use them.
 | `molly:claude_tool_calls:rate1h` | tool calls in the last hour |
 | `molly:active_hours:1d`, `molly:meeting_hours:1d` | trailing 24h totals |
 | `molly:focus_top_app_seconds:1d` | top 5 apps by focus time, trailing 24h |
+| `molly:gaming_seconds:increase1h`, `:increase1d` | gaming seconds in the window, from `molly_gaming_platform_seconds_total` |
+| `molly:gaming_late_night_seconds:increase1d` | gaming seconds between 23:00 and 05:00 local in the trailing 24h |
+| `molly:local_utc_offset_hours` | your UTC offset in whole hours (default -5); Prometheus `hour()` is UTC, so the late-night window needs it. Edit it in the rules file; DST is not handled |
 
 The flow thresholds are a starting point. Change them in the rules file, run
 `curl -X POST localhost:9090/-/reload`, and every panel follows.
@@ -70,12 +76,14 @@ user/host labels.
 | `MollyDown` | the molly target has been down for 5 minutes | the menu bar app is not running or not reachable; `molly status` |
 | `LongSessionNoBreak` | `molly_user_active` stayed 1 for 2 hours | no 5 minute idle gap; take a break |
 | `NoBreakFourHours` | the same for 4 hours | |
+| `LongGamingSession` | `molly_gaming_session_seconds` above 3 hours | one unbroken gaming session |
 | `HighMemoryPressure` | pressure level 2 or more for 10 minutes | macOS is compressing memory |
 | `MemoryPressureCritical` | pressure level 4 for 5 minutes | expect swapping and stalls |
 | `BatteryLow` | under 15% and not on AC | |
 | `SwitchRateSpike` | 15 minutes of switching at twice your 7 day median, while active | an unusually fragmented stretch |
 | `ActiveDayNoCommits` | 6+ active hours and no commit of yours today, weekday evening (UTC hour 22+) | a day that did not land in git; edit the hour for your timezone |
 | `HighClaudeSpend` | estimated Claude spend in 24h above `molly:claude_spend_threshold_usd` (50) | change the threshold in the rules file |
+| `WindDownGaming` | a gaming session started in the last 30 minutes and the trailing 24h held more than 8 active hours | gaming after a long day |
 | `MeetingMarathon` | microphone or camera in use for more than 4 hours in 24h | |
 | `DiskAlmostFull` | less than 10% free on the data volume for 10 minutes | |
 | `CollectorFailing` | more than 5 errors from one collector in 30 minutes (codex excluded) | `molly doctor`; usually a permission |
@@ -185,6 +193,27 @@ and top repos this week; the flow state timeline across the week.
 Look for: a week whose active hours rose while flow hours fell (busier, less
 focused), cost that grew faster than commits, and which day of the week the
 meetings land on.
+
+## Play (`molly-play`)
+
+Purpose: gaming set against working time. Defaults to the last 7 days.
+
+Panels: gaming hours, sessions, longest and average session, late-night gaming
+(23:00 to 05:00 local) and "gaming after a long day" (sessions that started when
+the previous 24 hours already held more than 8 active hours, at 5 minute
+resolution) as tiles; stacked bars of working against gaming hours per day
+(working is active time minus gaming, since gaming is also active time); late-night
+gaming per day; the session length ramp and a per-platform session timeline;
+games by time and lifetime Steam playtime; time by platform; controller against
+keyboard and mouse share; GPU utilisation (device, renderer, tiler) while a
+session is open; installed Steam games, library size and controllers connected.
+
+The per-game panels need `collectors.gaming.games.enabled` (off by default). With
+it off those series are absent and the panels show "games label disabled"; every
+other panel works from the aggregates.
+
+Look for: a week where gaming hours track the days with the most active hours,
+late-night time creeping up, and sessions that run well past the three hour alert.
 
 ## Fleet (`molly-fleet`)
 
