@@ -20,6 +20,9 @@ enum CollectorRegistry {
         try add("focus") { try FocusCollector(settings: $0) }
         try add("docker") { try DockerCollector(settings: $0) }
         try add("meeting") { MeetingCollector(settings: $0) }
+        try add("input", defaultEnabled: false) { InputCollector(settings: $0) }
+        try add("clipboard") { ClipboardCollector(settings: $0) }
+        try add("hardware") { try HardwareCollector(settings: $0) }
         try add("browser") { try BrowserCollector(settings: $0) }
         try add("messages") { MessagesCollector(settings: $0) }
         try add("notes") { try NotesCollector(settings: $0) }
@@ -43,7 +46,7 @@ enum CollectorRegistry {
 extension CollectorRegistry {
     /// Names with a config section; `molly validate` warns about anything else.
     static let knownNames: Set<String> = [
-        "process", "system", "processes", "focus", "docker", "meeting",
+        "process", "system", "processes", "focus", "docker", "meeting", "input", "clipboard", "hardware",
         "browser", "messages", "notes", "knowledge", "calendar", "mail",
         "git", "claude_code", "cursor", "codex", "shell", "projects",
         "power", "builds", "tabs",

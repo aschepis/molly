@@ -223,3 +223,76 @@ Permissions: none; reading the running flags does not need Microphone or Camera 
 ```json
 "meeting": { "enabled": true, "interval": 5 }
 ```
+
+## input (interval 5s, default disabled)
+
+Typing and clicking intensity from a listen-only `CGEventTap` on a dedicated
+thread. The `InputAggregator` struct holds per-kind counts and a 60-second
+window of timestamps and nothing else; a test reflects over its fields to
+prove no keycode-shaped storage exists. The tap re-arms itself if macOS
+disables it for being slow.
+
+| metric | type | notes |
+|---|---|---|
+| `molly_input_available` | gauge | 1 when the tap exists |
+| `molly_input_events_total{kind}` | counter | key (keyDown, flagsChanged), click (any mouse down), scroll |
+| `molly_input_keys_per_minute` / `molly_input_clicks_per_minute` / `molly_input_scrolls_per_minute` | gauge | trailing 60s |
+
+Config keys: `enabled` (`false`), `interval` (`5`).
+
+Permissions: Accessibility or Input Monitoring for the process. `molly doctor`
+reports `input tap` when the collector is enabled.
+
+```json
+"input": { "enabled": false, "interval": 5 }
+```
+
+## clipboard (interval 2s)
+
+Polls `NSPasteboard.general.changeCount`. On a change it classifies the
+declared types (file beats url beats image beats text) and records the byte
+length of that representation. Contents are never read.
+
+| metric | type | notes |
+|---|---|---|
+| `molly_clipboard_changes_total{type}` | counter | text, image, file, url, other |
+| `molly_clipboard_last_change_timestamp_seconds` | gauge | |
+| `molly_clipboard_content_bytes` | gauge | length of the last item's primary representation |
+
+Config keys: `enabled` (`true`), `interval` (`2`).
+
+```json
+"clipboard": { "enabled": true, "interval": 2 }
+```
+
+## hardware (interval 30s)
+
+What is plugged in. USB devices come from IOKit `IOUSBHostDevice` matching
+with hubs, built-in devices and unnamed Apple-vendor devices (the internal
+keyboard and trackpad) filtered out. Audio devices are counted by stream
+direction via CoreAudio. External displays are `CGDisplayIsBuiltin == 0`.
+Adapter watts come from `IOPSCopyExternalPowerAdapterDetails`; lid state from
+`IOPMrootDomain.AppleClamshellState`.
+
+| metric | type | notes |
+|---|---|---|
+| `molly_usb_devices` | gauge | count |
+| `molly_usb_device_info{name}` | gauge | `devices` policy, default off |
+| `molly_audio_devices{direction}` | gauge | input / output |
+| `molly_audio_default_output_info{name}` / `molly_audio_default_input_info{name}` | gauge | `devices` policy |
+| `molly_external_displays` | gauge | |
+| `molly_docked` | gauge | external displays >= `dockedMinExternalDisplays` |
+| `molly_power_adapter_watts` | gauge | -1 when on battery or unknown |
+| `molly_lid_closed` | gauge | absent when the property is unreadable |
+
+Config keys: `enabled` (`true`), `interval` (`30`), `dockedMinExternalDisplays` (`1`),
+`devices` (policy; default disabled, denylist, maxCardinality 20).
+
+```json
+"hardware": {
+  "enabled": true,
+  "interval": 30,
+  "dockedMinExternalDisplays": 1,
+  "devices": { "enabled": false, "mode": "denylist", "patterns": [], "hash": false, "salt": "", "maxCardinality": 20 }
+}
+```

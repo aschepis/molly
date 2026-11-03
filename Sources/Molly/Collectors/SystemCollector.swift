@@ -636,10 +636,18 @@ enum CoreAudioProbe {
 
 enum GroupADoctor {
     static func checks(config: Config) -> [DoctorCommand.Check] {
+        var checks: [DoctorCommand.Check] = []
         let policy = (try? config.collector("system").filter("wifi", defaults: LabelPolicy(enabled: false))) ?? .disabled
-        guard policy.enabled else { return [] }
-        let visible = CWWiFiClient.shared().interface()?.ssid() != nil
-        return [DoctorCommand.Check(name: "wifi ssid", ok: visible,
-                                    detail: visible ? "SSID readable" : "SSID hidden: grant Location access to your terminal/Molly, or leave the wifi policy off")]
+        if policy.enabled {
+            let visible = CWWiFiClient.shared().interface()?.ssid() != nil
+            checks.append(DoctorCommand.Check(name: "wifi ssid", ok: visible,
+                                              detail: visible ? "SSID readable" : "SSID hidden: grant Location access to your terminal/Molly, or leave the wifi policy off"))
+        }
+        if config.collector("input").enabled(default: false) {
+            let trusted = AXIsProcessTrusted()
+            checks.append(DoctorCommand.Check(name: "input tap", ok: trusted,
+                                              detail: trusted ? "Accessibility granted" : "grant Accessibility to the molly binary or Molly.app, or leave the input collector off"))
+        }
+        return checks
     }
 }

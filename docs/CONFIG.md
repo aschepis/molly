@@ -259,6 +259,37 @@ Interval 5s, enabled by default. No other keys.
 Permissions: none. Reading the "running" flag does not need Microphone or Camera
 access. Privacy: only whether a device is in use. Audio and video are never captured.
 
+### input
+
+Interval 5s, **disabled by default**. Counts key, click and scroll events
+through a listen-only event tap. No other keys.
+
+Permissions: Accessibility (or Input Monitoring) for the molly binary or
+Molly.app. Without it the collector reports unavailable and
+`molly_input_available` is 0; `molly doctor` checks this when the collector is
+enabled. Privacy: counts only. The aggregator has no field that could hold a
+keycode, character or pointer position, and a test asserts that.
+
+### clipboard
+
+Interval 2s, enabled by default. No other keys.
+
+Permissions: none. Privacy: the clipboard's change counter, its declared
+content types and the byte length of the primary representation are read.
+Contents are never read, logged or exported.
+
+### hardware
+
+Interval 30s, enabled by default.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `dockedMinExternalDisplays` | int | `1` | external displays needed for `molly_docked` to be 1 |
+| `devices` | policy | disabled, denylist, 20 | USB product names and default audio device names |
+
+Permissions: none. Privacy: device counts always; device names only behind
+the `devices` policy.
+
 ### browser
 
 Interval 60s, enabled by default. Browsing history counts.
