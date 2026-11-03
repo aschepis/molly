@@ -1364,11 +1364,195 @@
     {
       "id": 23,
       "type": "row",
-      "title": "Other agents and tools",
+      "title": "Agent ROI",
       "collapsed": false,
       "gridPos": {
         "x": 0,
         "y": 59,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Cost per commit (24h)",
+      "description": "Estimated Claude spend over the last 24h divided by your commits in that window.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "max(molly:claude_cost_per_commit:1d{user=~\"$user\",host=~\"$host\"})",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#2a78d6"
+          },
+          "mappings": [],
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "id": 24,
+      "gridPos": {
+        "x": 0,
+        "y": 60,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Tokens per commit (24h)",
+      "description": "All token kinds, cache reads included.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "max(molly:claude_tokens_per_commit:1d{user=~\"$user\",host=~\"$host\"})",
+          "legendFormat": "__auto"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#2a78d6"
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "id": 25,
+      "gridPos": {
+        "x": 6,
+        "y": 60,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Tool calls per hour",
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "molly:claude_tool_calls:rate1h{user=~\"$user\",host=~\"$host\"}",
+          "legendFormat": "{{host}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "fillOpacity": 60,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "gradientMode": "none"
+          },
+          "mappings": [],
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 26,
+      "gridPos": {
+        "x": 12,
+        "y": 60,
+        "w": 12,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "id": 27,
+      "type": "row",
+      "title": "Other agents and tools",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 65,
         "w": 24,
         "h": 1
       },
@@ -1446,10 +1630,10 @@
           "sort": "desc"
         }
       },
-      "id": 24,
+      "id": 28,
       "gridPos": {
         "x": 0,
-        "y": 60,
+        "y": 66,
         "w": 8,
         "h": 8
       },
@@ -1510,10 +1694,10 @@
           "sort": "desc"
         }
       },
-      "id": 25,
+      "id": 29,
       "gridPos": {
         "x": 8,
-        "y": 60,
+        "y": 66,
         "w": 8,
         "h": 8
       },
@@ -1575,10 +1759,10 @@
           "sort": "desc"
         }
       },
-      "id": 26,
+      "id": 30,
       "gridPos": {
         "x": 16,
-        "y": 60,
+        "y": 66,
         "w": 8,
         "h": 8
       },
@@ -1640,10 +1824,10 @@
           "sort": "desc"
         }
       },
-      "id": 27,
+      "id": 31,
       "gridPos": {
         "x": 0,
-        "y": 68,
+        "y": 74,
         "w": 12,
         "h": 8
       },
@@ -1698,10 +1882,10 @@
         "sizing": "auto",
         "minVizHeight": 16
       },
-      "id": 28,
+      "id": 32,
       "gridPos": {
         "x": 12,
-        "y": 68,
+        "y": 74,
         "w": 12,
         "h": 8
       },

@@ -17,7 +17,7 @@ import re
 import sys
 
 metrics_file, dashboards_dir, rules_dir = sys.argv[1:4]
-token = re.compile(r"molly_[a-z0-9_:]+")
+token = re.compile(r"molly[_:][a-z0-9_:]+")
 
 
 def tokens(text):

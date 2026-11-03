@@ -19,6 +19,63 @@ groups:
           sum by (user, host) (molly_memory_bytes{state=~"active|wired|compressed"})
           / on (user, host) molly_memory_total_bytes
 
+  # Flow detection. Every 5 minutes a (user, host) is classified as
+  #   2 = flow     active ratio >= 0.8 and <= 1.5 app switches per minute
+  #   1 = shallow  active ratio >= 0.5 but switching faster than flow
+  #   0 = break    otherwise (idle, locked, asleep, or rapid switching)
+  # Thresholds are deliberately simple; tune them here, not in dashboards.
+  - name: molly-flow
+    interval: 30s
+    rules:
+      - record: molly:switch_rate:5m
+        expr: sum by (user, host) (rate(molly_focus_switches_total[5m])) * 60
+      - record: molly:active_ratio:5m
+        expr: avg by (user, host) (avg_over_time(molly_user_active[5m]))
+      - record: molly:flow_state:5m
+        expr: >
+          (
+            (molly:active_ratio:5m >= bool 0.8)
+            * (molly:switch_rate:5m <= bool 1.5)
+          )
+          + (molly:active_ratio:5m >= bool 0.5)
+      - record: molly:flow_minutes:increase1h
+        expr: count_over_time((molly:flow_state:5m == 2)[1h:5m]) * 5
+      - record: molly:flow_minutes:increase1d
+        expr: count_over_time((molly:flow_state:5m == 2)[1d:5m]) * 5
+
+  # Context-switch ledger. Molly has no series for "switched and came back
+  # within two minutes", so interruptions are approximated as app switches per
+  # hour above a baseline of 10 that any working hour contains.
+  - name: molly-ledger
+    interval: 30s
+    rules:
+      - record: molly:interruptions:increase1h
+        expr: clamp_min(sum by (user, host) (increase(molly_focus_switches_total[1h])) - 10, 0)
+
+  - name: molly-agent-roi
+    interval: 60s
+    rules:
+      - record: molly:claude_cost_per_commit:1d
+        expr: >
+          sum by (user, host) (increase(molly_claude_estimated_cost_usd_total[1d]))
+          / clamp_min(sum by (user, host) (increase(molly_git_commits_total{author="me"}[1d])), 1)
+      - record: molly:claude_tokens_per_commit:1d
+        expr: >
+          sum by (user, host) (increase(molly_claude_tokens_total[1d]))
+          / clamp_min(sum by (user, host) (increase(molly_git_commits_total{author="me"}[1d])), 1)
+      - record: molly:claude_tool_calls:rate1h
+        expr: sum by (user, host) (increase(molly_claude_tool_calls_total[1h]))
+
+  - name: molly-day-shape
+    interval: 60s
+    rules:
+      - record: molly:active_hours:1d
+        expr: sum by (user, host) (increase(molly_active_seconds_total[1d])) / 3600
+      - record: molly:meeting_hours:1d
+        expr: sum by (user, host) (increase(molly_meeting_seconds_total[1d])) / 3600
+      - record: molly:focus_top_app_seconds:1d
+        expr: topk(5, sum by (user, host, app) (increase(molly_focus_seconds_total[1d])))
+
   - name: molly-alerts
     rules:
       - alert: MollyDown
