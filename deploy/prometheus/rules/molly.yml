@@ -1,0 +1,59 @@
+groups:
+  - name: molly-recording
+    interval: 30s
+    rules:
+      - record: molly:cpu_utilization:ratio
+        expr: avg by (user, host) (molly_cpu_utilization_ratio)
+      - record: molly:focus_seconds:rate5m
+        expr: sum by (user, host, app) (rate(molly_focus_seconds_total[5m]))
+      - record: molly:active_ratio:1h
+        expr: avg_over_time(molly_user_active[1h])
+      - record: molly:commits:increase1d
+        expr: sum by (user, host) (increase(molly_git_commits_total[1d]))
+      - record: molly:claude_cost_usd:increase1d
+        expr: sum by (user, host) (increase(molly_claude_estimated_cost_usd_total[1d]))
+      - record: molly:claude_tokens:increase1d
+        expr: sum by (user, host) (increase(molly_claude_tokens_total[1d]))
+      - record: molly:memory_used:ratio
+        expr: >
+          sum by (user, host) (molly_memory_bytes{state=~"active|wired|compressed"})
+          / on (user, host) molly_memory_total_bytes
+
+  - name: molly-alerts
+    rules:
+      - alert: MollyDown
+        expr: up{job="molly"} == 0
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: Molly is not being scraped
+          description: Prometheus cannot reach Molly. Is the menu bar app running? Try `molly status`.
+
+      - alert: LongSessionNoBreak
+        # molly_user_active already drops to 0 after the 5 minute idle threshold, so a
+        # 2h minimum of 1 means no break. The count guard avoids firing on sparse data.
+        expr: min_over_time(molly_user_active[2h]) == 1 and count_over_time(molly_user_active[2h]) > 400
+        labels:
+          severity: info
+        annotations:
+          summary: 2 hours of continuous activity
+          description: No 5 minute idle gap on {{ $labels.host }} for 2 hours. Stand up, drink water.
+
+      - alert: HighMemoryPressure
+        expr: molly_memory_pressure_level >= 2
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: Memory pressure elevated on {{ $labels.host }}
+          description: Pressure level {{ $value }} (2 warn, 4 critical) for 10 minutes.
+
+      - alert: BatteryLow
+        expr: molly_battery_percent < 15 and molly_battery_on_ac == 0
+        for: 2m
+        labels:
+          severity: info
+        annotations:
+          summary: Battery below 15% on {{ $labels.host }}
+          description: Battery at {{ $value }}% and not on AC power.

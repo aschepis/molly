@@ -21,6 +21,15 @@ case "once":
 case "doctor":
     DoctorCommand.run(commandArguments)
 
+case "install-agent":
+    InstallAgentCommand.run(commandArguments)
+
+case "uninstall-agent":
+    UninstallAgentCommand.run(commandArguments)
+
+case "status":
+    StatusCommand.run(commandArguments)
+
 case "config-path":
     print(Paths.configFile.path)
 

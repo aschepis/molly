@@ -11,6 +11,9 @@ enum Help {
                      (--collector NAME to run only one; --no-sensitive hides nothing, policies still apply)
       doctor         check permissions, ports, and the local Prometheus/Grafana stack
       validate       parse the config file and report problems
+      install-agent  start Molly at login (writes ~/Library/LaunchAgents/com.aschepis.molly.plist)
+      uninstall-agent  stop Molly and remove the launch agent
+      status         launch agent state, /healthz, and the Prometheus target
       config-path    print the config file location
       version        print the version
 
