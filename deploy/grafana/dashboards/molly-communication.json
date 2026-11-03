@@ -17,7 +17,40 @@
   },
   "timepicker": {},
   "annotations": {
-    "list": []
+    "list": [
+      {
+        "name": "Meeting",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#eb6834",
+        "expr": "molly_meeting_active{user=~\"$user\",host=~\"$host\"} == 1",
+        "step": "15s",
+        "titleFormat": "meeting",
+        "textFormat": "mic or camera in use",
+        "tagKeys": "",
+        "useValueForTime": false
+      },
+      {
+        "name": "Calendar event",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#1aa3a3",
+        "expr": "molly_calendar_in_event{user=~\"$user\",host=~\"$host\"} == 1",
+        "step": "15s",
+        "titleFormat": "calendar event",
+        "textFormat": "inside a timed calendar event",
+        "tagKeys": "",
+        "useValueForTime": false
+      }
+    ]
   },
   "links": [],
   "templating": {

@@ -35,7 +35,7 @@
         "useValueForTime": false
       },
       {
-        "name": "Meetings",
+        "name": "Meeting",
         "datasource": {
           "type": "prometheus",
           "uid": "molly-prometheus"
@@ -51,7 +51,39 @@
         "useValueForTime": false
       },
       {
-        "name": "Screen locked",
+        "name": "Calendar event",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#1aa3a3",
+        "expr": "molly_calendar_in_event{user=~\"$user\",host=~\"$host\"} == 1",
+        "step": "15s",
+        "titleFormat": "calendar event",
+        "textFormat": "inside a timed calendar event",
+        "tagKeys": "",
+        "useValueForTime": false
+      },
+      {
+        "name": "Claude session",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#8a5cd6",
+        "expr": "increase(molly_claude_sessions_total{user=~\"$user\",host=~\"$host\"}[1m]) > 0",
+        "step": "15s",
+        "titleFormat": "Claude session",
+        "textFormat": "new Claude Code session",
+        "tagKeys": "",
+        "useValueForTime": false
+      },
+      {
+        "name": "Sleep",
         "datasource": {
           "type": "prometheus",
           "uid": "molly-prometheus"
@@ -59,10 +91,58 @@
         "enable": true,
         "hide": false,
         "iconColor": "#898781",
+        "expr": "increase(molly_sleep_events_total{user=~\"$user\",host=~\"$host\"}[1m]) > 0",
+        "step": "15s",
+        "titleFormat": "sleep",
+        "textFormat": "machine went to sleep",
+        "tagKeys": "",
+        "useValueForTime": false
+      },
+      {
+        "name": "Wake",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#0ca30c",
+        "expr": "increase(molly_wake_events_total{user=~\"$user\",host=~\"$host\"}[1m]) > 0",
+        "step": "15s",
+        "titleFormat": "wake",
+        "textFormat": "machine woke",
+        "tagKeys": "",
+        "useValueForTime": false
+      },
+      {
+        "name": "Locked",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#d6489a",
         "expr": "molly_screen_locked{user=~\"$user\",host=~\"$host\"} == 1",
         "step": "15s",
         "titleFormat": "locked",
         "textFormat": "screen locked",
+        "tagKeys": "",
+        "useValueForTime": false
+      },
+      {
+        "name": "Rebooted",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#d03b3b",
+        "expr": "changes(molly_boot_timestamp_seconds{user=~\"$user\",host=~\"$host\"}[1m]) > 0",
+        "step": "15s",
+        "titleFormat": "reboot",
+        "textFormat": "machine restarted",
         "tagKeys": "",
         "useValueForTime": false
       }

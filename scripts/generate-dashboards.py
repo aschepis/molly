@@ -259,7 +259,8 @@ FLOW_MAP = mapping([(0, "break", GRAY), (1, "shallow", WARN), (2, "flow", GOOD)]
 
 
 def annotation(d, name, expr, color, title_format, text_format="", tag_keys="", step="15s", region=False):
-    """A Prometheus annotation query: one marker (or region when the series stays non-zero) per sample."""
+    """A Prometheus annotation query. Grafana joins consecutive samples into a region, so `region` only
+    records intent for series that stay at 1; it does not change the query."""
     d.annotations.append({
         "name": name, "datasource": DS, "enable": True, "hide": False, "iconColor": color,
         "expr": expr, "step": step, "titleFormat": title_format, "textFormat": text_format,
@@ -274,16 +275,55 @@ def text_panel(d, title, content, w=24, h=3, desc=""):
     }, w, h)
 
 
-def annotate_activity(d):
-    annotation(d, "Commits", "changes(" + m("molly_git_last_commit_timestamp_seconds") + "[1m]) > 0",
-               BLUE, "commit", "{{repo}}", tag_keys="repo")
-    annotation(d, "Meetings", m("molly_meeting_active") + " == 1", ORANGE, "meeting", "mic or camera in use")
-    annotation(d, "Screen locked", m("molly_screen_locked") + " == 1", GRAY, "locked", "screen locked")
+PURPLE, TEAL, PINK = "#8a5cd6", "#1aa3a3", "#d6489a"
+
+# name -> annotation arguments. Region annotations are series that stay at 1 for a while;
+# markers are counters that tick. Names are stable: dashboards and tests refer to them.
+ANNOTATIONS = {
+    "Commits": dict(
+        expr="changes(" + m("molly_git_last_commit_timestamp_seconds") + "[1m]) > 0",
+        color=BLUE, title_format="commit", text_format="{{repo}}", tag_keys="repo"),
+    "Meeting": dict(
+        expr=m("molly_meeting_active") + " == 1",
+        color=ORANGE, title_format="meeting", text_format="mic or camera in use", region=True),
+    "Calendar event": dict(
+        expr=m("molly_calendar_in_event") + " == 1",
+        color=TEAL, title_format="calendar event", text_format="inside a timed calendar event", region=True),
+    "Claude session": dict(
+        expr="increase(" + m("molly_claude_sessions_total") + "[1m]) > 0",
+        color=PURPLE, title_format="Claude session", text_format="new Claude Code session"),
+    "Sleep": dict(
+        expr="increase(" + m("molly_sleep_events_total") + "[1m]) > 0",
+        color=GRAY, title_format="sleep", text_format="machine went to sleep"),
+    "Wake": dict(
+        expr="increase(" + m("molly_wake_events_total") + "[1m]) > 0",
+        color=GOOD, title_format="wake", text_format="machine woke"),
+    "Locked": dict(
+        expr=m("molly_screen_locked") + " == 1",
+        color=PINK, title_format="locked", text_format="screen locked", region=True),
+    "Rebooted": dict(
+        expr="changes(" + m("molly_boot_timestamp_seconds") + "[1m]) > 0",
+        color=CRIT, title_format="reboot", text_format="machine restarted"),
+    "VPN": dict(
+        expr=m("molly_network_vpn_active") + " == 1",
+        color=GOOD, title_format="VPN", text_format="tunnel active", region=True),
+}
+
+DASHBOARD_ANNOTATIONS = {
+    # VPN regions would shade whole days on an always-on tunnel, so only System shows them.
+    "molly-overview": [n for n in ANNOTATIONS if n != "VPN"],
+    "molly-week": [n for n in ANNOTATIONS if n != "VPN"],
+    "molly-focus": ["Meeting", "Claude session", "Locked"],
+    "molly-developer": ["Claude session", "Commits"],
+    "molly-health": ["Sleep", "Wake", "Locked", "Rebooted"],
+    "molly-communication": ["Meeting", "Calendar event"],
+    "molly-system": ["Sleep", "Wake", "VPN"],
+}
 
 
-def annotate_reboots(d):
-    annotation(d, "Rebooted", "changes(" + m("molly_boot_timestamp_seconds") + "[1m]) > 0",
-               CRIT, "reboot", "machine restarted")
+def add_annotations(d):
+    for name in DASHBOARD_ANNOTATIONS.get(d.uid, []):
+        annotation(d, name, **ANNOTATIONS[name])
 
 
 def table(d, title, items, renames, w=24, h=9, desc="", units=None, exclude=None, sort_by=None):
@@ -311,6 +351,7 @@ def table(d, title, items, renames, w=24, h=9, desc="", units=None, exclude=None
 
 
 def write(d, outdir):
+    add_annotations(d)
     path = os.path.join(outdir, d.uid + ".json")
     with open(path, "w") as f:
         json.dump(d.json(), f, indent=2)
@@ -365,8 +406,6 @@ def overview():
                "Open the latest report: [127.0.0.1:9765/insights/latest](http://127.0.0.1:9765/insights/latest). "
                "Setup: `docs/INSIGHTS.md`.",
                h=3, desc="Reports are Markdown served by Molly; Grafana text panels cannot fetch them inline.")
-    annotate_activity(d)
-    annotate_reboots(d)
     return d
 
 
@@ -447,7 +486,6 @@ def system():
     timeseries(d, "Container memory", [(m("molly_docker_container_memory_bytes"), "{{name}}")], unit="bytes", w=8, min_=0,
                desc="Needs collectors.docker.stats = true.")
     table(d, "Containers", [m("molly_docker_container_info")], {"name": "Container", "image": "Image"}, h=7, exclude=["Value"])
-    annotation(d, "VPN", m("molly_network_vpn_active") + " == 1", GOOD, "VPN", "tunnel active", region=True)
     return d
 
 
@@ -500,7 +538,6 @@ def focus():
           desc="Needs the titles collector (Screen Recording). Titles are hashed unless titles.titles.hash is false.")
     state_timeline(d, "Now playing", [(m("molly_media_playing"), "{{app}}")], mappings=YESNO("playing"), h=3,
                    desc="Needs the media collector (Automation permission for Music/Spotify).")
-    annotate_activity(d)
     return d
 
 
@@ -704,7 +741,6 @@ def health():
         ("sum by (kind) (increase(" + m("molly_crash_reports_total") + "[1h]))", "{{kind}}")],
         w=24, h=7, bars=True, stack=True, min_=0, decimals=0,
         desc="Crash, hang, spin and kernel panic reports from DiagnosticReports.")
-    annotate_reboots(d)
     d.row("Alerts")
     table(d, "Firing alerts", [
         # Seconds since the alert became active where Prometheus tracks it (alerts with a `for`),
@@ -761,7 +797,6 @@ def week():
     bargauge(d, "Top repos this week", [("topk(10, sum by (repo) (increase(" + m("molly_git_commits_total", 'author="me"') + "[$__range])))", "{{repo}}")],
              w=12, h=9, decimals=0, desc="Your commits per repo.")
     state_timeline(d, "Flow state", [(m("molly:flow_state:5m"), "{{host}}")], mappings=FLOW_MAP, h=4)
-    annotate_activity(d)
     return d
 
 

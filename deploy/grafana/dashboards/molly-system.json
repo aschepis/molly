@@ -19,6 +19,38 @@
   "annotations": {
     "list": [
       {
+        "name": "Sleep",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#898781",
+        "expr": "increase(molly_sleep_events_total{user=~\"$user\",host=~\"$host\"}[1m]) > 0",
+        "step": "15s",
+        "titleFormat": "sleep",
+        "textFormat": "machine went to sleep",
+        "tagKeys": "",
+        "useValueForTime": false
+      },
+      {
+        "name": "Wake",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#0ca30c",
+        "expr": "increase(molly_wake_events_total{user=~\"$user\",host=~\"$host\"}[1m]) > 0",
+        "step": "15s",
+        "titleFormat": "wake",
+        "textFormat": "machine woke",
+        "tagKeys": "",
+        "useValueForTime": false
+      },
+      {
         "name": "VPN",
         "datasource": {
           "type": "prometheus",

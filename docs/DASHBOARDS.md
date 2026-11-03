@@ -19,10 +19,23 @@ Run `make check-dashboards` after editing: it fails if a dashboard or rule uses
 a metric name that is not in `docs/METRICS.md`, or a recording rule that
 `deploy/prometheus/rules/molly.yml` does not define.
 
-Overview, Focus and Week carry three annotation streams: commits (tagged by
-repo, from `molly_git_last_commit_timestamp_seconds` changing), meetings
-(while `molly_meeting_active` is 1) and screen locked. Toggle them at the top
-of the dashboard.
+## Annotations
+
+Defined in the `ANNOTATIONS` table of `scripts/generate-dashboards.py`; each
+dashboard lists which ones it carries. Toggle them at the top of a dashboard.
+
+| annotation | source series | shown on |
+|---|---|---|
+| Commits (by repo) | `changes(molly_git_last_commit_timestamp_seconds[1m]) > 0` | Overview, Week, Developer |
+| Meeting (region) | `molly_meeting_active == 1` | Overview, Week, Focus, Communication |
+| Calendar event (region) | `molly_calendar_in_event == 1` | Overview, Week, Communication |
+| Claude session | `increase(molly_claude_sessions_total[1m]) > 0`, a new session file | Overview, Week, Focus, Developer |
+| Sleep | `increase(molly_sleep_events_total[1m]) > 0` | Overview, Week, Health, System |
+| Wake | `increase(molly_wake_events_total[1m]) > 0` | Overview, Week, Health, System |
+| Locked (region) | `molly_screen_locked == 1` | Overview, Week, Focus, Health |
+
+Claude sessions come from the session-file counter rather than
+`molly_claude_hook_events_total{event="SessionStart"}` because hooks are opt-in.
 
 ## Derived series (recording rules)
 

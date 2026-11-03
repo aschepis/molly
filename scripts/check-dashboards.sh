@@ -12,6 +12,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 
 python3 -I - "$1" "$root/deploy/grafana/dashboards" "$root/deploy/prometheus/rules" <<'PY'
 import glob
+import json
 import os
 import re
 import sys
@@ -56,7 +57,25 @@ for t in sorted(missing):
 for t in sorted(undefined_recordings):
     print("undefined recording rule: %s (%s)" % (t, ", ".join(sorted(undefined_recordings[t]))))
 
+full = {"Commits", "Meeting", "Calendar event", "Claude session", "Sleep", "Wake", "Locked", "Rebooted"}
+expected_annotations = {
+    "molly-overview": full,
+    "molly-week": full,
+    "molly-focus": {"Meeting", "Claude session", "Locked"},
+    "molly-developer": {"Claude session", "Commits"},
+    "molly-health": {"Sleep", "Wake", "Locked", "Rebooted"},
+    "molly-communication": {"Meeting", "Calendar event"},
+    "molly-system": {"Sleep", "Wake", "VPN"},
+}
+bad_annotations = False
+for uid, names in sorted(expected_annotations.items()):
+    with open(os.path.join(dashboards_dir, uid + ".json"), encoding="utf-8") as f:
+        have = {a["name"] for a in json.load(f)["annotations"]["list"]}
+    if not names <= have:
+        bad_annotations = True
+        print("missing annotations on %s: %s" % (uid, ", ".join(sorted(names - have))))
+
 print("%d metric names checked, %d missing, %d undefined recording rules"
       % (len(used), len(missing), len(undefined_recordings)))
-sys.exit(1 if missing or undefined_recordings else 0)
+sys.exit(1 if missing or undefined_recordings or bad_annotations else 0)
 PY
