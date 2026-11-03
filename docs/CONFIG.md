@@ -74,7 +74,7 @@ and domain names, to your network. See [Getting started](GETTING-STARTED.md#usin
 | `enabled` | bool | `true`; `false` for `mail` | turns the collector on or off |
 | `interval` | number | per collector, below | seconds between runs. Zero or negative falls back to the default |
 
-Sections are keyed by these names: `process`, `system`, `processes`, `focus`,
+Sections are keyed by these names: `process`, `system`, `network`, `processes`, `focus`,
 `docker`, `meeting`, `browser`, `messages`, `notes`, `knowledge`, `calendar`,
 `mail`, `git`, `claude_code`, `cursor`, `codex`, `shell`, `projects`, `events`.
 
@@ -205,7 +205,7 @@ Permissions: none. Privacy: reads only Molly's own process.
 
 ### system
 
-Interval 15s, enabled by default. CPU, memory, disk, network, battery, display and other vitals.
+Interval 15s, enabled by default. CPU, memory, disk, Wi-Fi, battery, display and other vitals.
 
 | key | type | default | meaning |
 |---|---|---|---|
@@ -216,6 +216,19 @@ Permissions: none for most sources. The SSID needs Location Services for the hos
 process; without it only `molly_network_wifi_connected` is published. IOBluetooth
 may prompt once for Bluetooth. Privacy: never reads traffic, hostnames, device
 names or file contents. Sources that fail are skipped.
+
+### network
+
+Interval 30s, enabled by default. Primary interface and its type, VPN state, per-interface traffic.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `probeURL` | string | `""` | http(s) URL to HEAD each run for `molly_network_probe_*`; empty turns the probe off |
+| `captiveCheck` | bool | `false` | fetch `http://captive.apple.com/hotspot-detect.html` each run for `molly_network_captive_portal` |
+
+Permissions: none. Privacy: interface names and byte counters only; the
+Wi-Fi SSID stays behind `system.wifi`. The probe and captive check are the only
+outbound requests and are off by default.
 
 ### processes
 

@@ -397,6 +397,12 @@ def system():
         ("sum by (device) (rate(" + m("molly_disk_write_ops_total") + "[" + RI + "]))", "{{device}} write")],
         unit="iops", w=8, min_=0)
     d.row("Network")
+    state_timeline(d, "Connection", [(m("molly_network_primary_interface_info"), "{{interface}} ({{type}})")], w=12, h=5,
+                   desc="Interface holding the default route and its type; none means offline.")
+    state_timeline(d, "VPN state", [(m("molly_network_vpn_active"), "VPN")], mappings=YESNO("on"), w=6, h=5,
+                   desc="On when a tunnel interface has a routable address or a network service routes through one.")
+    timeseries(d, "Probe latency", [(m("molly_network_probe_latency_seconds"), "{{host}}")], unit="s", w=6, h=5, min_=0,
+               desc="Needs collectors.network.probeURL.")
     timeseries(d, "Network receive", [
         ("sum by (interface) (rate(" + m("molly_network_receive_bytes_total") + "[" + RI + "]))", "{{interface}}")],
         unit="Bps", w=8, min_=0)
@@ -435,6 +441,7 @@ def system():
     timeseries(d, "Container memory", [(m("molly_docker_container_memory_bytes"), "{{name}}")], unit="bytes", w=8, min_=0,
                desc="Needs collectors.docker.stats = true.")
     table(d, "Containers", [m("molly_docker_container_info")], {"name": "Container", "image": "Image"}, h=7, exclude=["Value"])
+    annotation(d, "VPN", m("molly_network_vpn_active") + " == 1", GOOD, "VPN", "tunnel active", region=True)
     return d
 
 
