@@ -21,6 +21,8 @@ enum ForensicsParse {
     static let kernelProcess = "kernel"
     static let panicFullPrefix = "panic-full-"
     static let unknownProcess = "unknown"
+    /// Memory-pressure kill logs share the .ips extension but are not crashes.
+    static let jetsamPrefix = "JetsamEvent"
     /// The .ips header is one JSON line; it never needs more than this.
     static let headerByteLimit = 8192
 
@@ -55,7 +57,7 @@ enum ForensicsParse {
     /// Kind and process from a report filename; nil for files that are not reports
     /// (analytics, .diag, dotfiles).
     static func classify(filename: String) -> (kind: CrashKind, process: String)? {
-        guard !filename.hasPrefix(".") else { return nil }
+        guard !filename.hasPrefix("."), !filename.hasPrefix(jetsamPrefix) else { return nil }
         let ext = (filename as NSString).pathExtension.lowercased()
         let stem = (filename as NSString).deletingPathExtension
         let kind: CrashKind

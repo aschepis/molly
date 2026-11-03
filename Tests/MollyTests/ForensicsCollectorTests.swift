@@ -57,6 +57,7 @@ final class ForensicsParseTests: XCTestCase {
         XCTAssertNil(ForensicsParse.classify(filename: "Analytics-2026-11-02-190015.0004.core_analytics"))
         XCTAssertNil(ForensicsParse.classify(filename: "JetsamEvent-2026-11-03.diag"))
         XCTAssertNil(ForensicsParse.classify(filename: "Retired"))
+        XCTAssertNil(ForensicsParse.classify(filename: "JetsamEvent-2026-11-03-085449.ips"))
     }
 
     func testHeaderProcessPrefersAppName() {
