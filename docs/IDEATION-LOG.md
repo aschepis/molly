@@ -50,3 +50,24 @@ Picked:
    as a diff. Rules-based, with an optional Claude pass.
 
 Outcome: (pending)
+
+## Loop 3: product and operations (planned)
+
+Theme: make Molly something you install once and forget, and give the
+`projects` collector the signal it is missing.
+
+Picked:
+1. **Shell cwd hook**: a one-line zsh/bash `precmd` that posts the working
+   directory to `POST /event` (source `shell`), so `projects` finally gets the
+   shell signal; `molly shell-hook snippet|install|uninstall`.
+2. **Launch at login and packaging polish**: SMAppService when running from
+   Molly.app, an app icon, `molly status` in the menu bar, and a
+   `make dist` zip with a checksum.
+3. **Media and window titles (opt-in)**: now-playing via AppleScript for
+   Music and Spotify (track labels behind a policy), and window titles behind
+   a `titles` policy with Screen Recording permission, hashed by default.
+4. **Backup, export and remote**: `molly export` Prometheus snapshot to a
+   tarball, `molly prune`, remote_write and Grafana Cloud docs, a fleet
+   dashboard variable for multiple hosts.
+
+Outcome: (pending)
