@@ -17,7 +17,56 @@
   },
   "timepicker": {},
   "annotations": {
-    "list": []
+    "list": [
+      {
+        "name": "Commits",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#2a78d6",
+        "expr": "changes(molly_git_last_commit_timestamp_seconds{user=~\"$user\",host=~\"$host\"}[1m]) > 0",
+        "step": "15s",
+        "titleFormat": "commit",
+        "textFormat": "{{repo}}",
+        "tagKeys": "repo",
+        "useValueForTime": false
+      },
+      {
+        "name": "Meetings",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#eb6834",
+        "expr": "molly_meeting_active{user=~\"$user\",host=~\"$host\"} == 1",
+        "step": "15s",
+        "titleFormat": "meeting",
+        "textFormat": "mic or camera in use",
+        "tagKeys": "",
+        "useValueForTime": false
+      },
+      {
+        "name": "Screen locked",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#898781",
+        "expr": "molly_screen_locked{user=~\"$user\",host=~\"$host\"} == 1",
+        "step": "15s",
+        "titleFormat": "locked",
+        "textFormat": "screen locked",
+        "tagKeys": "",
+        "useValueForTime": false
+      }
+    ]
   },
   "links": [],
   "templating": {

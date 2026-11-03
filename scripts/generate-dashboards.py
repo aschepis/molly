@@ -22,8 +22,10 @@ def m(name, extra=""):
 
 
 class Dash:
-    def __init__(self, uid, title, description):
+    def __init__(self, uid, title, description, time_from="now-24h"):
         self.uid, self.title, self.description = uid, title, description
+        self.time_from = time_from
+        self.annotations = []
         self.panels = []
         self.x = 0
         self.y = 0
@@ -66,8 +68,8 @@ class Dash:
             "uid": self.uid, "title": self.title, "description": self.description,
             "tags": ["molly"], "timezone": "browser", "schemaVersion": 39, "version": 1,
             "editable": True, "graphTooltip": 1, "refresh": "30s",
-            "time": {"from": "now-24h", "to": "now"},
-            "timepicker": {}, "annotations": {"list": []}, "links": [],
+            "time": {"from": self.time_from, "to": "now"},
+            "timepicker": {}, "annotations": {"list": self.annotations}, "links": [],
             "templating": {"list": [
                 {
                     "name": "user", "label": "user", "type": "query", "datasource": DS,
@@ -253,6 +255,23 @@ ACTIVE_MAP = mapping([(0, "idle", GRAY), (1, "active", BLUE)])
 YESNO = lambda on, c=BLUE: mapping([(0, "no", GRAY), (1, on, c)])
 PRESSURE_MAP = mapping([(1, "normal", GOOD), (2, "warn", WARN), (4, "critical", CRIT)])
 THERMAL_MAP = mapping([(0, "nominal", GOOD), (1, "fair", WARN), (2, "serious", SERIOUS), (3, "critical", CRIT)])
+FLOW_MAP = mapping([(0, "break", GRAY), (1, "shallow", WARN), (2, "flow", GOOD)])
+
+
+def annotation(d, name, expr, color, title_format, text_format="", tag_keys="", step="15s", region=False):
+    """A Prometheus annotation query: one marker (or region when the series stays non-zero) per sample."""
+    d.annotations.append({
+        "name": name, "datasource": DS, "enable": True, "hide": False, "iconColor": color,
+        "expr": expr, "step": step, "titleFormat": title_format, "textFormat": text_format,
+        "tagKeys": tag_keys, "useValueForTime": False,
+    })
+
+
+def annotate_activity(d):
+    annotation(d, "Commits", "changes(" + m("molly_git_last_commit_timestamp_seconds") + "[1m]) > 0",
+               BLUE, "commit", "{{repo}}", tag_keys="repo")
+    annotation(d, "Meetings", m("molly_meeting_active") + " == 1", ORANGE, "meeting", "mic or camera in use")
+    annotation(d, "Screen locked", m("molly_screen_locked") + " == 1", GRAY, "locked", "screen locked")
 
 
 def table(d, title, items, renames, w=24, h=9, desc="", units=None, exclude=None, sort_by=None):
@@ -324,6 +343,7 @@ def overview():
         "sum by (host) (" + m("molly_memory_bytes", 'state=~"active|wired|compressed"') + ") / on (host) max by (host) (" + m("molly_memory_total_bytes") + ")",
         "{{host}}")], unit="percentunit", w=12, h=6, min_=0, max_=1,
         desc="Active + wired + compressed over total physical memory.")
+    annotate_activity(d)
     return d
 
 
@@ -419,6 +439,15 @@ def focus():
         unit="h", w=12, min_=0, fill=0, desc="Large gaps mean Molly was off or knowledgeC counts background apps.")
     timeseries(d, "Focus switches per hour", [("sum(increase(" + m("molly_focus_switches_total") + "[1h]))", "switches")],
                w=12, bars=True, min_=0, desc="Rolling 1h; a proxy for context switching.")
+    d.row("Flow")
+    state_timeline(d, "Flow state (5 minute buckets)", [(m("molly:flow_state:5m"), "{{host}}")], mappings=FLOW_MAP, h=4,
+                   desc="flow: active 80%+ and at most 1.5 app switches/min; shallow: active 50%+; break: otherwise. Thresholds live in deploy/prometheus/rules/molly.yml.")
+    today_stat(d, "Flow minutes today", "sum(" + m("molly:flow_minutes:increase1d") + ")", unit="m", w=6, h=6,
+               desc="Minutes classified as flow since local midnight (5 minute resolution).")
+    timeseries(d, "App switches per minute", [(m("molly:switch_rate:5m"), "{{host}}")], w=9, h=6, min_=0, fill=0,
+               th=[(None, BLUE), (1.5, WARN)], desc="Rolling 5 minutes. Above 1.5 the bucket cannot be flow.")
+    timeseries(d, "Interruptions per hour", [(m("molly:interruptions:increase1h"), "{{host}}")], w=9, h=6, bars=True, min_=0,
+               decimals=0, desc="App switches per hour above a baseline of 10. An approximation of context-switch cost.")
     d.row("Presence")
     state_timeline(d, "Active / idle", [(m("molly_user_active"), "active")], mappings=ACTIVE_MAP, h=3)
     state_timeline(d, "Locked / asleep / screensaver", [
@@ -434,6 +463,7 @@ def focus():
     bargauge(d, "App launches (selected range)",
              [("topk(10, sum by (app) (increase(" + m("molly_app_launches_total") + "[$__range])))", "{{app}}")],
              unit="short", w=24, decimals=0)
+    annotate_activity(d)
     return d
 
 
@@ -487,6 +517,13 @@ def developer():
     timeseries(d, "Claude messages per hour", [
         ("sum by (role) (increase(" + m("molly_claude_messages_total") + "[1h]))", "{{role}}")],
         w=12, stack=True, bars=True, min_=0)
+    d.row("Agent ROI")
+    stat(d, "Cost per commit (24h)", "max(" + m("molly:claude_cost_per_commit:1d") + ")", unit="currencyUSD", w=6, h=5,
+         decimals=2, desc="Estimated Claude spend over the last 24h divided by your commits in that window.")
+    stat(d, "Tokens per commit (24h)", "max(" + m("molly:claude_tokens_per_commit:1d") + ")", w=6, h=5, decimals=0,
+         desc="All token kinds, cache reads included.")
+    timeseries(d, "Tool calls per hour", [(m("molly:claude_tool_calls:rate1h"), "{{host}}")], w=12, h=5, bars=True, min_=0,
+               decimals=0)
     d.row("Other agents and tools")
     timeseries(d, "Cursor AI events (per hour)", [
         ("sum(increase(" + m("molly_cursor_ai_code_events_total") + "[1h]))", "AI code events"),
@@ -601,8 +638,53 @@ def health():
     return d
 
 
+# -------------------------------------------------------------------- week
+def wow_stat(d, title, expr, unit="short", w=4, h=5, decimals=0, desc=""):
+    """This 7 days vs the previous 7 days. Tiles show the current value; the sparkline is the daily shape."""
+    stat(d, title, expr, unit=unit, w=w, h=h, decimals=decimals, spark=False, instant=True, time_from="now-7d",
+         desc=(desc + " " if desc else "") + "Last 7 days.")
+    previous = expr.replace("[$__range]", "[$__range] offset 7d").replace("[$__range:5m]", "[$__range:5m] offset 7d")
+    stat(d, title + " (previous 7d)", previous, unit=unit, w=w, h=h,
+         decimals=decimals, spark=False, instant=True, time_from="now-7d", color=fixed(GRAY),
+         desc="The 7 days before that, for comparison.")
+
+
+def week():
+    d = Dash("molly-week", "Molly / Week", "Seven-day review: daily shape, week-over-week change, top apps and repos.",
+             time_from="now-7d")
+    d.row("Week over week")
+    wow_stat(d, "Active hours", "sum(increase(" + m("molly_active_seconds_total") + "[$__range])) / 3600", unit="h", decimals=1)
+    wow_stat(d, "Flow hours", "sum(sum_over_time((" + m("molly:flow_state:5m") + " == bool 2)[$__range:5m])) * 5 / 60",
+             unit="h", decimals=1, desc="Minutes classified as flow, in hours.")
+    wow_stat(d, "Commits", "sum(increase(" + m("molly_git_commits_total", 'author="me"') + "[$__range]))")
+    wow_stat(d, "Claude cost (est.)", "sum(increase(" + m("molly_claude_estimated_cost_usd_total") + "[$__range]))",
+             unit="currencyUSD", decimals=2)
+    wow_stat(d, "Messages sent", "sum(increase(" + m("molly_messages_total", 'direction="sent"') + "[$__range]))")
+    wow_stat(d, "Meeting hours", "sum(increase(" + m("molly_meeting_seconds_total") + "[$__range])) / 3600", unit="h", decimals=1)
+    d.row("Day by day")
+    daily = dict(w=12, h=7, bars=True, min_=0)
+    timeseries(d, "Active hours per day", [(m("molly:active_hours:1d"), "{{host}}")], unit="h", decimals=1,
+               desc="Each bar is the preceding 24 hours; read the value at each midnight for the calendar day.", **daily)
+    timeseries(d, "Flow minutes per day", [(m("molly:flow_minutes:increase1d"), "{{host}}")], unit="m", decimals=0,
+               color=fixed(GOOD), **daily)
+    timeseries(d, "Commits per day", [(m("molly:commits:increase1d"), "{{host}}")], decimals=0, **daily)
+    timeseries(d, "Claude cost per day (est.)", [(m("molly:claude_cost_usd:increase1d"), "{{host}}")], unit="currencyUSD",
+               decimals=2, color=fixed(ORANGE), **daily)
+    timeseries(d, "Messages sent per day", [("sum by (host) (increase(" + m("molly_messages_total", 'direction="sent"') + "[1d]))", "{{host}}")],
+               decimals=0, **daily)
+    timeseries(d, "Meeting hours per day", [(m("molly:meeting_hours:1d"), "{{host}}")], unit="h", decimals=1, **daily)
+    d.row("Where the week went")
+    bargauge(d, "Top apps this week", [("topk(10, sum by (app) (increase(" + m("molly_focus_seconds_total") + "[$__range])))", "{{app}}")],
+             unit="s", w=12, h=9, desc="Frontmost time while active and unlocked.")
+    bargauge(d, "Top repos this week", [("topk(10, sum by (repo) (increase(" + m("molly_git_commits_total", 'author="me"') + "[$__range])))", "{{repo}}")],
+             w=12, h=9, decimals=0, desc="Your commits per repo.")
+    state_timeline(d, "Flow state", [(m("molly:flow_state:5m"), "{{host}}")], mappings=FLOW_MAP, h=4)
+    annotate_activity(d)
+    return d
+
+
 if __name__ == "__main__":
     out = sys.argv[1]
     os.makedirs(out, exist_ok=True)
-    for build in (overview, system, focus, developer, communication, health):
+    for build in (overview, system, focus, developer, communication, health, week):
         write(build(), out)

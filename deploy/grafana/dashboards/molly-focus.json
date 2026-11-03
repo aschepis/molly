@@ -17,7 +17,56 @@
   },
   "timepicker": {},
   "annotations": {
-    "list": []
+    "list": [
+      {
+        "name": "Commits",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#2a78d6",
+        "expr": "changes(molly_git_last_commit_timestamp_seconds{user=~\"$user\",host=~\"$host\"}[1m]) > 0",
+        "step": "15s",
+        "titleFormat": "commit",
+        "textFormat": "{{repo}}",
+        "tagKeys": "repo",
+        "useValueForTime": false
+      },
+      {
+        "name": "Meetings",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#eb6834",
+        "expr": "molly_meeting_active{user=~\"$user\",host=~\"$host\"} == 1",
+        "step": "15s",
+        "titleFormat": "meeting",
+        "textFormat": "mic or camera in use",
+        "tagKeys": "",
+        "useValueForTime": false
+      },
+      {
+        "name": "Screen locked",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "molly-prometheus"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#898781",
+        "expr": "molly_screen_locked{user=~\"$user\",host=~\"$host\"} == 1",
+        "step": "15s",
+        "titleFormat": "locked",
+        "textFormat": "screen locked",
+        "tagKeys": "",
+        "useValueForTime": false
+      }
+    ]
   },
   "links": [],
   "templating": {
@@ -397,11 +446,308 @@
     {
       "id": 7,
       "type": "row",
-      "title": "Presence",
+      "title": "Flow",
       "collapsed": false,
       "gridPos": {
         "x": 0,
         "y": 28,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "state-timeline",
+      "title": "Flow state (5 minute buckets)",
+      "description": "flow: active 80%+ and at most 1.5 app switches/min; shallow: active 50%+; break: otherwise. Thresholds live in deploy/prometheus/rules/molly.yml.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "molly:flow_state:5m{user=~\"$user\",host=~\"$host\"}",
+          "legendFormat": "{{host}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "break",
+                  "color": "#898781",
+                  "index": 0
+                },
+                "1": {
+                  "text": "shallow",
+                  "color": "#fab219",
+                  "index": 1
+                },
+                "2": {
+                  "text": "flow",
+                  "color": "#0ca30c",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#898781",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "auto",
+        "alignValue": "left",
+        "rowHeight": 0.8,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "id": 8,
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Flow minutes today",
+      "description": "Minutes classified as flow since local midnight (5 minute resolution).",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "sum(molly:flow_minutes:increase1d{user=~\"$user\",host=~\"$host\"})",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "m",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#2a78d6"
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "timeFrom": "now/d",
+      "hideTimeOverride": true,
+      "id": 9,
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 6,
+        "h": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "App switches per minute",
+      "description": "Rolling 5 minutes. Above 1.5 the bucket cannot be flow.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "molly:switch_rate:5m{user=~\"$user\",host=~\"$host\"}",
+          "legendFormat": "{{host}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "gradientMode": "none"
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#2a78d6",
+                "value": null
+              },
+              {
+                "color": "#fab219",
+                "value": 1.5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 10,
+      "gridPos": {
+        "x": 6,
+        "y": 33,
+        "w": 9,
+        "h": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Interruptions per hour",
+      "description": "App switches per hour above a baseline of 10. An approximation of context-switch cost.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "molly:interruptions:increase1h{user=~\"$user\",host=~\"$host\"}",
+          "legendFormat": "{{host}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "fillOpacity": 60,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "gradientMode": "none"
+          },
+          "mappings": [],
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 11,
+      "gridPos": {
+        "x": 15,
+        "y": 33,
+        "w": 9,
+        "h": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Presence",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 39,
         "w": 24,
         "h": 1
       },
@@ -475,10 +821,10 @@
           "mode": "single"
         }
       },
-      "id": 8,
+      "id": 13,
       "gridPos": {
         "x": 0,
-        "y": 29,
+        "y": 40,
         "w": 24,
         "h": 3
       },
@@ -573,10 +919,10 @@
           "mode": "single"
         }
       },
-      "id": 9,
+      "id": 14,
       "gridPos": {
         "x": 0,
-        "y": 32,
+        "y": 43,
         "w": 24,
         "h": 6
       },
@@ -671,10 +1017,10 @@
           "mode": "single"
         }
       },
-      "id": 10,
+      "id": 15,
       "gridPos": {
         "x": 0,
-        "y": 38,
+        "y": 49,
         "w": 24,
         "h": 6
       },
@@ -684,13 +1030,13 @@
       }
     },
     {
-      "id": 11,
+      "id": 16,
       "type": "row",
       "title": "Apps and windows",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 44,
+        "y": 55,
         "w": 24,
         "h": 1
       },
@@ -749,10 +1095,10 @@
           "sort": "desc"
         }
       },
-      "id": 12,
+      "id": 17,
       "gridPos": {
         "x": 0,
-        "y": 45,
+        "y": 56,
         "w": 8,
         "h": 8
       },
@@ -814,10 +1160,10 @@
           "sort": "desc"
         }
       },
-      "id": 13,
+      "id": 18,
       "gridPos": {
         "x": 8,
-        "y": 45,
+        "y": 56,
         "w": 8,
         "h": 8
       },
@@ -878,10 +1224,10 @@
           "sort": "desc"
         }
       },
-      "id": 14,
+      "id": 19,
       "gridPos": {
         "x": 16,
-        "y": 45,
+        "y": 56,
         "w": 8,
         "h": 8
       },
@@ -936,10 +1282,10 @@
         "sizing": "auto",
         "minVizHeight": 16
       },
-      "id": 15,
+      "id": 20,
       "gridPos": {
         "x": 0,
-        "y": 53,
+        "y": 64,
         "w": 24,
         "h": 8
       },

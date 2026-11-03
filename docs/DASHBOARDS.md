@@ -1,6 +1,6 @@
 # Dashboards
 
-Six dashboards are provisioned into the Grafana folder "Molly" from
+Seven dashboards are provisioned into the Grafana folder "Molly" from
 `deploy/grafana/dashboards/`. All use the `molly-prometheus` datasource, refresh
 every 30 seconds, default to the last 24 hours, and carry `$user` and `$host`
 selectors (multi-select, default All) that filter every Molly query.
@@ -16,7 +16,33 @@ domains, mail, codex, cursor) stay empty until you enable them; the panel
 description says which setting.
 
 Run `make check-dashboards` after editing: it fails if a dashboard or rule uses
-a metric name that is not in `docs/METRICS.md`.
+a metric name that is not in `docs/METRICS.md`, or a recording rule that
+`deploy/prometheus/rules/molly.yml` does not define.
+
+Overview, Focus and Week carry three annotation streams: commits (tagged by
+repo, from `molly_git_last_commit_timestamp_seconds` changing), meetings
+(while `molly_meeting_active` is 1) and screen locked. Toggle them at the top
+of the dashboard.
+
+## Derived series (recording rules)
+
+`deploy/prometheus/rules/molly.yml` computes a few things Molly cannot know
+from a single scrape. The dashboards below use them.
+
+| rule | meaning |
+|---|---|
+| `molly:switch_rate:5m` | app switches per minute, rolling 5 minutes |
+| `molly:active_ratio:5m` | share of the last 5 minutes the user was active |
+| `molly:flow_state:5m` | 2 flow (active 80%+, at most 1.5 switches/min), 1 shallow (active 50%+), 0 break |
+| `molly:flow_minutes:increase1h`, `:increase1d` | minutes classified as flow in the window |
+| `molly:interruptions:increase1h` | app switches per hour above a baseline of 10; an approximation of context-switch cost |
+| `molly:claude_cost_per_commit:1d`, `molly:claude_tokens_per_commit:1d` | estimated Claude spend and tokens per commit of yours, trailing 24h |
+| `molly:claude_tool_calls:rate1h` | tool calls in the last hour |
+| `molly:active_hours:1d`, `molly:meeting_hours:1d` | trailing 24h totals |
+| `molly:focus_top_app_seconds:1d` | top 5 apps by focus time, trailing 24h |
+
+The flow thresholds are a starting point. Change them in the rules file, run
+`curl -X POST localhost:9090/-/reload`, and every panel follows.
 
 ## Overview (`molly-overview`)
 
@@ -51,11 +77,14 @@ Purpose: where attention goes.
 
 Panels: focus time by app over the selected range; the same from the system's
 knowledgeC log; focused-app timeline; Molly vs knowledgeC hours; focus
-switches per hour; active/idle, locked/asleep/screensaver and meeting
-timelines; running apps, windows on screen, idle seconds, app launches.
+switches per hour; a Flow row (flow state timeline in 5 minute buckets, flow
+minutes today, app switches per minute, interruptions per hour); active/idle,
+locked/asleep/screensaver and meeting timelines; running apps, windows on
+screen, idle seconds, app launches.
 
 Look for: the gap between Molly and knowledgeC (time Molly was not running),
-switch spikes that precede low-output hours, and meetings stacked back to back.
+switch spikes that precede low-output hours, long grey stretches in the flow
+timeline during what should have been work, and meetings stacked back to back.
 
 ## Developer (`molly-developer`)
 
@@ -64,11 +93,14 @@ Purpose: code and AI-agent activity.
 Panels: commits per repo over time, lines added and removed today, per-repo
 table of dirty, untracked, ahead, behind and stashes with last commit; active
 projects timeline; Claude sessions, tool calls, tokens by kind and model,
-estimated cost, prompts and messages per hour; Cursor events, Codex tokens,
-agent processes; shell commands per hour and command names.
+estimated cost, prompts and messages per hour; an Agent ROI row (estimated
+cost per commit, tokens per commit, tool calls per hour, all trailing 24h);
+Cursor events, Codex tokens, agent processes; shell commands per hour and
+command names.
 
 Look for: repos that are ahead and never pushed, dirty files left for days,
-cost per day trending up, and cache reads versus fresh input tokens.
+cost per day trending up, cache reads versus fresh input tokens, and cost per
+commit climbing while commits stay flat.
 
 ## Communication (`molly-communication`)
 
@@ -95,3 +127,17 @@ per collector; a status table with enabled flag, age of last success, totals.
 Look for: a collector whose last-success age is far beyond its interval
 (failing or missing permission), error counts that keep rising, and scrape
 duration approaching the 15 second scrape interval.
+
+## Week (`molly-week`)
+
+Purpose: the seven-day review.
+
+Panels: week-over-week tiles for active hours, flow hours, commits, Claude
+cost, messages sent and meeting hours (each with the previous seven days in
+grey beside it); day-by-day bars for the same measures (each bar is the
+trailing 24 hours, so read the value at midnight for a calendar day); top apps
+and top repos this week; the flow state timeline across the week.
+
+Look for: a week whose active hours rose while flow hours fell (busier, less
+focused), cost that grew faster than commits, and which day of the week the
+meetings land on.
