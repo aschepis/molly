@@ -44,6 +44,17 @@ final class ConfigTests: XCTestCase {
         XCTAssertEqual(try browser.policy("missing", defaults: LabelPolicy(enabled: true)).enabled, true)
     }
 
+    func testMCPSectionDefaultsToStackAndServer() throws {
+        let defaults = try Config.parse(Data(#"{"server": {"port": 9000}, "links": {"prometheus": "http://p:2"}}"#.utf8))
+        XCTAssertEqual(defaults.mcpPrometheusURL, "http://p:2")
+        XCTAssertEqual(defaults.mcpMollyURL, "http://127.0.0.1:9000")
+        let explicit = try Config.parse(Data(#"{"mcp": {"prometheusURL": "http://x:1", "mollyURL": "http://y:2"}}"#.utf8))
+        XCTAssertEqual(explicit.mcpPrometheusURL, "http://x:1")
+        XCTAssertEqual(explicit.mcpMollyURL, "http://y:2")
+        XCTAssertThrowsError(try Config.parse(Data(#"{"mcp": {"prometheusURL": ""}}"#.utf8)))
+        XCTAssertThrowsError(try Config.parse(Data(#"{"mcp": []}"#.utf8)))
+    }
+
     func testSettingsGettersFallBack() throws {
         let c = try Config.parse(Data(#"{"collectors": {"x": {"interval": -5, "n": 2.5, "s": 7}}}"#.utf8))
         let x = c.collector("x")

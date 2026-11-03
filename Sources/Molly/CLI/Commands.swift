@@ -11,6 +11,8 @@ enum Help {
                      (--collector NAME to run only one; never advances saved cursors)
       hook           read a Claude Code hook payload on stdin and post it to /event
                      (hook snippet | hook install | hook uninstall manage ~/.claude/settings.json)
+      mcp            stdio MCP server with read-only query tools over Prometheus
+                     (claude mcp add molly -- <absolute path to molly> mcp)
       doctor         check permissions, ports, and the local Prometheus/Grafana stack
       validate       parse the config file and report problems
       install-agent  start Molly at login (writes ~/Library/LaunchAgents/com.aschepis.molly.plist)
