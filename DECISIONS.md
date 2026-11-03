@@ -120,3 +120,11 @@ These are the leakiest labels Molly can hold, so their policies ship with
 
 Counts only, never content or contacts. You listed messages sent as a
 must-have; Mail stayed off because its schema is inferred and less tested.
+
+## 2026-11-03 Bind failure exits the process so launchd restarts it
+
+A launchd-started Molly that lost the port race to a stale instance used to
+keep running with no listener, so `/healthz` answered from the wrong process
+and nobody noticed. `run` now treats a listener failure as fatal
+(`Runtime.listenerFailure`, injectable for tests); `KeepAlive` brings it back
+once the port is free, throttled by launchd's default interval.

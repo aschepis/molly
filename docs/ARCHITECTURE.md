@@ -87,7 +87,9 @@ which avoids locks and cannot corrupt the source.
 ## HTTP endpoints
 
 Served by a small `Network.framework` server on `server.bind:server.port`
-(default `127.0.0.1:9765`):
+(default `127.0.0.1:9765`). If the listener cannot bind (for example a stale
+instance still holds the port) `molly run` logs the error and exits non-zero
+so the launch agent's `KeepAlive` restarts it rather than running blind.
 
 | path | purpose |
 |---|---|

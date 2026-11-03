@@ -58,4 +58,24 @@ final class HTTPTests: XCTestCase {
         let (collectorsStatus, _) = DoctorCommand.fetch(URL(string: "http://127.0.0.1:\(port)/collectors")!, timeout: 1)
         XCTAssertEqual(collectorsStatus, 200)
     }
+
+    func testSecondListenerOnSamePortReportsFailure() throws {
+        let port = Int.random(in: 20000...40000)
+        let first = try HTTPServer(bind: "127.0.0.1", port: port, router: Router())
+        first.start()
+        defer { first.stop() }
+        var ready = false
+        for _ in 0..<20 where !ready {
+            ready = DoctorCommand.fetch(URL(string: "http://127.0.0.1:\(port)/")!, timeout: 1).0 != 0
+            if !ready { usleep(100_000) }
+        }
+        XCTAssertTrue(ready, "first listener never came up")
+
+        let failed = expectation(description: "second listener reports bind failure")
+        let second = try HTTPServer(bind: "127.0.0.1", port: port, router: Router())
+        second.onFailure = { _ in failed.fulfill() }
+        second.start()
+        defer { second.stop() }
+        wait(for: [failed], timeout: 5)
+    }
 }

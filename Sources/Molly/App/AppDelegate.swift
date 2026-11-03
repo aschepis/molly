@@ -28,6 +28,13 @@ final class Runtime {
     let server: HTTPServer?
     private(set) var lastScrape: Date?
 
+    /// Runs when the metrics listener cannot start. A daemon with no listener is
+    /// worse than a dead one, so the default exits and lets launchd restart it.
+    static var listenerFailure: (Error) -> Void = { error in
+        Log.error("metrics listener failed, exiting: \(error)")
+        exit(EXIT_FAILURE)
+    }
+
     private init(config: Config, manager: CollectorManager, server: HTTPServer?) {
         self.config = config
         self.manager = manager
@@ -48,12 +55,12 @@ final class Runtime {
             Routes.register(on: router, manager: manager, config: config)
             do {
                 let s = try HTTPServer(bind: config.server.bind, port: config.server.port, router: router)
-                s.onFailure = { error in Log.error("metrics listener failed: \(error)") }
+                s.onFailure = Runtime.listenerFailure
                 s.start()
                 server = s
                 Log.info("serving metrics on http://\(config.server.bind):\(config.server.port)/metrics")
             } catch {
-                Log.error("metrics server not started: \(error)")
+                Runtime.listenerFailure(error)
             }
         }
         let runtime = Runtime(config: config, manager: manager, server: server)
