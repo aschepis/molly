@@ -6,7 +6,27 @@ import SwiftUI
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private static var shared: SettingsWindowController?
 
-    static func show(model: SettingsModel) {
+    /// Fixed so screenshots from scripts/snap-settings.sh are comparable.
+    static let defaultSize = NSSize(width: 720, height: 520)
+
+    static func close() { shared?.window?.orderOut(nil) }
+
+    /// Renders the window in-process; screencapture needs Screen Recording
+    /// permission for the calling terminal, this does not.
+    static func snapshot(to path: String) {
+        guard let frame = shared?.window?.contentView?.superview,
+              let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) else { return }
+        frame.cacheDisplay(in: frame.bounds, to: rep)
+        guard let png = rep.representation(using: .png, properties: [:]) else { return }
+        do {
+            try png.write(to: URL(fileURLWithPath: path))
+        } catch {
+            Log.error("settings snapshot failed: \(error)")
+        }
+    }
+
+    static func show(model: SettingsModel, tab: SettingsTab? = nil) {
+        if let tab { model.selectedTab = tab }
         let controller: SettingsWindowController
         if let existing = shared, existing.model === model {
             controller = existing
@@ -21,13 +41,13 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     private init(model: SettingsModel) {
         self.model = model
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: 520),
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: Self.defaultSize),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable],
                               backing: .buffered, defer: false)
         window.title = "Molly Settings"
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: SettingsView().environmentObject(model))
-        window.setContentSize(NSSize(width: 720, height: 520))
+        window.setContentSize(Self.defaultSize)
         window.center()
         super.init(window: window)
         window.delegate = self

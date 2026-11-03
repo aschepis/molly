@@ -25,6 +25,7 @@ enum Help {
       tune           recommend config changes from registry size, collector health and scrape stats
                      (--json for machine output; --apply merges the patches into config.json with a backup)
       privacy        every sensitive label dimension, its policy, and decision counts (--json)
+      settings       ask the running daemon to open Settings (collectors|privacy|server|agents|maintenance, --close)
       export         back up config, state, insights, /metrics and a Prometheus TSDB snapshot to a tarball
                      (--out DIR | --include-secrets | --restore TARBALL prints the manual restore steps)
       health         import <export.zip|export.xml> [--out file.om]: turn an Apple Health export

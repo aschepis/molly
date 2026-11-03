@@ -46,6 +46,9 @@ case "tune":
 case "privacy":
     PrivacyCommand.run(commandArguments)
 
+case "settings":
+    SettingsCommand.run(commandArguments)
+
 case "export":
     ExportCommand.run(commandArguments)
 

@@ -37,9 +37,24 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_USERS_DEFAULT_THEME: system
+      # Only used when the "render" profile is up (make snap-dashboards).
+      GF_RENDERING_SERVER_URL: http://renderer:8081/render
+      GF_RENDERING_CALLBACK_URL: http://grafana:3000/
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
     volumes:
       - ${MOLLY_DATA_DIR:-./data}/grafana:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana-dashboards:ro
+
+  # Headless Chrome for PNG dashboard renders. Off by default:
+  # docker compose --profile render up -d
+  renderer:
+    image: grafana/grafana-image-renderer:3.12.4
+    container_name: molly-renderer
+    profiles: ["render"]
+    restart: unless-stopped
+    environment:
+      ENABLE_METRICS: "false"
+      # The default cap is 3000px, which cuts off the taller dashboards.
+      RENDERING_VIEWPORT_MAX_HEIGHT: "8000"

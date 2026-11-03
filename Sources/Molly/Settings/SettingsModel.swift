@@ -19,6 +19,7 @@ final class SettingsModel: ObservableObject {
 
     @Published private(set) var document: ConfigDocument
     @Published private(set) var saved: JSONValue
+    @Published var selectedTab: SettingsTab = .collectors
     @Published var lastError: String?
     @Published var lastMessage: String?
 

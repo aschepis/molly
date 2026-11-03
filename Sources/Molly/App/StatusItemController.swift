@@ -15,6 +15,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusSubmenu = NSMenu(title: "Status")
     private let isBundled = MenuModel.isBundled(bundleURL: Bundle.main.bundleURL)
     private var settingsModel: SettingsModel?
+    private static let snapshotDelay: TimeInterval = 0.6
 
     init(runtime: Runtime) {
         self.runtime = runtime
@@ -26,6 +27,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             button.image = image
         }
         statusItem.menu = buildMenu()
+        DistributedNotificationCenter.default().addObserver(
+            self, selector: #selector(settingsRequested(_:)),
+            name: SettingsRequest.notificationName, object: nil)
     }
 
     private func buildMenu() -> NSMenu {
@@ -173,14 +177,31 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         Log.info("config reloaded")
     }
 
-    @objc private func openSettings() {
+    @objc private func settingsRequested(_ note: Notification) {
+        let request = SettingsRequest(userInfo: note.userInfo)
+        if request.close {
+            SettingsWindowController.close()
+        } else {
+            showSettings(tab: request.tab)
+            if let path = request.snapshotPath {
+                // SwiftUI needs a runloop turn to lay out the newly selected tab.
+                DispatchQueue.main.asyncAfter(deadline: .now() + Self.snapshotDelay) {
+                    SettingsWindowController.snapshot(to: path)
+                }
+            }
+        }
+    }
+
+    @objc private func openSettings() { showSettings(tab: nil) }
+
+    private func showSettings(tab: SettingsTab?) {
         do {
             let model = try settingsModel ?? makeSettingsModel()
             settingsModel = model
             // Pick up hand edits made since the window was last open, unless
             // they would clobber something typed but not yet applied.
             if !model.isDirty { try model.reloadFromDisk() }
-            SettingsWindowController.show(model: model)
+            SettingsWindowController.show(model: model, tab: tab)
         } catch {
             Log.error("cannot open settings: \(error)")
             notify(title: "Molly settings", body: "\(error)")

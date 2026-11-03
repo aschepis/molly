@@ -32,6 +32,10 @@ make install                 # optional: build and copy Molly.app to /Applicatio
                              # then tick "Launch at Login" in the menu bar (or: molly install-agent)
 ```
 
+Other commands: `molly settings [tab]` opens the Settings window of the running
+daemon; `make snapshots` saves PNGs of the Settings tabs and every dashboard to
+`docs/screenshots/` (dashboards need the compose `render` profile, started for you).
+
 Grant Full Disk Access to your terminal (or Molly.app) so the Safari, Messages,
 Notes and Calendar collectors can read their databases; see
 [Getting started](docs/GETTING-STARTED.md).
