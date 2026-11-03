@@ -85,7 +85,7 @@ user/host labels.
 | `BatteryLow` | under 15% and not on AC | |
 | `SwitchRateSpike` | 15 minutes of switching at twice your 7 day median, while active | an unusually fragmented stretch |
 | `ActiveDayNoCommits` | 6+ active hours and no commit of yours today, weekday evening (UTC hour 22+) | a day that did not land in git; edit the hour for your timezone |
-| `HighClaudeSpend` | estimated Claude spend in 24h above `molly:claude_spend_threshold_usd` (50) | change the threshold in the rules file |
+| `HighClaudeSpend` | estimated Claude spend in 24h above `molly:claude_spend_threshold_usd` (50); silent when `collectors.claude_code.pricing.mode` is `subscription` | change the threshold in the rules file |
 | `WindDownGaming` | a gaming session started in the last 30 minutes and the trailing 24h held more than 8 active hours | gaming after a long day |
 | `MeetingMarathon` | microphone or camera in use for more than 4 hours in 24h | |
 | `DiskAlmostFull` | less than 10% free on the data volume for 10 minutes | |

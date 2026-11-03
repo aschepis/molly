@@ -819,8 +819,8 @@
     },
     {
       "type": "stat",
-      "title": "Claude cost (est.)",
-      "description": "Estimated from token counts and the configured price table.",
+      "title": "Claude cost (list-price equivalent)",
+      "description": "Token counts times list prices, not a bill. With collectors.claude_code.pricing.mode set to subscription this is a list-price equivalent (subscription), not spend.",
       "targets": [
         {
           "refId": "A",

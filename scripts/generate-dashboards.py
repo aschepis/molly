@@ -114,6 +114,9 @@ def fixed(color=BLUE):
 
 PALETTE = {"mode": "palette-classic-by-name"}
 
+COST_NOTE = ("Token counts times list prices, not a bill. With collectors.claude_code.pricing.mode set to "
+             "subscription this is a list-price equivalent (subscription), not spend.")
+
 
 def thresholds(steps):
     """steps: list of (value or None, color)."""
@@ -397,9 +400,9 @@ def overview():
          decimals=0, instant=True)
     today_stat(d, "Meeting minutes", "sum(increase(" + m("molly_meeting_seconds_total") + "[$__range])) / 60",
                unit="m", w=6, h=4, desc="Minutes with the microphone or camera in use.")
-    today_stat(d, "Claude cost (est.)", "sum(increase(" + m("molly_claude_estimated_cost_usd_total") + "[$__range]))",
+    today_stat(d, "Claude cost (list-price equivalent)", "sum(increase(" + m("molly_claude_estimated_cost_usd_total") + "[$__range]))",
                unit="currencyUSD", w=6, h=4, decimals=2,
-               desc="Estimated from token counts and the configured price table.")
+               desc=COST_NOTE)
     d.row("Focus and activity")
     state_timeline(d, "Focused app", [(m("molly_focus_app"), "{{app}}")], h=8,
                    desc="One row per app; a bar means it was frontmost.")
@@ -593,8 +596,8 @@ def developer():
     d.row("Claude Code")
     stat(d, "Sessions active", "sum(" + m("molly_claude_sessions_active") + ")", w=4, h=4, decimals=0)
     stat(d, "Sessions today", "sum(" + m("molly_claude_sessions_today") + ")", w=4, h=4, spark=False, decimals=0, instant=True)
-    today_stat(d, "Cost today (est.)", "sum(increase(" + m("molly_claude_estimated_cost_usd_total") + "[$__range]))",
-               unit="currencyUSD", w=4, decimals=2)
+    today_stat(d, "List-price equivalent today", "sum(increase(" + m("molly_claude_estimated_cost_usd_total") + "[$__range]))",
+               unit="currencyUSD", w=4, decimals=2, desc=COST_NOTE)
     today_stat(d, "Tokens today", "sum(increase(" + m("molly_claude_tokens_total") + "[$__range]))", w=4)
     stat(d, "Subagent messages / h", "sum(increase(" + m("molly_claude_subagent_messages_total") + "[1h]))", w=4, h=4, decimals=0)
     stat(d, "Prompts / h", "sum(increase(" + m("molly_claude_prompts_total") + "[1h]))", w=4, h=4, decimals=0)
@@ -607,9 +610,9 @@ def developer():
     timeseries(d, "Tokens by model (per hour)",
                [("sum by (model) (increase(" + m("molly_claude_tokens_total") + "[1h]))", "{{model}}")],
                w=12, stack=True, bars=True, min_=0)
-    timeseries(d, "Estimated cost (rolling 24h)",
+    timeseries(d, "List-price equivalent (rolling 24h)",
                [("sum(increase(" + m("molly_claude_estimated_cost_usd_total") + "[1d]))", "cost")],
-               unit="currencyUSD", w=12, min_=0, decimals=2, desc="Each point is the preceding 24 hours of spend.")
+               unit="currencyUSD", w=12, min_=0, decimals=2, desc="Each point is the preceding 24 hours. " + COST_NOTE)
     timeseries(d, "Prompts per hour", [("sum(increase(" + m("molly_claude_prompts_total") + "[1h]))", "prompts")],
                w=12, bars=True, min_=0, decimals=0)
     timeseries(d, "Claude messages per hour", [
@@ -617,7 +620,7 @@ def developer():
         w=12, stack=True, bars=True, min_=0)
     d.row("Agent ROI")
     stat(d, "Cost per commit (24h)", "max(" + m("molly:claude_cost_per_commit:1d") + ")", unit="currencyUSD", w=6, h=5,
-         decimals=2, desc="Estimated Claude spend over the last 24h divided by your commits in that window.")
+         decimals=2, desc="List-price equivalent of Claude usage over the last 24h divided by your commits in that window. " + COST_NOTE)
     stat(d, "Tokens per commit (24h)", "max(" + m("molly:claude_tokens_per_commit:1d") + ")", w=6, h=5, decimals=0,
          desc="All token kinds, cache reads included.")
     timeseries(d, "Tool calls per hour", [(m("molly:claude_tool_calls:rate1h"), "{{host}}")], w=12, h=5, bars=True, min_=0,
@@ -728,6 +731,9 @@ def health():
          th=[(None, GOOD), (3000, WARN), (5000, CRIT)],
          desc="Series across all metric families. `molly tune` warns above 5000.")
     stat(d, "Metric families", m("molly_self_metric_families"), w=4, h=6, decimals=0)
+    stat(d, "Unavailable collectors", "sum(" + m("molly_collector_unavailable") + ")", w=4, h=6, decimals=0,
+         spark=False, instant=True,
+         desc="Collectors whose source is absent or lacks a permission. Expected on a machine without that app; not an error.")
     bargauge(d, "Largest families", [("topk(10, " + m("molly_self_series") + ")", "{{family}}")],
              w=16, h=6, decimals=0,
              desc="Series per family for the 20 largest; a family that keeps growing usually has a label policy that needs maxCardinality or a denylist.")
@@ -735,7 +741,7 @@ def health():
     timeseries(d, "Collector runs per minute", [
         ("sum by (collector) (rate(" + m("molly_collector_runs_total") + "[" + RI + "])) * 60", "{{collector}}")],
         w=8, min_=0, fill=0)
-    timeseries(d, "Collector errors (per hour)", [
+    timeseries(d, "Collector errors (per hour, excludes unavailable)", [
         ("sum by (collector) (increase(" + m("molly_collector_errors_total") + "[1h]))", "{{collector}}")],
         w=8, bars=True, stack=True, min_=0, decimals=0)
     timeseries(d, "Collector run duration", [(m("molly_collector_duration_seconds"), "{{collector}}")],
@@ -745,11 +751,12 @@ def health():
         "time() - " + m("molly_collector_last_success_timestamp_seconds"),
         "sum by (collector) (" + m("molly_collector_runs_total") + ")",
         "sum by (collector) (" + m("molly_collector_errors_total") + ")",
-        m("molly_collector_duration_seconds")],
+        m("molly_collector_duration_seconds"),
+        m("molly_collector_unavailable")],
         {"collector": "Collector", "Value #A": "Enabled", "Value #B": "Last success age",
-         "Value #C": "Runs", "Value #D": "Errors", "Value #E": "Last duration"},
+         "Value #C": "Runs", "Value #D": "Errors", "Value #E": "Last duration", "Value #F": "Unavailable"},
         units={"Last success age": "s", "Last duration": "s"}, h=12, sort_by="Last success age",
-        desc="Last success age well above the collector interval means it is failing or unavailable.")
+        desc="Last success age well above the collector interval means it is failing or unavailable. Unavailable (1) is a missing source, not an error.")
     d.row("Boots and crashes")
     stat(d, "Machine uptime", m("molly_uptime_seconds"), unit="s", w=4, h=5, spark=False, instant=True,
          desc="Time since the current boot, from kern.boottime.")
@@ -799,8 +806,8 @@ def week():
     wow_stat(d, "Flow hours", "sum(sum_over_time((" + m("molly:flow_state:5m") + " == bool 2)[$__range:5m])) * 5 / 60",
              unit="h", decimals=1, desc="Minutes classified as flow, in hours.")
     wow_stat(d, "Commits", "sum(increase(" + m("molly_git_commits_total", 'author="me"') + "[$__range]))")
-    wow_stat(d, "Claude cost (est.)", "sum(increase(" + m("molly_claude_estimated_cost_usd_total") + "[$__range]))",
-             unit="currencyUSD", decimals=2)
+    wow_stat(d, "Claude cost (list-price equiv.)", "sum(increase(" + m("molly_claude_estimated_cost_usd_total") + "[$__range]))",
+             unit="currencyUSD", decimals=2, desc=COST_NOTE)
     wow_stat(d, "Messages sent", "sum(increase(" + m("molly_messages_total", 'direction="sent"') + "[$__range]))")
     wow_stat(d, "Meeting hours", "sum(increase(" + m("molly_meeting_seconds_total") + "[$__range])) / 3600", unit="h", decimals=1)
     d.row("Day by day")
@@ -810,8 +817,8 @@ def week():
     timeseries(d, "Flow minutes per day", [(m("molly:flow_minutes:increase1d"), "{{host}}")], unit="m", decimals=0,
                color=fixed(GOOD), **daily)
     timeseries(d, "Commits per day", [(m("molly:commits:increase1d"), "{{host}}")], decimals=0, **daily)
-    timeseries(d, "Claude cost per day (est.)", [(m("molly:claude_cost_usd:increase1d"), "{{host}}")], unit="currencyUSD",
-               decimals=2, color=fixed(ORANGE), **daily)
+    timeseries(d, "Claude list-price equivalent per day", [(m("molly:claude_cost_usd:increase1d"), "{{host}}")], unit="currencyUSD",
+               decimals=2, color=fixed(ORANGE), desc=COST_NOTE, **daily)
     timeseries(d, "Messages sent per day", [("sum by (host) (increase(" + m("molly_messages_total", 'direction="sent"') + "[1d]))", "{{host}}")],
                decimals=0, **daily)
     timeseries(d, "Meeting hours per day", [(m("molly:meeting_hours:1d"), "{{host}}")], unit="h", decimals=1, **daily)
@@ -928,8 +935,8 @@ def fleet():
                unit="h", decimals=1, desc="Trailing 24 hours per host.", **per_host)
     timeseries(d, "Commits today", [("sum by (host) (increase(" + m("molly_git_commits_total", 'author="me"') + "[1d]))", "{{host}}")],
                decimals=0, desc="Your commits in the trailing 24 hours per host.", **per_host)
-    timeseries(d, "Claude cost today (est.)", [("sum by (host) (increase(" + m("molly_claude_estimated_cost_usd_total") + "[1d]))", "{{host}}")],
-               unit="currencyUSD", decimals=2, color=fixed(ORANGE), **per_host)
+    timeseries(d, "Claude list-price equivalent today", [("sum by (host) (increase(" + m("molly_claude_estimated_cost_usd_total") + "[1d]))", "{{host}}")],
+               unit="currencyUSD", decimals=2, color=fixed(ORANGE), desc=COST_NOTE, **per_host)
     timeseries(d, "Scrape duration", [('scrape_duration_seconds{job="molly"}', "{{instance}}")], unit="s", w=12, min_=0,
                desc="Built-in series per scrape target; one target per machine in prometheus.yml.")
     d.row("Liveness")

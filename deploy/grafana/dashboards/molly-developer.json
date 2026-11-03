@@ -796,8 +796,8 @@
     },
     {
       "type": "stat",
-      "title": "Cost today (est.)",
-      "description": "Since local midnight.",
+      "title": "List-price equivalent today",
+      "description": "Token counts times list prices, not a bill. With collectors.claude_code.pricing.mode set to subscription this is a list-price equivalent (subscription), not spend.",
       "targets": [
         {
           "refId": "A",
@@ -1202,8 +1202,8 @@
     },
     {
       "type": "timeseries",
-      "title": "Estimated cost (rolling 24h)",
-      "description": "Each point is the preceding 24 hours of spend.",
+      "title": "List-price equivalent (rolling 24h)",
+      "description": "Each point is the preceding 24 hours. Token counts times list prices, not a bill. With collectors.claude_code.pricing.mode set to subscription this is a list-price equivalent (subscription), not spend.",
       "targets": [
         {
           "refId": "A",
@@ -1410,7 +1410,7 @@
     {
       "type": "stat",
       "title": "Cost per commit (24h)",
-      "description": "Estimated Claude spend over the last 24h divided by your commits in that window.",
+      "description": "List-price equivalent of Claude usage over the last 24h divided by your commits in that window. Token counts times list prices, not a bill. With collectors.claude_code.pricing.mode set to subscription this is a list-price equivalent (subscription), not spend.",
       "targets": [
         {
           "refId": "A",

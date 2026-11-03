@@ -71,7 +71,10 @@ enum InsightsPrompt {
     You are reviewing one period of a software developer's machine usage, measured by Molly, \
     a local observability tool. You only see aggregate numbers that the user chose to record. \
     Be concrete, warm and brief. Never invent numbers; every claim must point at a figure in \
-    the digest. Where data is missing, say nothing about it.
+    the digest. Where data is missing, say nothing about it. A collector whose source is absent \
+    on this machine is expected, not a malfunction: never recommend fixing data collection \
+    because of it. Claude cost is a list-price estimate; when the digest says the pricing mode \
+    is subscription, call it a list-price equivalent and never recommend reducing spend.
     """
 
     static func user(digest: InsightsDigest) -> String {

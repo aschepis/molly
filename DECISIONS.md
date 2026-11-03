@@ -143,3 +143,37 @@ the matching series from Prometheus needs the admin API and a metric-prefix
 match that `molly prune` does not have yet; doing it silently would also
 surprise anyone keeping long history on purpose. The tab says so and points
 to `molly prune`.
+
+## 2026-11-03 Unavailable is a state, not an error
+
+`CollectorUnavailable` (source absent, permission missing) no longer counts in
+`molly_collector_errors_total` or `Status.errors`. It is the gauge
+`molly_collector_unavailable{collector}`, published as 0 for every collector so
+the series exists. The first digest read dozens of daily "errors" from codex on
+a machine without Codex and told the user to fix data collection; absence is
+expected, a thrown error is not. The one-time log line is unchanged. The
+`CollectorFailing` alert lost its codex exclusion because it no longer needs
+one, `molly doctor` reports the two apart, and the digest lists absent sources
+as expected.
+
+## 2026-11-03 Claude cost has a pricing mode
+
+`collectors.claude_code.pricing.mode` is `list` (default) or `subscription`.
+The series name stays `molly_claude_estimated_cost_usd_total` so history and
+queries survive. The built-in table lost its guessed `claude-fable` row: a
+model without a row costs 0 and warns once, because a made-up price looks like
+data. A subscriber's number is a list-price equivalent, not spend, so the mode
+is published as `molly_claude_pricing_mode{mode}`; `HighClaudeSpend` is gated
+on it and the digest and its prompt stop recommending cost cuts. Dashboards
+are generated statically and cannot read config, so their cost panels are
+titled "list-price equivalent" in both modes, with a description naming the
+mode key.
+
+## 2026-11-03 A shell cwd is a project only inside a repository or root
+
+The shell hook reports every prompt's cwd, so the home folder and parent
+folders became projects. `ProjectResolver` now accepts a cwd only when the
+nearest ancestor has a `.git` (file or folder, so worktrees count) or it lies
+under `collectors.projects.roots`, where the first path component under the
+root names the project. Answers are cached for five minutes, bounded at 512
+paths, to keep the hook path to a dictionary lookup.

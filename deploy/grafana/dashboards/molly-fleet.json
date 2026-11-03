@@ -455,8 +455,8 @@
     },
     {
       "type": "timeseries",
-      "title": "Claude cost today (est.)",
-      "description": "",
+      "title": "Claude list-price equivalent today",
+      "description": "Token counts times list prices, not a bill. With collectors.claude_code.pricing.mode set to subscription this is a list-price equivalent (subscription), not spend.",
       "targets": [
         {
           "refId": "A",

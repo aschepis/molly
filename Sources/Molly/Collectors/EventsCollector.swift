@@ -86,7 +86,7 @@ final class EventsCollector: Collector {
     }
 
     /// A shell prompt carries the cwd only to name the project; the path
-    /// itself is dropped after normalization.
+    /// itself is dropped, and a cwd that is not a repository or root names nothing.
     private func recordShellPrompt(object: [String: JSONValue]) {
         let shell = sanitize(object["shell"]?.stringValue ?? "unknown")
         shellPrompts?.inc(labels: ["shell": shell])
@@ -94,7 +94,7 @@ final class EventsCollector: Collector {
             shellNonZeroExits?.inc(labels: ["shell": shell])
         }
         if let cwd = object[EventsCollector.cwdKey]?.stringValue, !cwd.isEmpty {
-            ProjectTracker.shared.report(project: ProjectName.normalize(path: cwd), source: .shell, at: now())
+            ProjectAttribution.reportShell(cwd: cwd, at: now())
         }
     }
 

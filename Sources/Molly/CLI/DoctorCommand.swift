@@ -34,7 +34,28 @@ enum DoctorCommand {
         checks.append(reachable("grafana", config.links.grafana + "/api/health"))
         checks.append(Check(name: "docker", ok: Shell.which("docker") != nil, detail: Shell.which("docker") ?? "docker CLI not found; the local stack needs Docker Desktop"))
         checks.append(contentsOf: Doctor.extraChecks(config: config))
+        if let collectors = collectorsCheck(config.server) { checks.append(collectors) }
         return checks
+    }
+
+    /// Reads a running daemon's /collectors; nil when none answers.
+    static func collectorsCheck(_ server: Config.Server) -> Check? {
+        guard let url = URL(string: "http://\(server.bind):\(server.port)/collectors") else { return nil }
+        let (status, body) = fetch(url)
+        guard status == 200 else { return nil }
+        return collectorsSummary(from: body)
+    }
+
+    /// Unavailable sources are informational; only real errors fail the check.
+    static func collectorsSummary(from data: Data) -> Check? {
+        guard let rows = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return nil }
+        let unavailable = rows.filter { $0["unavailable"] as? Bool == true }.compactMap { $0["name"] as? String }
+        let failing = rows.filter { ($0["errors"] as? Int ?? 0) > 0 && $0["unavailable"] as? Bool != true }
+            .compactMap { $0["name"] as? String }
+        var parts: [String] = []
+        if !failing.isEmpty { parts.append("erroring: " + failing.sorted().joined(separator: ", ")) }
+        if !unavailable.isEmpty { parts.append("unavailable (source absent, not an error): " + unavailable.sorted().joined(separator: ", ")) }
+        return Check(name: "collectors", ok: failing.isEmpty, detail: parts.isEmpty ? "all running" : parts.joined(separator: "; "))
     }
 
     /// Messages' chat.db is protected by TCC; reading it proves Full Disk Access.

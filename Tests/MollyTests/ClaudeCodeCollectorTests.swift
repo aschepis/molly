@@ -39,11 +39,36 @@ final class ClaudeLineTests: XCTestCase {
         XCTAssertEqual(ClaudePricing.price(for: "claude-sonnet-4-5", in: table)?.input, 1)
         XCTAssertEqual(ClaudePricing.price(for: "claude-haiku-4-5", in: table)?.input, 1)
         XCTAssertEqual(ClaudePricing.price(for: "claude-opus-4-1", in: table)?.output, 25)
-        XCTAssertNotNil(ClaudePricing.price(for: "claude-fable-5-1", in: table))
+        XCTAssertNil(ClaudePricing.price(for: "claude-fable-5-1", in: table), "no guessed price for models we do not know")
         XCTAssertNil(ClaudePricing.price(for: "gpt-5", in: table))
         let cost = ClaudePricing.cost(TokenUsage(input: 1_000_000, output: 1_000_000, cacheRead: 0, cacheCreation: 0),
                                       at: ModelPrice(input: 3, output: 15, cacheRead: 0, cacheWrite: 0))
         XCTAssertEqual(cost, 18, accuracy: 1e-9)
+    }
+
+    func testPricingModeDefaultsToListAndReadsSubscription() {
+        XCTAssertEqual(ClaudePricing.mode(from: CollectorSettings(name: "claude_code", raw: [:])), .list)
+        let subscription = CollectorSettings(name: "claude_code", raw: ["pricing": .object(["mode": .string("subscription")])])
+        XCTAssertEqual(ClaudePricing.mode(from: subscription), .subscription)
+        let nonsense = CollectorSettings(name: "claude_code", raw: ["pricing": .object(["mode": .string("free")])])
+        XCTAssertEqual(ClaudePricing.mode(from: nonsense), .list)
+    }
+
+    func testModeKeyIsNotTreatedAsAModelRow() {
+        let table = ClaudePricing.table(from: CollectorSettings(name: "claude_code", raw: [
+            "pricing": .object(["mode": .string("subscription")]),
+        ]))
+        XCTAssertNil(ClaudePricing.price(for: "subscription", in: table))
+        XCTAssertEqual(table.count, ClaudePricing.defaults.count)
+    }
+
+    func testUnknownModelWarningFiresOncePerModel() {
+        var warnings = UnknownModelWarnings()
+        XCTAssertTrue(warnings.shouldWarn("claude-fable-5-1"))
+        XCTAssertFalse(warnings.shouldWarn("claude-fable-5-1"))
+        XCTAssertTrue(warnings.shouldWarn("gpt-5"))
+        XCTAssertTrue(warnings.message(model: "claude-fable-5-1").contains("claude-fable-5-1"))
+        XCTAssertTrue(warnings.message(model: "claude-fable-5-1").contains("collectors.claude_code.pricing"))
     }
 
     func testProjectNameNormalization() {
@@ -212,6 +237,19 @@ final class ClaudeCodeCollectorTests: TempFolderTestCase {
         try append(userLine("hi", at: "2026-11-03T10:00:00.000Z"), to: f.session)
         try collector.collect()
         XCTAssertEqual(value(registry, "molly_claude_messages_total", ["role": "user", "project": "redacted"]), 1)
+    }
+
+    func testPricingModeGaugeAndUnknownModelCostsZero() throws {
+        let f = try makeFixture()
+        let (collector, registry) = try makeCollector(f, extra: ["pricing": .object(["mode": .string("subscription")])])
+        XCTAssertEqual(value(registry, "molly_claude_pricing_mode", ["mode": "subscription"]), 1)
+        XCTAssertEqual(value(registry, "molly_claude_pricing_mode", ["mode": "list"]), 0)
+        try collector.collect()
+        try append(assistantLines(id: "m1", at: "2026-11-03T10:00:30.000Z", blocks: [textBlock])
+            .replacingOccurrences(of: "claude-sonnet-4-5", with: "claude-fable-5-1"), to: f.session)
+        try collector.collect()
+        XCTAssertEqual(value(registry, "molly_claude_estimated_cost_usd_total", ["model": "claude-fable-5-1"]), 0)
+        XCTAssertEqual(value(registry, "molly_claude_tokens_total", ["model": "claude-fable-5-1", "kind": "output"]), 50)
     }
 
     func testMissingDirectoryIsUnavailable() throws {

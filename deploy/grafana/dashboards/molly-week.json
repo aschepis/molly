@@ -575,8 +575,8 @@
     },
     {
       "type": "stat",
-      "title": "Claude cost (est.)",
-      "description": "Last 7 days.",
+      "title": "Claude cost (list-price equiv.)",
+      "description": "Token counts times list prices, not a bill. With collectors.claude_code.pricing.mode set to subscription this is a list-price equivalent (subscription), not spend. Last 7 days.",
       "targets": [
         {
           "refId": "A",
@@ -632,7 +632,7 @@
     },
     {
       "type": "stat",
-      "title": "Claude cost (est.) (previous 7d)",
+      "title": "Claude cost (list-price equiv.) (previous 7d)",
       "description": "The 7 days before that, for comparison.",
       "targets": [
         {
@@ -1126,8 +1126,8 @@
     },
     {
       "type": "timeseries",
-      "title": "Claude cost per day (est.)",
-      "description": "",
+      "title": "Claude list-price equivalent per day",
+      "description": "Token counts times list prices, not a bill. With collectors.claude_code.pricing.mode set to subscription this is a list-price equivalent (subscription), not spend.",
       "targets": [
         {
           "refId": "A",

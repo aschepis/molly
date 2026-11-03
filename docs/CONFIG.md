@@ -430,15 +430,32 @@ Interval 60s, enabled by default. Claude Code usage from local transcripts.
 | `historyFile` | string | `~/.claude/history.jsonl` | prompt history, lines are counted only |
 | `activeWindowSeconds` | number | `300` | a session is active if modified within this window |
 | `sessionGapSeconds` | number | `1800` | longest gap counted as session time |
-| `pricing` | object | `{}` | price overrides, see below |
+| `pricing` | object | `{}` | `mode` plus model price rows, see below |
 | `projects` | policy | enabled, denylist, 30 | the `project` label. When disabled it is `redacted` |
 
 `pricing` maps a model-id substring to USD per million tokens:
 `{"claude-sonnet": {"input": 3, "output": 15, "cacheRead": 0.3, "cacheWrite": 3.75}}`.
 Overrides are tried before the built-in table, in alphabetical order of the
 pattern, and the first substring match wins. A missing field counts as 0.
-Cost is an estimate from list prices, not a bill; unknown models cost 0.
-Built-in prices are in [group C](collectors/group-c.md#claude_code).
+Cost is an estimate from list prices, not a bill. Built-in prices are in
+[group C](collectors/group-c.md#claude_code).
+
+`pricing.mode` is `"list"` (default) or `"subscription"`. The series
+`molly_claude_estimated_cost_usd_total` keeps its name in both. With
+`"subscription"` the dashboards and the insights digest call it a list-price
+equivalent, the digest never recommends reducing spend, and the
+`HighClaudeSpend` alert does not fire (it reads `molly_claude_pricing_mode`).
+
+A model with no matching row, such as a new tier, costs 0 and logs one warning
+naming the model. To price it, add a row under `pricing` (the numbers are USD
+per million tokens; use the model's current list price):
+
+```json
+"pricing": {
+  "mode": "subscription",
+  "claude-newmodel": {"input": 10, "output": 50, "cacheRead": 1, "cacheWrite": 12.5}
+}
+```
 
 Permissions: read access to `~/.claude`. Privacy: only message type, model,
 timestamps, token usage, working directory and tool names are parsed. Prompt
@@ -494,9 +511,18 @@ Interval 60s, enabled by default. The union of activity that `git` and `claude_c
 |---|---|---|---|
 | `activeWindowSeconds` | number | `1800` | a project is active if it had activity within this window |
 | `retentionSeconds` | number | `86400` | projects idle longer than this are dropped |
+| `roots` | string list | `[]` | folders such as `~/src` or `~/work`, expanded with `~`. A shell working directory under a root is the project named by its first path component under the root |
 | `projects` | policy | enabled, denylist, 30 | the `project` label. Set it here too: each collector reads its own section |
 
-Permissions: none. Privacy: derived data only; nothing is read from disk.
+A shell working directory is a project only when it is a git repository root
+(a directory containing `.git`, file or folder), lies inside one (the nearest
+`.git` upwards names it), or is under one of `roots`. Your home folder or a folder
+of repositories is not a project. `roots` wins over a repository inside it. Lookups
+are cached for five minutes, so a fresh `git init` shows up within that time.
+`git` and `claude_code` projects are unaffected.
+
+Permissions: none. Privacy: derived data only; the shell cwd is checked for a
+`.git` entry and never exported.
 
 ### power
 

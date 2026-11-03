@@ -1,7 +1,7 @@
 import Foundation
 
 /// USD per million tokens. These are list-price estimates for a dashboard,
-/// not a bill; override them with the `pricing` config key.
+/// not a bill; add or override rows with the `pricing` config key.
 struct ModelPrice: Equatable {
     var input: Double
     var output: Double
@@ -23,8 +23,17 @@ enum ClaudePricing {
         ("claude-opus", ModelPrice(input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25)),
         ("claude-sonnet", ModelPrice(input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75)),
         ("claude-haiku", ModelPrice(input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25)),
-        ("claude-fable", ModelPrice(input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75)),
     ]
+
+    /// `list` presents the series as an estimate of API cost; `subscription`
+    /// marks it a list-price equivalent so alerts and summaries do not call it spend.
+    enum Mode: String, CaseIterable {
+        case list, subscription
+    }
+
+    static func mode(from settings: CollectorSettings) -> Mode {
+        Mode(rawValue: settings.section("pricing").string("mode", default: Mode.list.rawValue)) ?? .list
+    }
 
     static func table(from settings: CollectorSettings) -> [(pattern: String, price: ModelPrice)] {
         let overrides = settings.section("pricing").raw.compactMap { pattern, value -> (String, ModelPrice)? in
@@ -45,6 +54,19 @@ enum ClaudePricing {
     static func cost(_ usage: TokenUsage, at price: ModelPrice) -> Double {
         (Double(usage.input) * price.input + Double(usage.output) * price.output
             + Double(usage.cacheRead) * price.cacheRead + Double(usage.cacheCreation) * price.cacheWrite) / 1_000_000
+    }
+}
+
+/// A model without a price row costs 0; say so once instead of silently.
+struct UnknownModelWarnings {
+    private var seen: Set<String> = []
+
+    mutating func shouldWarn(_ model: String) -> Bool {
+        seen.insert(model).inserted
+    }
+
+    func message(model: String) -> String {
+        "claude_code: no price for model \"\(model)\", its cost counts as 0. Add a row under collectors.claude_code.pricing (see docs/CONFIG.md)."
     }
 }
 
@@ -150,6 +172,8 @@ final class ClaudeCodeCollector: Collector {
     private let sessionGap: TimeInterval
     private let projectLimiter: LabelLimiter
     private let pricing: [(pattern: String, price: ModelPrice)]
+    private let pricingMode: ClaudePricing.Mode
+    private var unknownModels = UnknownModelWarnings()
     private let store: StateStore
     private let offsets: OffsetTable
     private let tracker: ProjectTracker
@@ -176,6 +200,7 @@ final class ClaudeCodeCollector: Collector {
         sessionGap = settings.double("sessionGapSeconds", default: 1800)
         projectLimiter = LabelLimiter(filter: try settings.filter("projects", defaults: ClaudeCodeCollector.projectsDefaults))
         pricing = ClaudePricing.table(from: settings)
+        pricingMode = ClaudePricing.mode(from: settings)
         store = StateStore(collector: "claude_code", folder: stateFolder)
         offsets = OffsetTable(store: store)
         self.tracker = tracker
@@ -189,7 +214,11 @@ final class ClaudeCodeCollector: Collector {
         messages = registry.counter("molly_claude_messages_total", help: "Messages by role; tool results are not counted as user messages.", labels: ["role", "project"])
         toolCalls = registry.counter("molly_claude_tool_calls_total", help: "Tool invocations.", labels: ["tool", "project"])
         tokens = registry.counter("molly_claude_tokens_total", help: "Tokens by model and kind.", labels: ["model", "kind"])
-        cost = registry.counter("molly_claude_estimated_cost_usd_total", help: "Estimated spend from list prices (not a bill).", labels: ["model"])
+        cost = registry.counter("molly_claude_estimated_cost_usd_total", help: "Token counts at list prices: never a bill, and a list-price equivalent under a subscription.", labels: ["model"])
+        let modeGauge = registry.gauge("molly_claude_pricing_mode", help: "1 for the configured pricing mode (list or subscription).", labels: ["mode"])
+        for mode in ClaudePricing.Mode.allCases {
+            modeGauge.set(mode == pricingMode ? 1 : 0, labels: ["mode": mode.rawValue])
+        }
         subagentMessages = registry.counter("molly_claude_subagent_messages_total", help: "Messages from subagent (sidechain) conversations; a subset of messages_total.")
         prompts = registry.counter("molly_claude_prompts_total", help: "Prompts typed, from history.jsonl.")
         duration = registry.counter("molly_claude_session_duration_seconds_total", help: "Active wall time of sessions; gaps over sessionGapSeconds are idle.", labels: ["project"])
@@ -310,6 +339,7 @@ final class ClaudeCodeCollector: Collector {
         tokens?.add(Double(usage.cacheRead), labels: ["model": model, "kind": "cache_read"])
         tokens?.add(Double(usage.cacheCreation), labels: ["model": model, "kind": "cache_creation"])
         let price = ClaudePricing.price(for: model, in: pricing)
+        if price == nil, unknownModels.shouldWarn(model) { Log.warn(unknownModels.message(model: model)) }
         cost?.add(price.map { ClaudePricing.cost(usage, at: $0) } ?? 0, labels: ["model": model])
     }
 }
