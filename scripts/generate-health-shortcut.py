@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Builds and signs the "Molly Health" iPhone Shortcut.
 
-usage: scripts/generate-health-shortcut.py <host> [output.shortcut]
+usage: scripts/generate-health-shortcut.py <host> [output.shortcut] [--skip a,b] [--only a,b] [--no-watch]
+
+Find Health Samples halts the whole shortcut with "No Samples Found" when a
+type has never been recorded, so leave out types your devices do not produce:
+--no-watch drops everything that needs an Apple Watch; --skip/--only take
+molly type names from docs/HEALTH.md.
 
 <host> is how the phone reaches the Mac, for example
 adams-macbook-pro.tail853834.ts.net. The token and port come from Molly's
@@ -44,6 +49,9 @@ QUANTITIES = [
     ("wrist_temperature_delta_c", "Wrist Temperature", AVG),
     ("mindful_minutes", "Mindful Minutes", SUM),
 ]
+WATCH_ONLY = {"exercise_minutes", "stand_hours", "resting_heart_rate_bpm", "heart_rate_bpm", "hrv_ms",
+              "vo2max", "blood_oxygen_ratio", "wrist_temperature_delta_c", "respiratory_rate",
+              "sleep_minutes", "sleep_in_bed_minutes", "bedtime", "wake_time"}
 VERIFIED_LABELS = {"Steps", "Active Calories", "Exercise Minutes",
                    "Walking + Running Distance", "Flights Climbed", "Sleep"}
 
@@ -134,9 +142,14 @@ def dict_item(key, value_ref):
     return {"WFItemType": 0, "WFKey": text(key), "WFValue": text_ref(*value_ref)}
 
 
-def build(host, port, token):
+def build(host, port, token, wanted):
     actions = []
     totals = []  # (molly type, (uuid, output name))
+
+    def append(molly_type, acts, output):
+        if molly_type in wanted:
+            actions.extend(acts)
+            totals.append((molly_type, output))
 
     date = action("is.workflow.actions.date")
     day = action("is.workflow.actions.format.date", WFDate=text_ref(*output_of(date, "Date")),
@@ -146,15 +159,13 @@ def build(host, port, token):
     for molly_type, label, operation in QUANTITIES:
         found = find_samples(label)
         stat = statistics(found, operation)
-        actions += [found, *guarded(found, [stat])]
-        totals.append((molly_type, output_of(stat, "Statistics Result")))
+        append(molly_type, [found, *guarded(found, [stat])], output_of(stat, "Statistics Result"))
 
     # Stand hours are category samples: one per hour, "Stood" or "Idle".
     stood = find_samples("Stand Hours", extra_rows=[enum_row("Value", IS, "Stood")])
     count = action("is.workflow.actions.count", WFCountType="Items",
                    WFInput=ref(*output_of(stood, "Health Samples")), Input=ref(*output_of(stood, "Health Samples")))
-    actions += [stood, count]
-    totals.append(("stand_hours", output_of(count, "Count")))
+    append("stand_hours", [stood, count], output_of(count, "Count"))
 
     # Sleep ends this morning, so filter on End Date. Durations sum to seconds.
     asleep_rows = [enum_row("Value", IS_NOT, "In Bed"), enum_row("Value", IS_NOT, "Awake")]
@@ -164,8 +175,7 @@ def build(host, port, token):
         seconds = action("is.workflow.actions.statistics", Input=ref(*output_of(durations, "Duration")), WFStatisticsOperation=SUM)
         minutes = action("is.workflow.actions.math", WFInput=ref(*output_of(seconds, "Statistics Result")),
                          WFMathOperation="÷", WFMathOperand="60")
-        actions += [found, *guarded(found, [durations, seconds, minutes])]
-        totals.append((molly_type, output_of(minutes, "Calculation Result")))
+        append(molly_type, [found, *guarded(found, [durations, seconds, minutes])], output_of(minutes, "Calculation Result"))
 
     for molly_type, sort, prop in (("bedtime", ("Start Date", "Oldest First"), "Start Date"),
                                    ("wake_time", ("End Date", "Latest First"), "End Date")):
@@ -173,8 +183,7 @@ def build(host, port, token):
         when = detail(found, prop)
         iso = action("is.workflow.actions.format.date", WFDate=text_ref(*output_of(when, prop)),
                      WFDateFormatStyle="ISO 8601", WFISO8601IncludeTime=True)
-        actions += [found, *guarded(found, [when, iso])]
-        totals.append((molly_type, output_of(iso, "Formatted Date")))
+        append(molly_type, [found, *guarded(found, [when, iso])], output_of(iso, "Formatted Date"))
 
     totals_dict = {"WFItemType": 1, "WFKey": text("totals"), "WFValue": {
         "Value": {"Value": {"WFDictionaryFieldValueItems": [dict_item(t, r) for t, r in totals]},
@@ -211,11 +220,42 @@ def build(host, port, token):
     }
 
 
-def main():
-    if len(sys.argv) < 2:
+ALL_TYPES = [t for t, _, _ in QUANTITIES] + ["stand_hours", "sleep_minutes", "sleep_in_bed_minutes", "bedtime", "wake_time"]
+
+
+def parse_args(argv):
+    positional, skip, only, no_watch = [], set(), None, False
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg == "--no-watch":
+            no_watch = True
+        elif arg in ("--skip", "--only"):
+            i += 1
+            names = set(argv[i].split(","))
+            unknown = names - set(ALL_TYPES)
+            if unknown:
+                sys.exit("unknown type(s): " + ", ".join(sorted(unknown)) + "\nknown: " + ", ".join(ALL_TYPES))
+            if arg == "--skip":
+                skip |= names
+            else:
+                only = names
+        else:
+            positional.append(arg)
+        i += 1
+    wanted = set(ALL_TYPES) if only is None else only
+    if no_watch:
+        wanted -= WATCH_ONLY
+    wanted -= skip
+    if not positional or not wanted:
         sys.exit(__doc__)
-    host = sys.argv[1]
-    output = sys.argv[2] if len(sys.argv) > 2 else os.path.expanduser("~/Desktop/Molly Health.shortcut")
+    return positional, wanted
+
+
+def main():
+    positional, wanted = parse_args(sys.argv[1:])
+    host = positional[0]
+    output = positional[1] if len(positional) > 1 else os.path.expanduser("~/Desktop/Molly Health.shortcut")
     with open(CONFIG, encoding="utf-8") as f:
         config = json.load(f)
     token = config.get("collectors", {}).get("health", {}).get("token", "")
@@ -223,15 +263,17 @@ def main():
     if not token:
         sys.exit("collectors.health.token is not set in " + CONFIG)
 
-    workflow = build(host, port, token)
+    workflow = build(host, port, token, wanted)
     with tempfile.TemporaryDirectory() as tmp:
         unsigned = os.path.join(tmp, "Molly Health.shortcut")
         with open(unsigned, "wb") as f:
             plistlib.dump(workflow, f, fmt=plistlib.FMT_BINARY)
         subprocess.run(["shortcuts", "sign", "--mode", "anyone", "--input", unsigned, "--output", output], check=True)
 
-    unverified = sorted({label for _, label, _ in QUANTITIES if label not in VERIFIED_LABELS} | {"Stand Hours"})
-    print(f"wrote {output} ({len(workflow['WFWorkflowActions'])} actions)")
+    unverified = sorted({label for t, label, _ in QUANTITIES if t in wanted and label not in VERIFIED_LABELS}
+                        | ({"Stand Hours"} if "stand_hours" in wanted else set()))
+    print(f"wrote {output} ({len(workflow['WFWorkflowActions'])} actions, {len(wanted)} types)")
+    print("types: " + ", ".join(t for t in ALL_TYPES if t in wanted))
     print("type labels to check once in the editor: " + ", ".join(unverified))
 
 
