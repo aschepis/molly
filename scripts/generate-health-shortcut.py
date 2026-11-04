@@ -117,6 +117,19 @@ def output_of(act, name):
     return act["WFWorkflowActionParameters"]["UUID"], name
 
 
+HAS_ANY_VALUE = 100
+
+
+def guarded(source, inner):
+    """Wrap `inner` in "If <source> has any value"; Statistics and Math fail on empty input."""
+    group = uid()
+    variable = {"Type": "Variable", "Variable": ref(*output_of(source, "Health Samples"))}
+    begin = action("is.workflow.actions.conditional", WFInput=variable, WFCondition=HAS_ANY_VALUE,
+                   WFControlFlowMode=0, GroupingIdentifier=group)
+    end = action("is.workflow.actions.conditional", WFControlFlowMode=2, GroupingIdentifier=group)
+    return [begin, *inner, end]
+
+
 def dict_item(key, value_ref):
     return {"WFItemType": 0, "WFKey": text(key), "WFValue": text_ref(*value_ref)}
 
@@ -133,7 +146,7 @@ def build(host, port, token):
     for molly_type, label, operation in QUANTITIES:
         found = find_samples(label)
         stat = statistics(found, operation)
-        actions += [found, stat]
+        actions += [found, *guarded(found, [stat])]
         totals.append((molly_type, output_of(stat, "Statistics Result")))
 
     # Stand hours are category samples: one per hour, "Stood" or "Idle".
@@ -151,7 +164,7 @@ def build(host, port, token):
         seconds = action("is.workflow.actions.statistics", Input=ref(*output_of(durations, "Duration")), WFStatisticsOperation=SUM)
         minutes = action("is.workflow.actions.math", WFInput=ref(*output_of(seconds, "Statistics Result")),
                          WFMathOperation="÷", WFMathOperand="60")
-        actions += [found, durations, seconds, minutes]
+        actions += [found, *guarded(found, [durations, seconds, minutes])]
         totals.append((molly_type, output_of(minutes, "Calculation Result")))
 
     for molly_type, sort, prop in (("bedtime", ("Start Date", "Oldest First"), "Start Date"),
@@ -160,7 +173,7 @@ def build(host, port, token):
         when = detail(found, prop)
         iso = action("is.workflow.actions.format.date", WFDate=text_ref(*output_of(when, prop)),
                      WFDateFormatStyle="ISO 8601", WFISO8601IncludeTime=True)
-        actions += [found, when, iso]
+        actions += [found, *guarded(found, [when, iso])]
         totals.append((molly_type, output_of(iso, "Formatted Date")))
 
     totals_dict = {"WFItemType": 1, "WFKey": text("totals"), "WFValue": {
