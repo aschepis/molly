@@ -1,4 +1,4 @@
-.PHONY: build release test run once doctor stack-up stack-down stack-logs app icon dist install uninstall install-agent uninstall-agent check-dashboards snap-settings snap-dashboards snapshots verify-signature notarize
+.PHONY: ios-project ios-build ios-test check-health-types buildrelease test run once doctor stack-up stack-down stack-logs app icon dist install uninstall install-agent uninstall-agent check-dashboards snap-settings snap-dashboards snapshots verify-signature notarize
 
 build:
 	swift build
@@ -8,6 +8,21 @@ release:
 
 test:
 	swift test
+	scripts/check-health-types.sh
+	cd ios/MollyHealthCore && swift test
+
+# The iOS companion app (see ios/README.md). xcodegen writes ios/MollyHealth.xcodeproj from ios/project.yml.
+ios-project:
+	cd ios && xcodegen generate
+
+ios-build:
+	xcodebuild -project ios/MollyHealth.xcodeproj -scheme MollyHealth -destination 'generic/platform=iOS Simulator' build CODE_SIGNING_ALLOWED=NO
+
+ios-test:
+	cd ios/MollyHealthCore && swift test
+
+check-health-types:
+	scripts/check-health-types.sh
 
 run:
 	swift run molly run

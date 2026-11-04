@@ -1,0 +1,365 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		24964E42797068AE7C0C8C70 /* MollyHealthCore in Frameworks */ = {isa = PBXBuildFile; productRef = 46BD69C539E8BE83542AA871 /* MollyHealthCore */; };
+		24BB8E07EDE46293A9BA4171 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C1DADBFAB7397EA0ABAF38E /* AppModel.swift */; };
+		54C6B1090E09D5ECD7A24ABB /* HealthReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92A94ED56F889B4A7E731A4 /* HealthReader.swift */; };
+		5F95D628CC99EA010D38B95F /* Background.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C9404757BD409560458C7A8 /* Background.swift */; };
+		8974B091D94D3ED21CF99978 /* Storage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E1B1669AFAC17DE1DA46920 /* Storage.swift */; };
+		8B5A45B895EFFCCD1788161F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A51C042B5F6A5388F939E5 /* SettingsView.swift */; };
+		A675EE98F0A134EB640BD3EB /* SyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74C609E9CDAB4155A502F012 /* SyncService.swift */; };
+		FFA57A503CC11FBA55F0392C /* MollyHealthApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 323B2FFDC332E40639661F99 /* MollyHealthApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		13A51C042B5F6A5388F939E5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		2C9404757BD409560458C7A8 /* Background.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Background.swift; sourceTree = "<group>"; };
+		323B2FFDC332E40639661F99 /* MollyHealthApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MollyHealthApp.swift; sourceTree = "<group>"; };
+		390744CDE14118C9333CC1DE /* MollyHealthCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MollyHealthCore; path = MollyHealthCore; sourceTree = SOURCE_ROOT; };
+		39FF84DEE84D3D96493003A8 /* MollyHealth.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MollyHealth.entitlements; sourceTree = "<group>"; };
+		626F1E0515095E82657FB455 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		6DD09211293852E0CE7D564C /* MollyHealth.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MollyHealth.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		74C609E9CDAB4155A502F012 /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
+		8C1DADBFAB7397EA0ABAF38E /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		8E1B1669AFAC17DE1DA46920 /* Storage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Storage.swift; sourceTree = "<group>"; };
+		E92A94ED56F889B4A7E731A4 /* HealthReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthReader.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		995CCDD349F6A26EA9238F7A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				24964E42797068AE7C0C8C70 /* MollyHealthCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		26AA9DB70ECE60B097B9341B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6DD09211293852E0CE7D564C /* MollyHealth.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AD6039C9871D9335C8CCF106 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				390744CDE14118C9333CC1DE /* MollyHealthCore */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		CF6C8A6E9CBECEA50D9A546B = {
+			isa = PBXGroup;
+			children = (
+				E77A02B4971129051D3B9CC0 /* MollyHealth */,
+				AD6039C9871D9335C8CCF106 /* Packages */,
+				26AA9DB70ECE60B097B9341B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E77A02B4971129051D3B9CC0 /* MollyHealth */ = {
+			isa = PBXGroup;
+			children = (
+				8C1DADBFAB7397EA0ABAF38E /* AppModel.swift */,
+				2C9404757BD409560458C7A8 /* Background.swift */,
+				E92A94ED56F889B4A7E731A4 /* HealthReader.swift */,
+				626F1E0515095E82657FB455 /* Info.plist */,
+				39FF84DEE84D3D96493003A8 /* MollyHealth.entitlements */,
+				323B2FFDC332E40639661F99 /* MollyHealthApp.swift */,
+				13A51C042B5F6A5388F939E5 /* SettingsView.swift */,
+				8E1B1669AFAC17DE1DA46920 /* Storage.swift */,
+				74C609E9CDAB4155A502F012 /* SyncService.swift */,
+			);
+			path = MollyHealth;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E8F479AC35D242B52080819B /* MollyHealth */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DB44B08ECBD619D4E1C0FE91 /* Build configuration list for PBXNativeTarget "MollyHealth" */;
+			buildPhases = (
+				4B82513AE70548EEE8C657FA /* Sources */,
+				995CCDD349F6A26EA9238F7A /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MollyHealth;
+			packageProductDependencies = (
+				46BD69C539E8BE83542AA871 /* MollyHealthCore */,
+			);
+			productName = MollyHealth;
+			productReference = 6DD09211293852E0CE7D564C /* MollyHealth.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0108F0823E06E14CD8D1DE9F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					E8F479AC35D242B52080819B = {
+						DevelopmentTeam = DQR8D2E7KK;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = CE3C7619BF8DAD3FCD70DA4A /* Build configuration list for PBXProject "MollyHealth" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = CF6C8A6E9CBECEA50D9A546B;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				257BA9450A55D25B87D5D455 /* XCLocalSwiftPackageReference "MollyHealthCore" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 26AA9DB70ECE60B097B9341B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E8F479AC35D242B52080819B /* MollyHealth */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4B82513AE70548EEE8C657FA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				24BB8E07EDE46293A9BA4171 /* AppModel.swift in Sources */,
+				5F95D628CC99EA010D38B95F /* Background.swift in Sources */,
+				54C6B1090E09D5ECD7A24ABB /* HealthReader.swift in Sources */,
+				FFA57A503CC11FBA55F0392C /* MollyHealthApp.swift in Sources */,
+				8B5A45B895EFFCCD1788161F /* SettingsView.swift in Sources */,
+				8974B091D94D3ED21CF99978 /* Storage.swift in Sources */,
+				A675EE98F0A134EB640BD3EB /* SyncService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1D718FC6507591C018A4A8D5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = DQR8D2E7KK;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		55497CC4760EE3BDC07517CB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MollyHealth/MollyHealth.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = MollyHealth/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aschepis.molly.health;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		C4648D8FEB22D803751F245B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MollyHealth/MollyHealth.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = MollyHealth/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aschepis.molly.health;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		F6DB0F59E9B54CA52742C7D8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = DQR8D2E7KK;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CE3C7619BF8DAD3FCD70DA4A /* Build configuration list for PBXProject "MollyHealth" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6DB0F59E9B54CA52742C7D8 /* Debug */,
+				1D718FC6507591C018A4A8D5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DB44B08ECBD619D4E1C0FE91 /* Build configuration list for PBXNativeTarget "MollyHealth" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				55497CC4760EE3BDC07517CB /* Debug */,
+				C4648D8FEB22D803751F245B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		257BA9450A55D25B87D5D455 /* XCLocalSwiftPackageReference "MollyHealthCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = MollyHealthCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		46BD69C539E8BE83542AA871 /* MollyHealthCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MollyHealthCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 0108F0823E06E14CD8D1DE9F /* Project object */;
+}

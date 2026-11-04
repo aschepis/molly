@@ -273,3 +273,20 @@ prose, and re-querying Prometheus later would give different numbers once the
 data is edited, retained away or re-labelled. Saving it keeps the JSON and
 YAML outputs faithful to what the narrative actually saw. Older reports have
 no digest and return null rather than a reconstruction.
+
+## A companion iOS app for Health, not a Shortcut or someone else's exporter
+
+HealthKit only exists on the phone, so something there has to read it. The
+Shortcut we generated could not be made reliable: "Find Health Samples" halts
+the whole run when one type has no samples, which turns a missing heart-rate
+reading into a day with no steps, and Apple does not document the Shortcut file
+format, so the generator breaks between iOS releases. A third-party exporter app
+would work today, but it is closed source: we could not audit what it does with
+the most personal data Molly touches, and its payload format would not be ours.
+`ios/` is a small SwiftUI app with no packages that reads each enabled type
+separately, omits the ones with no data, and posts to the existing `POST /health`.
+The cost is that Adam builds and signs it with Xcode, and a development build
+must be reinstalled yearly. The aggregation, payload and upload logic sits in a
+SwiftPM package (`ios/MollyHealthCore`) so it is tested on the Mac; only the
+HealthKit queries need a phone. The type list is duplicated on purpose and
+`scripts/check-health-types.sh` fails when it drifts from the Mac's `HealthType`.

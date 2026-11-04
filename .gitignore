@@ -2,6 +2,9 @@
 dist/
 data/
 *.xcodeproj
+!ios/MollyHealth.xcodeproj
+ios/MollyHealth.xcodeproj/xcuserdata/
+ios/MollyHealth.xcodeproj/project.xcworkspace/xcuserdata/
 .DS_Store
 .swiftpm/
 .claude/worktrees/
