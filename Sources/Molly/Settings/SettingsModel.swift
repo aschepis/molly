@@ -146,9 +146,28 @@ final class SettingsModel: ObservableObject {
 
     // MARK: Server, links, labels, logging
 
-    var serverBind: String {
-        get { get(["server", "bind"])?.stringValue ?? Config.Server().bind }
-        set { set(["server", "bind"], .string(newValue)) }
+    var serverBinds: [String] {
+        let value = get(["server", "bind"])
+        if let list = value?.arrayValue { return list.compactMap { $0.stringValue } }
+        if let single = value?.stringValue { return [single] }
+        return Config.Server().binds
+    }
+
+    /// An address to reach the daemon from this Mac, as Config.Server.bind picks it.
+    var serverBind: String { Config.Server(binds: serverBinds).bind }
+
+    /// One string when there is one address so a plain config stays plain; an empty
+    /// list is written as "" so Config.parse rejects it like any other bad bind.
+    var serverBindsText: String {
+        get { ServerRules.formatBindList(serverBinds) }
+        set {
+            let binds = ServerRules.parseBindList(newValue)
+            if binds.count > 1 {
+                set(["server", "bind"], .array(binds.map { .string($0) }))
+            } else {
+                set(["server", "bind"], .string(binds.first ?? ""))
+            }
+        }
     }
 
     var serverPort: Int {

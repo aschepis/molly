@@ -17,8 +17,30 @@ enum ConfigError: Error, CustomStringConvertible {
 /// collector never requires touching this file.
 struct Config {
     struct Server: Equatable {
-        var bind = "127.0.0.1"
-        var port = 9765
+        static let loopbackHosts: Set<String> = ["127.0.0.1", "::1", "localhost"]
+
+        var binds: [String]
+        var port: Int
+
+        init(binds: [String] = ["127.0.0.1"], port: Int = 9765) {
+            self.binds = binds
+            self.port = port
+        }
+
+        init(bind: String, port: Int = 9765) {
+            self.init(binds: [bind], port: port)
+        }
+
+        /// An address to reach the daemon from this Mac: the first loopback bind, else the first bind.
+        var bind: String {
+            binds.first(where: Server.isLoopback) ?? binds.first ?? "127.0.0.1"
+        }
+
+        var nonLoopbackBinds: [String] { binds.filter { !Server.isLoopback($0) } }
+
+        static func isLoopback(_ host: String) -> Bool {
+            loopbackHosts.contains(host.lowercased()) || host.hasPrefix("127.")
+        }
     }
 
     struct Labels: Equatable {
@@ -92,6 +114,25 @@ struct Config {
         return try parse(data)
     }
 
+    private static func parseBinds(_ value: JSONValue) throws -> [String] {
+        let message = "server.bind must be a non-empty string or a non-empty array of non-empty strings"
+        let entries: [JSONValue]
+        if value.stringValue != nil {
+            entries = [value]
+        } else if let array = value.arrayValue {
+            entries = array
+        } else {
+            throw ConfigError.invalid(message)
+        }
+        var binds: [String] = []
+        for entry in entries {
+            guard let s = entry.stringValue, !s.isEmpty else { throw ConfigError.invalid(message) }
+            if !binds.contains(s) { binds.append(s) }
+        }
+        guard !binds.isEmpty else { throw ConfigError.invalid(message) }
+        return binds
+    }
+
     static func parse(_ data: Data) throws -> Config {
         let json: JSONValue
         do {
@@ -105,8 +146,7 @@ struct Config {
         if let server = root["server"] {
             guard let o = server.objectValue else { throw ConfigError.invalid("server must be an object") }
             if let v = o["bind"] {
-                guard let s = v.stringValue, !s.isEmpty else { throw ConfigError.invalid("server.bind must be a string") }
-                config.server.bind = s
+                config.server.binds = try parseBinds(v)
             }
             if let v = o["port"] {
                 guard let n = v.intValue, (1...65535).contains(n) else { throw ConfigError.invalid("server.port must be 1-65535") }

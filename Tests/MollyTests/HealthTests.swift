@@ -168,9 +168,9 @@ final class HealthAggregationTests: XCTestCase {
 final class HealthCollectorTests: TempFolderTestCase {
     private var clock = iso("2026-11-03T12:00:00Z")
 
-    private func make(_ raw: [String: JSONValue] = ["token": .string("s3cret")], bind: String = "127.0.0.1",
+    private func make(_ raw: [String: JSONValue] = ["token": .string("s3cret")], binds: [String] = ["127.0.0.1"],
                       folder: URL? = nil) throws -> (HealthCollector, MetricsRegistry) {
-        let collector = HealthCollector(settings: settings("health", raw), bind: bind, now: { self.clock },
+        let collector = HealthCollector(settings: settings("health", raw), binds: binds, now: { self.clock },
                                         calendar: utc, stateFolder: folder ?? makeTempFolder())
         let registry = MetricsRegistry()
         try collector.start(registry: registry)
@@ -283,15 +283,30 @@ final class HealthCollectorTests: TempFolderTestCase {
     }
 
     func testNonLoopbackBindIsRefusedUnlessAllowed() throws {
-        let collector = HealthCollector(settings: settings("health", ["token": .string("s3cret")]), bind: "0.0.0.0",
+        let collector = HealthCollector(settings: settings("health", ["token": .string("s3cret")]), binds: ["0.0.0.0"],
                                         now: { self.clock }, calendar: utc, stateFolder: makeTempFolder())
         XCTAssertThrowsError(try collector.start(registry: MetricsRegistry())) { error in
             XCTAssertTrue(error is CollectorUnavailable)
         }
         XCTAssertEqual(post(collector, stepsPost), .forbidden)
 
-        let (allowed, _) = try make(["token": .string("s3cret"), "allowRemoteBind": .bool(true)], bind: "192.168.1.20")
+        let (allowed, _) = try make(["token": .string("s3cret"), "allowRemoteBind": .bool(true)], binds: ["192.168.1.20"])
         XCTAssertEqual(post(allowed, stepsPost), .accepted(accepted: 1, rejected: [:]))
+    }
+
+    func testAnyNonLoopbackBindIsRefusedAndListedUnlessAllowed() throws {
+        let binds = ["127.0.0.1", "100.101.102.103"]
+        let collector = HealthCollector(settings: settings("health", ["token": .string("s3cret")]), binds: binds,
+                                        now: { self.clock }, calendar: utc, stateFolder: makeTempFolder())
+        XCTAssertFalse(collector.bindIsAllowed)
+        XCTAssertThrowsError(try collector.start(registry: MetricsRegistry())) { error in
+            XCTAssertTrue("\(error)".contains("100.101.102.103"))
+            XCTAssertFalse("\(error)".contains("127.0.0.1"))
+        }
+        let (allowed, _) = try make(["token": .string("s3cret"), "allowRemoteBind": .bool(true)], binds: binds)
+        XCTAssertTrue(allowed.bindIsAllowed)
+        let (loopbackOnly, _) = try make(binds: ["127.0.0.1", "::1"])
+        XCTAssertTrue(loopbackOnly.bindIsAllowed)
     }
 
     func testLoopbackDetection() {
@@ -320,7 +335,7 @@ final class HealthCollectorTests: TempFolderTestCase {
         XCTAssertEqual(ok.status, 200)
         XCTAssertTrue(String(decoding: ok.body, as: UTF8.self).contains("\"accepted\" : 1"))
 
-        let remote = HealthCollector(settings: settings("health", ["token": .string("s3cret")]), bind: "0.0.0.0",
+        let remote = HealthCollector(settings: settings("health", ["token": .string("s3cret")]), binds: ["0.0.0.0"],
                                      now: { self.clock }, calendar: utc, stateFolder: makeTempFolder())
         let remoteRouter = Router()
         Routes.register(on: remoteRouter, manager: CollectorManager(registry: MetricsRegistry(), collectors: [remote]), config: Config())

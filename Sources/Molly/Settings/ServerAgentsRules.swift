@@ -17,13 +17,29 @@ enum ServerRules {
     }
 
     static func isLoopback(_ bind: String) -> Bool {
-        ["127.0.0.1", "localhost", "::1"].contains(bind)
+        Config.Server.isLoopback(bind)
     }
 
     /// Mirrors Tuner.tokenOnOpenBind for the still-unsaved values in the window.
+    static func openBindWarning(binds: [String], token: String) -> String? {
+        let remote = binds.filter { !isLoopback($0) }
+        guard !remote.isEmpty, token.isEmpty else { return nil }
+        return "\(remote.joined(separator: ", ")) is reachable from the network and POST /event has no token; set one under Hooks or bind to 127.0.0.1"
+    }
+
     static func openBindWarning(bind: String, token: String) -> String? {
-        guard !isLoopback(bind), token.isEmpty else { return nil }
-        return "\(bind) is reachable from the network and POST /event has no token; set one under Hooks or bind to 127.0.0.1"
+        openBindWarning(binds: [bind], token: token)
+    }
+
+    /// The Server tab edits the list as one comma-separated line.
+    static func parseBindList(_ text: String) -> [String] {
+        text.split(whereSeparator: { $0 == "," || $0.isNewline })
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
+    static func formatBindList(_ binds: [String]) -> String {
+        binds.joined(separator: ", ")
     }
 
     static func metricsURL(bind: String, port: Int) -> String {

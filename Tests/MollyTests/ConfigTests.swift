@@ -13,6 +13,32 @@ final class ConfigTests: XCTestCase {
         XCTAssertFalse(c.collector("anything").enabled(default: false))
     }
 
+    private func server(_ bindJSON: String) throws -> Config.Server {
+        try Config.parse(Data(#"{"server": {"bind": \#(bindJSON)}}"#.utf8)).server
+    }
+
+    func testBindAcceptsStringOrArray() throws {
+        XCTAssertEqual(try server(#""0.0.0.0""#).binds, ["0.0.0.0"])
+        XCTAssertEqual(try server(#"["127.0.0.1", "100.64.0.1"]"#).binds, ["127.0.0.1", "100.64.0.1"])
+    }
+
+    func testBindArrayIsDeduplicatedKeepingOrder() throws {
+        XCTAssertEqual(try server(#"["100.64.0.1", "127.0.0.1", "100.64.0.1"]"#).binds, ["100.64.0.1", "127.0.0.1"])
+    }
+
+    func testBindRejectsEmptyArrayEmptyStringAndNonStrings() {
+        for bad in ["[]", #""""#, #"[""]"#, "[1]", #"["127.0.0.1", null]"#, "5"] {
+            XCTAssertThrowsError(try server(bad), bad)
+        }
+    }
+
+    func testBindConveniencePrefersFirstLoopbackElseFirst() throws {
+        XCTAssertEqual(try server(#"["100.64.0.1", "127.0.0.1"]"#).bind, "127.0.0.1")
+        XCTAssertEqual(try server(#"["100.64.0.1", "10.0.0.5"]"#).bind, "100.64.0.1")
+        XCTAssertEqual(try server(#"["10.0.0.5", "localhost"]"#).bind, "localhost")
+        XCTAssertEqual(try server(#"["100.64.0.1", "127.0.0.1"]"#).nonLoopbackBinds, ["100.64.0.1"])
+    }
+
     func testMissingFileIsDefaults() throws {
         let c = try Config.load(from: URL(fileURLWithPath: "/nonexistent/molly.json"))
         XCTAssertEqual(c.server.port, 9765)

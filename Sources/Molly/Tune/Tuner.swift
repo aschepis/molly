@@ -237,13 +237,12 @@ enum Tuner {
 
     // Rule 9
     static func tokenOnOpenBind(_ input: TuneInput) -> [Recommendation] {
-        let bind = input.config.server.bind
-        let loopback = ["127.0.0.1", "localhost", "::1"].contains(bind)
+        let remote = input.config.server.nonLoopbackBinds
         let token = input.config.collector("events").string("token", default: "")
-        guard !loopback, token.isEmpty else { return [] }
+        guard !remote.isEmpty, token.isEmpty else { return [] }
         return [Recommendation(
             severity: .warn, collector: "events",
-            title: "POST /event is open on \(bind) without a token",
+            title: "POST /event is open on \(remote.joined(separator: ", ")) without a token",
             why: "Anything on the network can inflate your event counters. Set events.token and pass it to molly hook, or bind to 127.0.0.1.",
             configPatch: nil)]
     }

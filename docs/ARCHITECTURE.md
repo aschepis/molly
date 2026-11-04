@@ -87,9 +87,14 @@ which avoids locks and cannot corrupt the source.
 ## HTTP endpoints
 
 Served by a small `Network.framework` server on `server.bind:server.port`
-(default `127.0.0.1:9765`). If the listener cannot bind (for example a stale
-instance still holds the port) `molly run` logs the error and exits non-zero
-so the launch agent's `KeepAlive` restarts it rather than running blind.
+(default `127.0.0.1:9765`). `server.bind` may be a list; the server then runs one
+listener per address, all sharing one router. The first loopback address (else
+the first) is the primary: if it cannot bind (for example a stale instance
+still holds the port) `molly run` logs the error and exits non-zero so the
+launch agent's `KeepAlive` restarts it rather than running blind. Any other
+listener that fails to bind (a Tailscale address that does not exist until
+Tailscale starts) is logged once and retried every 30 s; its state is the
+`molly_server_listening{bind}` gauge and the `server.binds` list in `/stats`.
 
 | path | purpose |
 |---|---|

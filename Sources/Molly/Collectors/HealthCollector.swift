@@ -17,9 +17,6 @@ final class HealthCollector: Collector {
     static let stateLastPostKey = "lastPost"
     static let stateDevicesKey = "devices"
     static let bearerPrefix = "Bearer "
-    static let loopbackHosts: Set<String> = ["127.0.0.1", "::1", "localhost"]
-    static let remoteBindMessage = "health data stays on this machine unless you set "
-        + "collectors.health.allowRemoteBind to true; server.bind is not a loopback address"
     private static let nightTypes: [HealthType] = [.sleepMinutes, .bedtime, .wakeTime]
 
     let name = "health"
@@ -27,7 +24,7 @@ final class HealthCollector: Collector {
     private let token: String
     private let maxAge: TimeInterval
     private let allowRemoteBind: Bool
-    private let bind: String
+    private let binds: [String]
     private let calendar: Calendar
     private let now: () -> Date
     private let store: StateStore
@@ -48,27 +45,32 @@ final class HealthCollector: Collector {
     private var lastPostAt: Double?
     private var devices: [String] = []
 
-    init(settings: CollectorSettings, bind: String, now: @escaping () -> Date = Date.init,
+    init(settings: CollectorSettings, binds: [String], now: @escaping () -> Date = Date.init,
          calendar: Calendar = .current, stateFolder: URL = Paths.stateFolder) {
         interval = settings.interval(default: 60)
         token = settings.string("token", default: "")
         maxAge = settings.double("maxAgeSeconds", default: HealthLimits.defaultMaxAgeSeconds)
         allowRemoteBind = settings.bool("allowRemoteBind", default: false)
-        self.bind = bind
+        self.binds = binds
         self.now = now
         self.calendar = calendar
         store = StateStore(collector: "health", folder: stateFolder)
     }
 
-    static func isLoopback(_ host: String) -> Bool {
-        loopbackHosts.contains(host.lowercased()) || host.hasPrefix("127.")
+    static func isLoopback(_ host: String) -> Bool { Config.Server.isLoopback(host) }
+
+    static func remoteBindMessage(_ remote: [String]) -> String {
+        "health data stays on this machine unless you set collectors.health.allowRemoteBind to true; "
+            + "server.bind has non-loopback addresses: \(remote.joined(separator: ", "))"
     }
 
     /// The route and `start` share this: false means health data must not be served.
-    var bindIsAllowed: Bool { allowRemoteBind || HealthCollector.isLoopback(bind) }
+    var bindIsAllowed: Bool { allowRemoteBind || remoteBinds.isEmpty }
+
+    private var remoteBinds: [String] { binds.filter { !HealthCollector.isLoopback($0) } }
 
     func start(registry: MetricsRegistry) throws {
-        guard bindIsAllowed else { throw CollectorUnavailable(reason: HealthCollector.remoteBindMessage) }
+        guard bindIsAllowed else { throw CollectorUnavailable(reason: HealthCollector.remoteBindMessage(remoteBinds)) }
         today = registry.gauge("molly_health_today", help: "Apple Health value so far today, by type.", labels: ["type"])
         yesterday = registry.gauge("molly_health_yesterday", help: "Apple Health value for yesterday, by type.", labels: ["type"])
         lastSample = registry.gauge("molly_health_last_sample_timestamp_seconds", help: "Unix time of the newest accepted sample, by type.", labels: ["type"])

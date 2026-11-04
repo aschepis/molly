@@ -312,9 +312,21 @@ final class SettingsModelTests: XCTestCase {
         XCTAssertNil(model.get(["collectors", "events", "token"]))
     }
 
+    func testBindListWritesStringForOneEntryAndArrayForMore() throws {
+        let model = try makeModel()
+        model.serverBindsText = "127.0.0.1"
+        XCTAssertEqual(model.get(["server", "bind"]), .string("127.0.0.1"))
+        model.serverBindsText = "127.0.0.1, 100.64.0.1"
+        XCTAssertEqual(model.get(["server", "bind"]), .array([.string("127.0.0.1"), .string("100.64.0.1")]))
+        XCTAssertEqual(model.serverBinds, ["127.0.0.1", "100.64.0.1"])
+        XCTAssertEqual(model.serverBind, "127.0.0.1")
+        model.serverBindsText = "100.64.0.1"
+        XCTAssertEqual(model.get(["server", "bind"]), .string("100.64.0.1"))
+    }
+
     func testTypedAccessorsRoundTrip() throws {
         let model = try makeModel()
-        model.serverBind = "0.0.0.0"
+        model.serverBindsText = "0.0.0.0"
         model.grafanaURL = "http://g:1"
         model.prometheusURL = "http://p:2"
         model.logLevel = "debug"

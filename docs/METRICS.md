@@ -21,7 +21,7 @@ Config keys are in [CONFIG.md](CONFIG.md).
 
 ## Self metrics
 
-Published by the collector manager and the `process` collector (interval 30s).
+Published by the collector manager, the HTTP server and the `process` collector (interval 30s).
 
 | metric | type | labels | unit | meaning |
 |---|---|---|---|---|
@@ -36,6 +36,7 @@ Published by the collector manager and the `process` collector (interval 30s).
 | `molly_local_utc_offset_seconds` | gauge | | seconds | local timezone offset from UTC including DST; `molly:local_utc_offset_hours` derives from it |
 | `molly_self_series_total` | gauge | | count | series across all families (what `/metrics` renders) |
 | `molly_self_series` | gauge | `family` | count | series in each of the 20 largest families; reset every run |
+| `molly_server_listening` | gauge | `bind` | bool | 1 while the HTTP server is bound to that `server.bind` address, 0 while a non-primary address is still retrying (every 30 s) |
 | `molly_collector_runs_total` | counter | `collector` | runs | collector runs |
 | `molly_collector_errors_total` | counter | `collector` | runs | runs that failed. A source that is absent or lacks a permission (`CollectorUnavailable`) is not an error and is counted by `molly_collector_unavailable` instead |
 | `molly_collector_duration_seconds` | gauge | `collector` | seconds | wall time of the last run |

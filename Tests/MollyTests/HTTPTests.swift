@@ -78,4 +78,34 @@ final class HTTPTests: XCTestCase {
         defer { second.stop() }
         wait(for: [failed], timeout: 5)
     }
+
+    func testUnbindableSecondaryAddressRetriesWithoutStoppingLoopback() throws {
+        let registry = MetricsRegistry(constLabels: ["user": "t", "host": "h"])
+        let router = Router()
+        let manager = CollectorManager(registry: registry, collectors: [])
+        Routes.register(on: router, manager: manager, config: Config())
+        let port = Int.random(in: 20000...40000)
+        // 192.0.2.1 is TEST-NET-1: never assigned to this machine, so it cannot bind.
+        let server = try HTTPServer(binds: ["192.0.2.1", "127.0.0.1"], port: port, router: router,
+                                    registry: registry, retryInterval: 0.2)
+        server.onFailure = { error in XCTFail("primary reported failure: \(error)") }
+        server.start()
+        defer { server.stop() }
+
+        var status = 0
+        for _ in 0..<30 where status != 200 {
+            status = DoctorCommand.fetch(URL(string: "http://127.0.0.1:\(port)/healthz")!, timeout: 1).0
+            if status != 200 { usleep(100_000) }
+        }
+        XCTAssertEqual(status, 200)
+        usleep(600_000)
+
+        let body = String(decoding: DoctorCommand.fetch(URL(string: "http://127.0.0.1:\(port)/metrics")!, timeout: 1).1, as: UTF8.self)
+        XCTAssertTrue(body.contains(#"molly_server_listening{host="h",user="t",bind="127.0.0.1"} 1"#), body)
+        XCTAssertTrue(body.contains(#"molly_server_listening{host="h",user="t",bind="192.0.2.1"} 0"#), body)
+
+        let states = server.status
+        XCTAssertEqual(states.first { $0["bind"] as? String == "127.0.0.1" }?["primary"] as? Bool, true)
+        XCTAssertEqual(states.first { $0["bind"] as? String == "192.0.2.1" }?["listening"] as? Bool, false)
+    }
 }

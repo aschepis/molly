@@ -151,35 +151,146 @@ final class Router {
 }
 
 final class HTTPServer {
-    private let listener: NWListener
+    /// Secondary binds (a Tailscale address that appears after login) retry at this pace.
+    static let retryIntervalSeconds: TimeInterval = 30
+
+    private final class Endpoint {
+        let bind: String
+        let isPrimary: Bool
+        var listener: NWListener?
+        var listening = false
+        var failureLogged = false
+
+        init(bind: String, isPrimary: Bool) {
+            self.bind = bind
+            self.isPrimary = isPrimary
+        }
+    }
+
     private let router: Router
+    private let port: NWEndpoint.Port
+    private let retryInterval: TimeInterval
+    private let endpoints: [Endpoint]
+    private let listeningGauge: Gauge?
     private let queue = DispatchQueue(label: "molly.http")
+    private let stateLock = NSLock()
+    private var stopped = false
     var onFailure: ((Error) -> Void)?
     var onRequest: ((HTTPRequest) -> Void)?
 
-    init(bind: String, port: Int, router: Router) throws {
-        self.router = router
-        let parameters = NWParameters.tcp
-        parameters.allowLocalEndpointReuse = true
-        guard let nwPort = NWEndpoint.Port(rawValue: UInt16(port)) else {
+    convenience init(bind: String, port: Int, router: Router) throws {
+        try self.init(binds: [bind], port: port, router: router)
+    }
+
+    init(binds: [String], port: Int, router: Router, registry: MetricsRegistry? = nil,
+         retryInterval: TimeInterval = HTTPServer.retryIntervalSeconds) throws {
+        guard let nwPort = NWEndpoint.Port(rawValue: UInt16(clamping: port)), port > 0 else {
             throw ConfigError.invalid("bad port \(port)")
         }
-        parameters.requiredLocalEndpoint = .hostPort(host: NWEndpoint.Host(bind), port: nwPort)
-        listener = try NWListener(using: parameters)
+        guard !binds.isEmpty else { throw ConfigError.invalid("no bind addresses") }
+        self.router = router
+        self.port = nwPort
+        self.retryInterval = retryInterval
+        let primaryBind = binds.first(where: Config.Server.isLoopback) ?? binds[0]
+        endpoints = binds.map { Endpoint(bind: $0, isPrimary: $0 == primaryBind) }
+        listeningGauge = registry?.gauge("molly_server_listening",
+                                         help: "1 when the HTTP server is bound to this address, 0 while it is retrying",
+                                         labels: ["bind"])
+        for endpoint in endpoints { listeningGauge?.set(0, labels: ["bind": endpoint.bind]) }
+        if let primary = endpoints.first(where: { $0.isPrimary }) {
+            primary.listener = try makeListener(bind: primary.bind)
+        }
+    }
+
+    /// Per-bind state for /stats and /config.
+    var status: [[String: Any]] {
+        // Route handlers run on `queue`, so this must not hop onto it.
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return endpoints.map { ["bind": $0.bind, "primary": $0.isPrimary, "listening": $0.listening] }
     }
 
     func start() {
-        listener.stateUpdateHandler = { [weak self] state in
-            if case .failed(let error) = state { self?.onFailure?(error) }
+        queue.async { [self] in
+            for endpoint in endpoints { startListening(endpoint) }
         }
+    }
+
+    func stop() {
+        queue.sync {
+            stopped = true
+            for endpoint in endpoints { endpoint.listener?.cancel() }
+        }
+    }
+
+    private func makeListener(bind: String) throws -> NWListener {
+        let parameters = NWParameters.tcp
+        parameters.allowLocalEndpointReuse = true
+        parameters.requiredLocalEndpoint = .hostPort(host: NWEndpoint.Host(bind), port: port)
+        let listener = try NWListener(using: parameters)
         listener.newConnectionHandler = { [weak self] connection in
             self?.handle(connection)
+        }
+        return listener
+    }
+
+    private func startListening(_ endpoint: Endpoint) {
+        guard !stopped else { return }
+        let listener: NWListener
+        do {
+            if let existing = endpoint.listener {
+                listener = existing
+            } else {
+                listener = try makeListener(bind: endpoint.bind)
+                endpoint.listener = listener
+            }
+        } catch {
+            endpointDown(endpoint, error: error)
+            return
+        }
+        listener.stateUpdateHandler = { [weak self, weak listener] state in
+            guard let self, let listener, endpoint.listener === listener else { return }
+            switch state {
+            case .ready:
+                self.endpointUp(endpoint)
+            case .failed(let error):
+                if endpoint.isPrimary { self.onFailure?(error) } else { self.endpointDown(endpoint, error: error) }
+            case .waiting(let error) where !endpoint.isPrimary:
+                self.endpointDown(endpoint, error: error)
+            default:
+                break
+            }
         }
         listener.start(queue: queue)
     }
 
-    func stop() {
-        listener.cancel()
+    private func setListening(_ endpoint: Endpoint, _ value: Bool) {
+        stateLock.lock()
+        endpoint.listening = value
+        stateLock.unlock()
+    }
+
+    private func endpointUp(_ endpoint: Endpoint) {
+        setListening(endpoint, true)
+        listeningGauge?.set(1, labels: ["bind": endpoint.bind])
+        if endpoint.failureLogged {
+            Log.info("now listening on http://\(endpoint.bind):\(port)")
+        }
+        endpoint.failureLogged = false
+    }
+
+    private func endpointDown(_ endpoint: Endpoint, error: Error) {
+        setListening(endpoint, false)
+        listeningGauge?.set(0, labels: ["bind": endpoint.bind])
+        endpoint.listener?.cancel()
+        endpoint.listener = nil
+        if !endpoint.failureLogged {
+            Log.warn("cannot listen on \(endpoint.bind):\(port), retrying every \(Int(retryInterval))s: \(error)")
+            endpoint.failureLogged = true
+        }
+        queue.asyncAfter(deadline: .now() + retryInterval) { [weak self] in
+            self?.startListening(endpoint)
+        }
     }
 
     private func handle(_ connection: NWConnection) {

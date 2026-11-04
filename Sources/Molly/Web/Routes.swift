@@ -2,7 +2,7 @@ import Foundation
 
 /// The endpoints Molly serves: /metrics for Prometheus plus a few for humans.
 enum Routes {
-    static func register(on router: Router, manager: CollectorManager, config: Config) {
+    static func register(on router: Router, manager: CollectorManager, config: Config, server: HTTPServer? = nil) {
         router.get("/") { _ in
             .text("""
             Molly \(Version.current)
@@ -72,6 +72,7 @@ enum Routes {
                 "families": families,
                 "seriesTotal": families.reduce(0) { $0 + ($1["series"] as? Int ?? 0) },
                 "collectors": collectorsJSON(manager),
+                "server": ["port": config.server.port, "binds": server?.status ?? []],
             ])
         }
         router.get("/privacy") { _ in
@@ -86,7 +87,7 @@ enum Routes {
                 collectors[name] = redactSalts(section).toFoundation()
             }
             return .json([
-                "server": ["bind": config.server.bind, "port": config.server.port],
+                "server": ["bind": config.server.bind, "binds": config.server.binds, "port": config.server.port],
                 "labels": config.constLabels,
                 "logLevel": config.logLevel,
                 "links": ["grafana": config.links.grafana, "prometheus": config.links.prometheus],

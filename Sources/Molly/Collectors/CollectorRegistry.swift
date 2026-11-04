@@ -50,7 +50,7 @@ enum CollectorRegistry {
         try add("gaming") { try GamingCollector(settings: $0) }
         try add("titles", defaultEnabled: false) { try TitlesCollector(settings: $0, config: config) }
         try add("events") { try EventsCollector(settings: $0) }
-        try add("health", defaultEnabled: false) { HealthCollector(settings: $0, bind: config.server.bind) }
+        try add("health", defaultEnabled: false) { HealthCollector(settings: $0, binds: config.server.binds) }
         try add("energy") { try EnergyCollector(settings: $0) }
         try add("alerts") { try AlertsCollector(settings: $0, config: config) }
         try add("insights", defaultEnabled: false) { try InsightsCollector(settings: $0, config: config) }

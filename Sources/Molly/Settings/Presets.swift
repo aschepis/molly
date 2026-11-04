@@ -823,7 +823,10 @@ enum Presets {
     "prometheusURL": "http://localhost:9090"
   },
   "server": {
-    "bind": "127.0.0.1",
+    "bind": [
+      "127.0.0.1",
+      "100.101.102.103"
+    ],
     "port": 9765
   },
   "stack": {

@@ -1,13 +1,13 @@
 # Apple Health from your iPhone
 
 macOS has no HealthKit, so a Mac cannot read your Health data. Your iPhone can:
-a Shortcut collects the numbers and posts them to Molly over your home network.
+a Shortcut collects the numbers and posts them to Molly over Tailscale (or your home network).
 Molly turns them into `molly_health_*` metrics, a **Body** Grafana dashboard
 ([DASHBOARDS.md](DASHBOARDS.md#body-molly-body)) and, in coarse buckets, your
 insights digest.
 
 ```
-iPhone Shortcut ──POST /health (Bearer token)──▶ Molly (LAN) ──▶ /metrics ──▶ Prometheus
+iPhone Shortcut ──POST /health (Bearer token)──▶ Molly (Tailscale) ──▶ /metrics ──▶ Prometheus
 ```
 
 This is the most personal data Molly handles. Read "Health data" in
@@ -18,11 +18,13 @@ bind unless you say so explicitly.
 ## 1. Turn it on on the Mac
 
 Pick a long random token (`openssl rand -hex 24`) and edit `config.json`
-(`molly config-path`):
+(`molly config-path`). The recommended setup is Tailscale: Molly keeps serving
+loopback and also serves your Tailscale address, so only devices on your tailnet
+can reach the health route. Get the address with `tailscale ip -4`.
 
 ```json
 {
-  "server": { "bind": "192.168.1.20", "port": 9765 },
+  "server": { "bind": ["127.0.0.1", "100.101.102.103"], "port": 9765 },
   "collectors": {
     "health": {
       "enabled": true,
@@ -33,30 +35,34 @@ Pick a long random token (`openssl rand -hex 24`) and edit `config.json`
 }
 ```
 
-Molly serves on `127.0.0.1` by default, which your phone cannot reach. To let
-it in you have to change `server.bind`, and because that exposes health data
-to the network, the health collector then also requires `allowRemoteBind: true`.
-Without it the collector will not start (`/collectors` and the Settings window show
-it as unavailable) and `POST /health` answers `403`.
+Molly serves on `127.0.0.1` by default, which your phone cannot reach. Adding a
+non-loopback address exposes health data to that network, so the health
+collector then also requires `allowRemoteBind: true`. Without it the collector
+will not start (`/collectors` and the Settings window show it as unavailable,
+and the message lists the non-loopback binds) and `POST /health` answers `403`.
 
-Recommendations:
+Notes:
 
-- Bind to the Mac's **LAN IP** (`ipconfig getifaddr en0`), not `0.0.0.0`, so
-  Molly does not listen on every interface (VPN, hotspot, Docker).
-- Keep the macOS firewall on (System Settings > Network > Firewall).
-- Remember `/metrics` has no authentication. Anyone on that network can read
-  the health gauges. Use a network you trust.
-- A DHCP address changes. Reserve one in your router, or use the Mac's
-  `.local` name (below), and `bind` to the address you reserved.
-- The stack scrapes `host.docker.internal:9765` (`deploy/prometheus/prometheus.yml`),
-  which on Docker Desktop reaches the Mac's loopback. A LAN-only bind no longer
-  answers there, so change that target to the LAN address (for example
-  `192.168.1.20:9765`) and reload Prometheus.
+- Keeping `127.0.0.1` in the list means nothing else changes: the Docker
+  Prometheus target stays `host.docker.internal:9765`, and the CLI, the Settings
+  window and `molly mcp` keep talking to loopback.
+- If Tailscale starts after Molly (login item order, a reboot), the Tailscale
+  address does not exist yet. Molly logs that once, keeps serving loopback, and
+  retries every 30 seconds until it binds. `molly_server_listening{bind}` and
+  `/stats` show which addresses are up.
+- Remember `/metrics` has no authentication. Anyone who can reach the Tailscale
+  address can read the health gauges; use Tailscale ACLs if the tailnet is shared.
+
+Fallback without Tailscale: bind to the Mac's **LAN IP** (`ipconfig getifaddr en0`)
+instead of the Tailscale address, not `0.0.0.0`, so Molly does not listen on every
+interface (VPN, hotspot, Docker). Reserve the address in your router since DHCP
+addresses change, keep the macOS firewall on, and use the same `bind` list with
+loopback first. Phone and Mac must then be on the same network.
 
 Restart Molly. `curl` should now work from the Mac (replace the address):
 
 ```sh
-curl -i -X POST http://192.168.1.20:9765/health \
+curl -i -X POST http://100.101.102.103:9765/health \
   -H 'Authorization: Bearer PASTE-THE-TOKEN' \
   -H 'Content-Type: application/json' \
   -d '{"device":"iphone","date":"2026-11-03","totals":{"steps":8120,"stand_hours":9}}'
@@ -68,11 +74,16 @@ or empty token, `403` is the bind guard, `400` is a body Molly could not use,
 
 ## 2. The address your phone uses
 
-Use `http://<your-mac>.local:9765/health`. Find the name in System Settings >
-General > Sharing (Local hostname), or run `scutil --get LocalHostName`. The
-phone and Mac must be on the same Wi-Fi; away from home the Shortcut simply
-fails (set the automation to run on arrival or on Wi-Fi so it does not nag).
-`.local` resolves through Bonjour; if it does not on your network, use the IP.
+With Tailscale, use the MagicDNS name: `http://<machine>.<tailnet>.ts.net:9765/health`
+(plain `http://`, the tailnet already encrypts the traffic). Find the name in the
+Tailscale menu or with `tailscale status`. It works from anywhere your phone is
+connected to Tailscale, not just on home Wi-Fi.
+
+On the LAN fallback use `http://<your-mac>.local:9765/health` (System Settings >
+General > Sharing > Local hostname, or `scutil --get LocalHostName`); the phone
+must be on the same Wi-Fi, so set the automation to run on arrival to avoid
+failures away from home. `.local` resolves through Bonjour; if it does not on
+your network, use the IP.
 
 ## 3. The payload
 

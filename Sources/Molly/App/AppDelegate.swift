@@ -52,13 +52,16 @@ final class Runtime {
         var server: HTTPServer?
         if serve {
             let router = Router()
-            Routes.register(on: router, manager: manager, config: config)
             do {
-                let s = try HTTPServer(bind: config.server.bind, port: config.server.port, router: router)
+                let s = try HTTPServer(binds: config.server.binds, port: config.server.port,
+                                       router: router, registry: registry)
+                Routes.register(on: router, manager: manager, config: config, server: s)
                 s.onFailure = Runtime.listenerFailure
                 s.start()
                 server = s
-                Log.info("serving metrics on http://\(config.server.bind):\(config.server.port)/metrics")
+                for bind in config.server.binds {
+                    Log.info("serving metrics on http://\(bind):\(config.server.port)/metrics")
+                }
             } catch {
                 Runtime.listenerFailure(error)
             }

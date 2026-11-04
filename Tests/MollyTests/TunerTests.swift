@@ -122,6 +122,7 @@ final class TunerTests: XCTestCase {
         XCTAssertTrue(Tuner.tokenOnOpenBind(try input(configJSON: #"{"server": {"bind": "0.0.0.0"}, "collectors": {"events": {"token": "s"}}}"#)).isEmpty)
         XCTAssertTrue(Tuner.tokenOnOpenBind(try input(configJSON: #"{"server": {"bind": "127.0.0.1"}}"#)).isEmpty)
         XCTAssertEqual(Tuner.tokenOnOpenBind(try input(configJSON: #"{"server": {"bind": "0.0.0.0"}}"#)).count, 1)
+        XCTAssertEqual(Tuner.tokenOnOpenBind(try input(configJSON: #"{"server": {"bind": ["127.0.0.1", "100.64.0.1"]}}"#)).count, 1)
     }
 
     func testCollectorNameMapping() {

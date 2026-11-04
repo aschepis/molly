@@ -237,3 +237,21 @@ would silently split history. The cost is that p95 is exact only to a bucket
 edge. `project` now also sits on tokens and cost, behind the same `projects`
 policy and limiter; the existing queries aggregate with `sum` or `by (kind)` /
 `by (model)`, so none of them needed to change.
+
+## 2026-11-04 Several bind addresses, not 0.0.0.0
+
+The iPhone health Shortcut needs Molly reachable off the Mac, but Prometheus in
+Docker, the CLI, the Settings window and `molly mcp` all assume loopback.
+Binding `0.0.0.0` would serve every interface (Wi-Fi, hotspot, VPN, Docker)
+with an unauthenticated `/metrics`. Instead `server.bind` takes a list and Molly
+runs one listener per address: loopback for the local tooling plus only the
+Tailscale address for the phone. A single string still works and the `bind`
+convenience returns the first loopback entry, so existing callers are unchanged.
+Any non-loopback entry counts as remote for the health guard, the tuner and the
+Settings warning.
+
+The primary listener (first loopback, else first) still exits on failure so
+launchd restarts Molly, as before. The others retry every 30 s and never exit:
+Tailscale often starts after Molly, and its address does not exist until then.
+Exiting would turn a missing VPN into a restart loop that also takes down
+loopback and the scrape. Their state is `molly_server_listening{bind}`.

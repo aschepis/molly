@@ -27,8 +27,8 @@ struct ServerTab: View {
 
     private var endpointSection: some View {
         Section {
-            TextField("Bind address", text: model.binding(\.serverBind))
-            if let warning = ServerRules.openBindWarning(bind: model.serverBind, token: model.eventsToken) {
+            TextField("Bind addresses (comma-separated)", text: model.binding(\.serverBindsText))
+            if let warning = ServerRules.openBindWarning(binds: model.serverBinds, token: model.eventsToken) {
                 Label(warning, systemImage: "exclamationmark.triangle")
                     .font(.caption)
                     .foregroundColor(.orange)
@@ -45,7 +45,7 @@ struct ServerTab: View {
         } header: {
             Text("Metrics endpoint")
         } footer: {
-            Text("Prometheus in the local stack reaches 127.0.0.1 through host.docker.internal; bind to another address only for a remote scraper.")
+            Text("Prometheus in the local stack reaches 127.0.0.1 through host.docker.internal; add a Tailscale or LAN address after it only to serve the iPhone health Shortcut or a remote scraper.")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

@@ -19,6 +19,19 @@ final class SettingsServerAgentsTests: XCTestCase {
         XCTAssertNotNil(ServerRules.openBindWarning(bind: "0.0.0.0", token: ""))
     }
 
+    func testAnyRemoteBindWarnsWithoutToken() {
+        XCTAssertNil(ServerRules.openBindWarning(binds: ["127.0.0.1", "::1"], token: ""))
+        let warning = ServerRules.openBindWarning(binds: ["127.0.0.1", "100.64.0.1"], token: "")
+        XCTAssertTrue(warning?.contains("100.64.0.1") == true)
+        XCTAssertNil(ServerRules.openBindWarning(binds: ["127.0.0.1", "100.64.0.1"], token: "abc"))
+    }
+
+    func testBindListParsingAndFormatting() {
+        XCTAssertEqual(ServerRules.parseBindList(" 127.0.0.1 ,100.64.0.1\n"), ["127.0.0.1", "100.64.0.1"])
+        XCTAssertEqual(ServerRules.parseBindList(" , "), [])
+        XCTAssertEqual(ServerRules.formatBindList(["127.0.0.1", "100.64.0.1"]), "127.0.0.1, 100.64.0.1")
+    }
+
     func testURLsAndToken() {
         XCTAssertEqual(ServerRules.metricsURL(bind: "127.0.0.1", port: 9765), "http://127.0.0.1:9765/metrics")
         XCTAssertEqual(ServerRules.insightsURL(bind: "127.0.0.1", port: 9765), "http://127.0.0.1:9765/insights/latest")

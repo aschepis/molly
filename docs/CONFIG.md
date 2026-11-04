@@ -50,7 +50,7 @@ writes them after backing the file up next to it. See [TUNING.md](TUNING.md).
 
 | key | type | default | meaning |
 |---|---|---|---|
-| `server.bind` | string | `"127.0.0.1"` | address for `/metrics`, `/healthz`, `/collectors`, `/config`. Non-empty |
+| `server.bind` | string or array of strings | `"127.0.0.1"` | address(es) for `/metrics`, `/healthz`, `/collectors`, `/config`. Each is non-empty; duplicates are dropped; an empty array is an error. With several, Molly listens on each: the first loopback entry (else the first) is primary and a bind failure there exits so launchd restarts; any other entry that cannot bind yet (a Tailscale address before Tailscale is up) is retried every 30 s. The CLI, Settings window and MCP URL reach the daemon at the first loopback entry. Example: `["127.0.0.1", "100.101.102.103"]` for loopback plus a Tailscale IPv4. Any non-loopback entry counts as remote for `collectors.health.allowRemoteBind` |
 | `server.port` | int | `9765` | 1 to 65535. Update `deploy/prometheus/prometheus.yml` if you change it |
 | `labels.user` | string or null | `null` | value of the `user` label on every series. `null` means the macOS account name |
 | `labels.host` | string or null | `null` | value of the `host` label. `null` means the short hostname |
