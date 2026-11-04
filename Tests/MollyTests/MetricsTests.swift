@@ -80,3 +80,34 @@ final class MetricsTests: XCTestCase {
         XCTAssertTrue(registry.render().contains(expected), registry.render())
     }
 }
+
+final class HistogramTests: XCTestCase {
+    func testRendersCumulativeBucketsSumAndCountWithConstLabels() {
+        let r = MetricsRegistry(constLabels: ["host": "mbp"])
+        let h = r.histogram("molly_op_seconds", help: "Op time.", labels: ["op"], buckets: [1, 5])
+        h.observe(0.5, labels: ["op": "a"])
+        h.observe(1, labels: ["op": "a"])
+        h.observe(3, labels: ["op": "a"])
+        h.observe(9, labels: ["op": "a"])
+        XCTAssertEqual(r.render(), """
+        # HELP molly_op_seconds Op time.
+        # TYPE molly_op_seconds histogram
+        molly_op_seconds_bucket{host="mbp",op="a",le="1"} 2
+        molly_op_seconds_bucket{host="mbp",op="a",le="5"} 3
+        molly_op_seconds_bucket{host="mbp",op="a",le="+Inf"} 4
+        molly_op_seconds_sum{host="mbp",op="a"} 13.5
+        molly_op_seconds_count{host="mbp",op="a"} 4
+
+        """)
+    }
+
+    func testUnlabeledHistogramAndEmptyIsHidden() {
+        let r = MetricsRegistry()
+        let h = r.histogram("molly_x_seconds", help: "x", buckets: [2])
+        XCTAssertEqual(r.render(), "")
+        h.observe(2)
+        XCTAssertTrue(r.render().contains("molly_x_seconds_bucket{le=\"2\"} 1\n"))
+        XCTAssertTrue(r.render().contains("molly_x_seconds_count 1\n"))
+        XCTAssertEqual(r.stats().first?.type, .histogram)
+    }
+}

@@ -443,6 +443,7 @@ Interval 60s, enabled by default. Claude Code usage from local transcripts.
 | `historyFile` | string | `~/.claude/history.jsonl` | prompt history, lines are counted only |
 | `activeWindowSeconds` | number | `300` | a session is active if modified within this window |
 | `sessionGapSeconds` | number | `1800` | longest gap counted as session time |
+| `toolTimeoutSeconds` | number | `3600` | a tool call with no result after this long is dropped and counted in `molly_claude_tool_calls_unmatched_total` |
 | `pricing` | object | `{}` | `mode` plus model price rows, see below |
 | `projects` | policy | enabled, denylist, 30 | the `project` label. When disabled it is `redacted` |
 

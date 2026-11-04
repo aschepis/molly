@@ -354,7 +354,7 @@ labeled series. When `repos` is disabled, per-repo gauges collapse into one
 
 ## claude_code (interval 60s)
 
-Policy `projects` governs `project` on three metrics. When it is disabled,
+Policy `projects` governs `project` on every metric below that has it. When it is disabled,
 `project` is `redacted`. Details: [group C](collectors/group-c.md#claude_code).
 
 | metric | type | labels | unit | meaning |
@@ -363,9 +363,15 @@ Policy `projects` governs `project` on three metrics. When it is disabled,
 | `molly_claude_sessions_total` | counter | | sessions | session files created since Molly started |
 | `molly_claude_sessions_today` | gauge | | sessions | created since local midnight |
 | `molly_claude_messages_total` | counter | `role` (user, assistant), `project` **policy** `projects` | messages | counted once per message id |
-| `molly_claude_tool_calls_total` | counter | `tool`, `project` **policy** `projects` | calls | tool_use blocks, by tool name |
-| `molly_claude_tokens_total` | counter | `model`, `kind` (input, output, cache_read, cache_creation) | tokens | token usage |
-| `molly_claude_estimated_cost_usd_total` | counter | `model` | USD | tokens at list prices, never a bill; under `pricing.mode` `subscription` it is a list-price equivalent, not spend. Unknown models cost 0 and log one warning |
+| `molly_claude_tool_calls_total` | counter | `tool`, `server`, `project` **policy** `projects` | calls | tool_use blocks, by tool name. `server` is the middle of `mcp__<server>__<tool>`, else `builtin`; `tool` keeps the full name |
+| `molly_claude_tool_duration_seconds` | histogram | `tool`, `server`, `project` **policy** `projects` | seconds | tool_result timestamp minus tool_use timestamp. Exposes `molly_claude_tool_duration_seconds_bucket` (le 0.5, 1, 2, 5, 10, 30, 60, 120, 300, 600, +Inf), `molly_claude_tool_duration_seconds_sum` and `molly_claude_tool_duration_seconds_count` |
+| `molly_claude_tool_calls_unmatched_total` | counter | `tool` | calls | tool_use with no result within `toolTimeoutSeconds`; never timed |
+| `molly_claude_tool_errors_total` | counter | `tool`, `server`, `project` **policy** `projects`, `kind` (error, interrupted) | results | `is_error` results and results whose `toolUseResult.interrupted` is true. A result without a known tool_use (it predates the cursor) uses `unknown` for tool and server |
+| `molly_claude_turn_latency_seconds` | histogram | `project` **policy** `projects`, `model` | seconds | typed prompt to the next assistant line in the same session file, sidechains skipped. Exposes `molly_claude_turn_latency_seconds_bucket` (le 1, 2, 5, 10, 20, 30, 60, 120, 300, 600, +Inf), `_sum` and `_count`. A prompt in flight at restart is not paired |
+| `molly_claude_permission_decisions_total` | counter | `tool`, `decision` (allow, deny, ask, other) | results | `permissionDecision` on tool_result lines, lowercased |
+| `molly_claude_sandboxed_tool_calls_total` | counter | `tool` | results | tool_result lines with `sandboxed` true |
+| `molly_claude_tokens_total` | counter | `model`, `kind` (input, output, cache_read, cache_creation), `project` **policy** `projects` | tokens | token usage |
+| `molly_claude_estimated_cost_usd_total` | counter | `model`, `project` **policy** `projects` | USD | tokens at list prices, never a bill; under `pricing.mode` `subscription` it is a list-price equivalent, not spend. Unknown models cost 0 and log one warning |
 | `molly_claude_pricing_mode` | gauge | `mode` | bool | 1 for the configured `collectors.claude_code.pricing.mode` (`list` or `subscription`), 0 for the other. The `HighClaudeSpend` alert stays silent while `subscription` is 1 |
 | `molly_claude_subagent_messages_total` | counter | | messages | the sidechain subset of messages |
 | `molly_claude_prompts_total` | counter | | prompts | lines in history.jsonl; text is never read |

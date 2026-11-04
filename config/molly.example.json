@@ -263,6 +263,7 @@
       "historyFile": "~/.claude/history.jsonl",
       "activeWindowSeconds": 300,
       "sessionGapSeconds": 1800,
+      "toolTimeoutSeconds": 3600,
       "pricing": {
         "mode": "list"
       },

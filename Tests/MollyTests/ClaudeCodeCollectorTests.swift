@@ -124,11 +124,12 @@ final class ClaudeCodeCollectorTests: TempFolderTestCase {
         return Fixture(projects: projects, history: history, session: session, state: base.appendingPathComponent("state"))
     }
 
-    private func makeCollector(_ f: Fixture, extra: [String: JSONValue] = [:], tracker: ProjectTracker = ProjectTracker()) throws -> (ClaudeCodeCollector, MetricsRegistry) {
+    private func makeCollector(_ f: Fixture, extra: [String: JSONValue] = [:], tracker: ProjectTracker = ProjectTracker(),
+                               now: @escaping () -> Date = { Date() }) throws -> (ClaudeCodeCollector, MetricsRegistry) {
         var raw: [String: JSONValue] = ["projectsDir": .string(f.projects.path), "historyFile": .string(f.history.path)]
         raw.merge(extra) { $1 }
         let collector = try ClaudeCodeCollector(settings: settings("claude_code", raw), stateFolder: f.state,
-                                                tracker: tracker, startedAt: Date().addingTimeInterval(-1))
+                                                tracker: tracker, startedAt: Date().addingTimeInterval(-1), now: now)
         let registry = MetricsRegistry()
         try collector.start(registry: registry)
         return (collector, registry)
@@ -257,5 +258,149 @@ final class ClaudeCodeCollectorTests: TempFolderTestCase {
         try FileManager.default.removeItem(at: f.projects)
         let (collector, _) = try makeCollector(f)
         XCTAssertThrowsError(try collector.collect()) { XCTAssertTrue($0 is CollectorUnavailable) }
+    }
+}
+
+// MARK: - Durations, errors, turn latency
+
+extension ClaudeCodeCollectorTests {
+    private var clock: () -> Date {
+        { ClaudeLine.parseTimestamp("2026-11-03T10:00:30.000Z")! }
+    }
+
+    private func toolUse(_ id: String, _ name: String, at stamp: String, sidechain: Bool = false) -> String {
+        #"{"type":"assistant","isSidechain":\#(sidechain),"cwd":"\#(cwd)","timestamp":"\#(stamp)","message":{"id":"msg_\#(id)","role":"assistant","model":"claude-sonnet-4-5","content":[{"type":"tool_use","id":"\#(id)","name":"\#(name)","input":{}}]}}"# + "\n"
+    }
+
+    private func toolResult(_ id: String, at stamp: String, isError: Bool = false, interrupted: Bool = false,
+                            decision: String? = nil, sandboxed: Bool = false) -> String {
+        let decisionField = decision.map { #""permissionDecision":"\#($0)","# } ?? ""
+        return #"{"type":"user","isSidechain":false,"cwd":"\#(cwd)","timestamp":"\#(stamp)",\#(decisionField)"sandboxed":\#(sandboxed),"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"\#(id)","is_error":\#(isError)}]},"toolUseResult":{"interrupted":\#(interrupted)}}"# + "\n"
+    }
+
+    private func startedCollector(_ f: Fixture, extra: [String: JSONValue] = [:]) throws -> (ClaudeCodeCollector, MetricsRegistry) {
+        try backdate(f.session)
+        let made = try makeCollector(f, extra: extra, now: clock)
+        try made.0.collect()
+        return made
+    }
+
+    func testMatchedPairObservesDurationInCumulativeBuckets() throws {
+        let f = try makeFixture()
+        let (collector, registry) = try startedCollector(f)
+        try append(toolUse("toolu_1", "Bash", at: "2026-11-03T10:00:00.000Z"), to: f.session)
+        try append(toolResult("toolu_1", at: "2026-11-03T10:00:02.500Z"), to: f.session)
+        try collector.collect()
+
+        let labels = ["tool": "Bash", "server": "builtin", "project": "acme/widgets"]
+        let name = "molly_claude_tool_duration_seconds"
+        XCTAssertEqual(value(registry, name + "_count", labels), 1)
+        XCTAssertEqual(value(registry, name + "_sum", labels), 2.5)
+        XCTAssertEqual(value(registry, name + "_bucket", labels.merging(["le": "2"]) { $1 }), 0)
+        XCTAssertEqual(value(registry, name + "_bucket", labels.merging(["le": "5"]) { $1 }), 1)
+        XCTAssertEqual(value(registry, name + "_bucket", labels.merging(["le": "+Inf"]) { $1 }), 1)
+        XCTAssertEqual(value(registry, "molly_claude_tool_calls_total", labels), 1)
+    }
+
+    func testUnmatchedToolUseExpiresOnce() throws {
+        let f = try makeFixture()
+        let (collector, registry) = try startedCollector(f, extra: ["toolTimeoutSeconds": .number(20)])
+        try append(toolUse("toolu_old", "Read", at: "2026-11-03T10:00:00.000Z"), to: f.session)
+        try collector.collect()
+        XCTAssertEqual(value(registry, "molly_claude_tool_calls_unmatched_total", ["tool": "Read"]), 1)
+        try collector.collect()
+        XCTAssertEqual(value(registry, "molly_claude_tool_calls_unmatched_total", ["tool": "Read"]), 1)
+
+        try append(toolResult("toolu_old", at: "2026-11-03T10:00:29.000Z"), to: f.session)
+        try collector.collect()
+        XCTAssertNil(value(registry, "molly_claude_tool_duration_seconds_count", ["tool": "Read"]), "expired calls are not timed")
+    }
+
+    func testErrorAndInterruptedResultsAreCountedByKind() throws {
+        let f = try makeFixture()
+        let (collector, registry) = try startedCollector(f)
+        try append(toolUse("toolu_e", "Bash", at: "2026-11-03T10:00:00.000Z"), to: f.session)
+        try append(toolResult("toolu_e", at: "2026-11-03T10:00:01.000Z", isError: true), to: f.session)
+        try append(toolUse("toolu_i", "Bash", at: "2026-11-03T10:00:02.000Z"), to: f.session)
+        try append(toolResult("toolu_i", at: "2026-11-03T10:00:03.000Z", interrupted: true), to: f.session)
+        try append(toolUse("toolu_ok", "Bash", at: "2026-11-03T10:00:04.000Z"), to: f.session)
+        try append(toolResult("toolu_ok", at: "2026-11-03T10:00:05.000Z"), to: f.session)
+        try collector.collect()
+
+        XCTAssertEqual(value(registry, "molly_claude_tool_errors_total", ["tool": "Bash", "kind": "error"]), 1)
+        XCTAssertEqual(value(registry, "molly_claude_tool_errors_total", ["tool": "Bash", "kind": "interrupted"]), 1)
+        XCTAssertEqual(value(registry, "molly_claude_tool_duration_seconds_count", ["tool": "Bash"]), 3)
+    }
+
+    func testMCPToolKeepsFullNameAndSplitsServer() throws {
+        XCTAssertEqual(ToolUse.server(for: "mcp__github__create_issue"), "github")
+        XCTAssertEqual(ToolUse.server(for: "mcp__claude_ai_Slack__send__x"), "claude_ai_Slack")
+        XCTAssertEqual(ToolUse.server(for: "Bash"), "builtin")
+        XCTAssertEqual(ToolUse.server(for: "mcp__broken"), "builtin")
+
+        let f = try makeFixture()
+        let (collector, registry) = try startedCollector(f)
+        try append(toolUse("toolu_m", "mcp__github__create_issue", at: "2026-11-03T10:00:00.000Z"), to: f.session)
+        try append(toolResult("toolu_m", at: "2026-11-03T10:00:12.000Z", isError: true), to: f.session)
+        try collector.collect()
+        let labels = ["tool": "mcp__github__create_issue", "server": "github"]
+        XCTAssertEqual(value(registry, "molly_claude_tool_calls_total", labels), 1)
+        XCTAssertEqual(value(registry, "molly_claude_tool_duration_seconds_bucket", labels.merging(["le": "10"]) { $1 }), 0)
+        XCTAssertEqual(value(registry, "molly_claude_tool_duration_seconds_bucket", labels.merging(["le": "30"]) { $1 }), 1)
+        XCTAssertEqual(value(registry, "molly_claude_tool_errors_total", labels.merging(["kind": "error"]) { $1 }), 1)
+    }
+
+    func testTurnLatencyPairsPromptWithNextAssistantLineOnly() throws {
+        let f = try makeFixture()
+        let (collector, registry) = try startedCollector(f)
+        try append(userLine("hello", at: "2026-11-03T10:00:00.000Z"), to: f.session)
+        try append(assistantLines(id: "side", at: "2026-11-03T10:00:01.000Z", blocks: [textBlock], sidechain: true), to: f.session)
+        try append(assistantLines(id: "m1", at: "2026-11-03T10:00:07.000Z", blocks: [textBlock]), to: f.session)
+        try append(assistantLines(id: "m2", at: "2026-11-03T10:00:20.000Z", blocks: [textBlock]), to: f.session)
+        try collector.collect()
+
+        let labels = ["project": "acme/widgets", "model": "claude-sonnet-4-5"]
+        XCTAssertEqual(value(registry, "molly_claude_turn_latency_seconds_count", labels), 1, "sidechain skipped, second reply unpaired")
+        XCTAssertEqual(value(registry, "molly_claude_turn_latency_seconds_sum", labels), 7)
+        XCTAssertEqual(value(registry, "molly_claude_turn_latency_seconds_bucket", labels.merging(["le": "5"]) { $1 }), 0)
+        XCTAssertEqual(value(registry, "molly_claude_turn_latency_seconds_bucket", labels.merging(["le": "10"]) { $1 }), 1)
+    }
+
+    func testPendingCallsAndCursorSurviveRestart() throws {
+        let f = try makeFixture()
+        var (collector, registry) = try startedCollector(f)
+        try append(toolUse("toolu_r", "Bash", at: "2026-11-03T10:00:00.000Z"), to: f.session)
+        try collector.collect()
+        XCTAssertNil(value(registry, "molly_claude_tool_duration_seconds_count"))
+
+        try append(toolResult("toolu_r", at: "2026-11-03T10:00:04.000Z"), to: f.session)
+        (collector, registry) = try makeCollector(f, now: clock)
+        try collector.collect()
+        XCTAssertEqual(value(registry, "molly_claude_tool_duration_seconds_sum", ["tool": "Bash"]), 4)
+        XCTAssertNil(value(registry, "molly_claude_tool_calls_total", ["tool": "Bash"]), "the tool_use line is behind the cursor")
+    }
+
+    func testPermissionDecisionsAndSandboxedCalls() throws {
+        let f = try makeFixture()
+        let (collector, registry) = try startedCollector(f)
+        for (i, decision) in ["allow", "DENY", "weird"].enumerated() {
+            let id = "toolu_p\(i)"
+            try append(toolUse(id, "Bash", at: "2026-11-03T10:00:0\(i).000Z"), to: f.session)
+            try append(toolResult(id, at: "2026-11-03T10:00:0\(i).500Z", decision: decision, sandboxed: i == 0), to: f.session)
+        }
+        try collector.collect()
+        for decision in ["allow", "deny", "other"] {
+            XCTAssertEqual(value(registry, "molly_claude_permission_decisions_total", ["tool": "Bash", "decision": decision]), 1, decision)
+        }
+        XCTAssertEqual(value(registry, "molly_claude_sandboxed_tool_calls_total", ["tool": "Bash"]), 1)
+    }
+
+    func testTokensAndCostCarryProject() throws {
+        let f = try makeFixture()
+        let (collector, registry) = try startedCollector(f)
+        try append(assistantLines(id: "m1", at: "2026-11-03T10:00:00.000Z", blocks: [textBlock]), to: f.session)
+        try collector.collect()
+        XCTAssertEqual(value(registry, "molly_claude_tokens_total", ["project": "acme/widgets", "kind": "output"]), 50)
+        XCTAssertNotNil(value(registry, "molly_claude_estimated_cost_usd_total", ["project": "acme/widgets"]))
     }
 }

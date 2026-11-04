@@ -92,9 +92,15 @@ long-running session file is modified after start but holds old data).
 | `molly_claude_sessions_total` | counter | |
 | `molly_claude_sessions_today` | gauge | |
 | `molly_claude_messages_total` | counter | `role` (`user`/`assistant`), `project` |
-| `molly_claude_tool_calls_total` | counter | `tool`, `project` |
-| `molly_claude_tokens_total` | counter | `model`, `kind` (`input`/`output`/`cache_read`/`cache_creation`) |
-| `molly_claude_estimated_cost_usd_total` | counter | `model` |
+| `molly_claude_tool_calls_total` | counter | `tool`, `server`, `project` |
+| `molly_claude_tool_duration_seconds` | histogram | `tool`, `server`, `project` |
+| `molly_claude_tool_calls_unmatched_total` | counter | `tool` |
+| `molly_claude_tool_errors_total` | counter | `tool`, `server`, `project`, `kind` (`error`/`interrupted`) |
+| `molly_claude_turn_latency_seconds` | histogram | `project`, `model` |
+| `molly_claude_permission_decisions_total` | counter | `tool`, `decision` (`allow`/`deny`/`ask`/`other`) |
+| `molly_claude_sandboxed_tool_calls_total` | counter | `tool` |
+| `molly_claude_tokens_total` | counter | `model`, `kind` (`input`/`output`/`cache_read`/`cache_creation`), `project` |
+| `molly_claude_estimated_cost_usd_total` | counter | `model`, `project` |
 | `molly_claude_subagent_messages_total` | counter | |
 | `molly_claude_prompts_total` | counter | |
 | `molly_claude_session_duration_seconds_total` | counter | `project` |
@@ -107,6 +113,13 @@ Notes:
   repeat `usage`. Messages and tokens are counted once per `message.id`; tool
   calls are counted per `tool_use` block. User lines that only carry tool results
   or are meta are not counted as messages.
+- Tool durations pair a `tool_use` block with the `tool_result` that has the same
+  `tool_use_id`, using the two lines' timestamps. Pending ids are kept in the
+  state file so a restart does not lose in-flight calls; ids older than
+  `toolTimeoutSeconds` are dropped and counted in `tool_calls_unmatched_total`.
+  Message text is still never read: only ids, names, flags and timestamps.
+- Turn latency pairs a typed prompt with the next assistant line of the same
+  session file (sidechains skipped). It is held in memory only.
 - `subagent_messages_total` is the sidechain subset of `messages_total`.
 - Session duration adds the gap between consecutive timestamped lines of a file
   when the gap is at most `sessionGapSeconds` (idle time is excluded).

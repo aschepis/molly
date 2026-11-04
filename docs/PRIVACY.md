@@ -33,7 +33,7 @@ processes) and are easy to turn off.
 |---|---|---|---|
 | `browser.domains` | off, denylist, max 50 | hostname of each visited URL (path and query are never read) | `molly_browser_domain_visits_total`, `molly_browser_domain_visits_today` |
 | `calendar.calendars` | off, denylist, max 50 | calendar name (never event titles) | `molly_calendar_events_today` |
-| `claude_code.projects` | on, denylist, max 30 | project name from the session's working directory (`owner/repo` under github.com, else the folder name) | `molly_claude_messages_total`, `molly_claude_tool_calls_total`, `molly_claude_session_duration_seconds_total` |
+| `claude_code.projects` | on, denylist, max 30 | project name from the session's working directory (`owner/repo` under github.com, else the folder name) | `molly_claude_messages_total`, `molly_claude_tool_calls_total`, `molly_claude_tool_duration_seconds`, `molly_claude_tool_errors_total`, `molly_claude_turn_latency_seconds`, `molly_claude_tokens_total`, `molly_claude_estimated_cost_usd_total`, `molly_claude_session_duration_seconds_total` |
 | `docker.containers` | on, denylist | container names and image names | `molly_docker_container_info`, `molly_docker_container_cpu_ratio`, `molly_docker_container_memory_bytes` |
 | `events.projects` | on, denylist, max 30 | project name from the hook payload's `cwd` | `molly_claude_hook_events_total` |
 | `focus.apps` | on, denylist | frontmost and running app names and bundle ids | `molly_focus_app`, `molly_focus_seconds_total`, `molly_running_app`, `molly_app_launches_total`, `molly_app_terminations_total` |

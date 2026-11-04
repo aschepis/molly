@@ -417,7 +417,8 @@ enum Presets {
         "salt": ""
       },
       "projectsDir": "~/.claude/projects",
-      "sessionGapSeconds": 1800
+      "sessionGapSeconds": 1800,
+      "toolTimeoutSeconds": 3600
     },
     "clipboard": {
       "enabled": true,

@@ -1397,11 +1397,465 @@
     {
       "id": 23,
       "type": "row",
-      "title": "Agent ROI",
+      "title": "Claude Code time",
       "collapsed": false,
       "gridPos": {
         "x": 0,
         "y": 59,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Time in tools by project (per hour)",
+      "description": "Wall time between each tool call and its result, from transcript timestamps. Parallel calls overlap, so this can exceed an hour.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "sum by (project) (increase(molly_claude_tool_duration_seconds_sum{user=~\"$user\",host=~\"$host\"}[1h]))",
+          "legendFormat": "{{project}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "fillOpacity": 60,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "gradientMode": "none"
+          },
+          "mappings": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 24,
+      "gridPos": {
+        "x": 0,
+        "y": 60,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Time by MCP server (per hour)",
+      "description": "Built-in tools are excluded.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "sum by (server) (increase(molly_claude_tool_duration_seconds_sum{user=~\"$user\",host=~\"$host\",server!=\"builtin\"}[1h]))",
+          "legendFormat": "{{server}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "fillOpacity": 60,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "gradientMode": "none"
+          },
+          "mappings": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 25,
+      "gridPos": {
+        "x": 12,
+        "y": 60,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "type": "table",
+      "title": "Slowest tools (selected range)",
+      "description": "p95 is estimated from fixed histogram buckets, so it is exact only to the bucket edge.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le, tool) (increase(molly_claude_tool_duration_seconds_bucket{user=~\"$user\",host=~\"$host\"}[$__range])))",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "sum by (tool) (increase(molly_claude_tool_duration_seconds_count{user=~\"$user\",host=~\"$host\"}[$__range]))",
+          "legendFormat": "__auto",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#2a78d6"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Calls"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "p95",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "user": true,
+              "host": true,
+              "job": true,
+              "instance": true,
+              "__name__": true
+            },
+            "renameByName": {
+              "tool": "Tool",
+              "Value #A": "p95",
+              "Value #B": "Calls"
+            }
+          }
+        }
+      ],
+      "id": 26,
+      "gridPos": {
+        "x": 0,
+        "y": 68,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Tool error rate by tool (selected range)",
+      "description": "Errors and interruptions divided by completed calls.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "topk(10, sum by (tool) (increase(molly_claude_tool_errors_total{user=~\"$user\",host=~\"$host\"}[$__range])) / sum by (tool) (increase(molly_claude_tool_duration_seconds_count{user=~\"$user\",host=~\"$host\"}[$__range])))",
+          "legendFormat": "{{tool}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#2a78d6"
+          },
+          "min": 0,
+          "mappings": [],
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "valueMode": "color",
+        "showUnfilled": true,
+        "namePlacement": "left",
+        "sizing": "auto",
+        "minVizHeight": 16
+      },
+      "id": 27,
+      "gridPos": {
+        "x": 12,
+        "y": 68,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Turn latency by project",
+      "description": "Typed prompt to the first assistant line in the same session file.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "histogram_quantile(0.5, sum by (le, project) (rate(molly_claude_turn_latency_seconds_bucket{user=~\"$user\",host=~\"$host\"}[$__rate_interval])))",
+          "legendFormat": "p50 {{project}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le, project) (rate(molly_claude_turn_latency_seconds_bucket{user=~\"$user\",host=~\"$host\"}[$__rate_interval])))",
+          "legendFormat": "p95 {{project}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "gradientMode": "none"
+          },
+          "mappings": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 28,
+      "gridPos": {
+        "x": 0,
+        "y": 77,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Tokens by project (per hour)",
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "molly-prometheus"
+          },
+          "expr": "sum by (project) (increase(molly_claude_tokens_total{user=~\"$user\",host=~\"$host\"}[1h]))",
+          "legendFormat": "{{project}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "fillOpacity": 60,
+            "showPoints": "never",
+            "spanNulls": false,
+            "lineInterpolation": "linear",
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "gradientMode": "none"
+          },
+          "mappings": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 29,
+      "gridPos": {
+        "x": 12,
+        "y": 77,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "molly-prometheus"
+      }
+    },
+    {
+      "id": 30,
+      "type": "row",
+      "title": "Agent ROI",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 85,
         "w": 24,
         "h": 1
       },
@@ -1448,10 +1902,10 @@
         "justifyMode": "auto",
         "orientation": "auto"
       },
-      "id": 24,
+      "id": 31,
       "gridPos": {
         "x": 0,
-        "y": 60,
+        "y": 86,
         "w": 6,
         "h": 5
       },
@@ -1501,10 +1955,10 @@
         "justifyMode": "auto",
         "orientation": "auto"
       },
-      "id": 25,
+      "id": 32,
       "gridPos": {
         "x": 6,
-        "y": 60,
+        "y": 86,
         "w": 6,
         "h": 5
       },
@@ -1566,10 +2020,10 @@
           "sort": "desc"
         }
       },
-      "id": 26,
+      "id": 33,
       "gridPos": {
         "x": 12,
-        "y": 60,
+        "y": 86,
         "w": 12,
         "h": 5
       },
@@ -1579,13 +2033,13 @@
       }
     },
     {
-      "id": 27,
+      "id": 34,
       "type": "row",
       "title": "Other agents and tools",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 65,
+        "y": 91,
         "w": 24,
         "h": 1
       },
@@ -1663,10 +2117,10 @@
           "sort": "desc"
         }
       },
-      "id": 28,
+      "id": 35,
       "gridPos": {
         "x": 0,
-        "y": 66,
+        "y": 92,
         "w": 8,
         "h": 8
       },
@@ -1727,10 +2181,10 @@
           "sort": "desc"
         }
       },
-      "id": 29,
+      "id": 36,
       "gridPos": {
         "x": 8,
-        "y": 66,
+        "y": 92,
         "w": 8,
         "h": 8
       },
@@ -1792,10 +2246,10 @@
           "sort": "desc"
         }
       },
-      "id": 30,
+      "id": 37,
       "gridPos": {
         "x": 16,
-        "y": 66,
+        "y": 92,
         "w": 8,
         "h": 8
       },
@@ -1857,10 +2311,10 @@
           "sort": "desc"
         }
       },
-      "id": 31,
+      "id": 38,
       "gridPos": {
         "x": 0,
-        "y": 74,
+        "y": 100,
         "w": 12,
         "h": 8
       },
@@ -1915,10 +2369,10 @@
         "sizing": "auto",
         "minVizHeight": 16
       },
-      "id": 32,
+      "id": 39,
       "gridPos": {
         "x": 12,
-        "y": 74,
+        "y": 100,
         "w": 12,
         "h": 8
       },

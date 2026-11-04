@@ -216,3 +216,24 @@ launching. What this does not cover: a crash inside Apple's code on a changed
 ABI. That is the reason for the opt-in. The collector publishes
 `molly_sensor_source_available{source}` so a dashboard can tell "no data"
 from "source refused". No other collector may use private interfaces.
+
+## 2026-11-04 Claude tool time comes from transcript timestamp pairs, with fixed buckets
+
+"Where did the time go" needs a duration per tool call. The transcripts carry
+no duration field, but every `tool_use` and its `tool_result` have a timestamp
+and a shared id, so the collector subtracts them. The error is the transcript
+write latency, small next to the seconds-to-minutes calls we care about. The
+alternative, hooks, would only cover sessions that installed them. Pending ids
+live in `StateStore` so a restart does not drop in-flight calls, and entries
+older than `toolTimeoutSeconds` are counted as unmatched instead of timed, so a
+killed session cannot inflate a duration. Parallel calls overlap, so summed tool
+time can exceed wall time; the dashboard says so. Turn latency is held in memory
+only: a prompt in flight at a restart is not paired, which loses one sample.
+
+Histograms use fixed buckets (0.5 to 600 s for tools, 1 to 600 s for turns)
+rather than configurable ones. Series from different restarts and hosts only
+merge in `histogram_quantile` when their `le` edges match, and a config change
+would silently split history. The cost is that p95 is exact only to a bucket
+edge. `project` now also sits on tokens and cost, behind the same `projects`
+policy and limiter; the existing queries aggregate with `sum` or `by (kind)` /
+`by (model)`, so none of them needed to change.

@@ -70,6 +70,27 @@ struct UnknownModelWarnings {
     }
 }
 
+struct ToolUse: Equatable {
+    var id: String?
+    var name: String
+
+    /// `mcp__<server>__<tool>` belongs to <server>; everything else is built in.
+    var server: String { ToolUse.server(for: name) }
+
+    static let builtinServer = "builtin"
+
+    static func server(for tool: String) -> String {
+        let parts = tool.components(separatedBy: "__")
+        guard parts.count >= 3, parts[0] == "mcp", !parts[1].isEmpty else { return builtinServer }
+        return parts[1]
+    }
+}
+
+struct ToolResult: Equatable {
+    var toolUseId: String
+    var isError: Bool
+}
+
 /// One relevant JSONL line from a Claude Code session file.
 struct ClaudeLine: Equatable {
     enum Role: String { case user, assistant }
@@ -81,7 +102,13 @@ struct ClaudeLine: Equatable {
     var messageId: String?
     var model: String?
     var usage: TokenUsage?
-    var toolNames: [String]
+    var toolUses: [ToolUse]
+    var toolResults: [ToolResult]
+    /// From the top-level toolUseResult object of a tool-result line.
+    var interrupted: Bool
+    var permissionDecision: String?
+    var sandboxed: Bool
+    var toolNames: [String] { toolUses.map(\.name) }
     /// False for user lines that only carry tool results or meta content.
     var countsAsMessage: Bool
 
@@ -103,13 +130,15 @@ struct ClaudeLine: Equatable {
                                 isSidechain: json["isSidechain"]?.boolValue ?? false,
                                 timestamp: json["timestamp"]?.stringValue.flatMap(parseTimestamp),
                                 cwd: json["cwd"]?.stringValue,
-                                messageId: nil, model: nil, usage: nil, toolNames: [], countsAsMessage: false)
+                                messageId: nil, model: nil, usage: nil, toolUses: [], toolResults: [],
+                                interrupted: false, permissionDecision: nil, sandboxed: false, countsAsMessage: false)
         switch role {
         case .assistant:
             parsed.messageId = message?["id"]?.stringValue
             parsed.model = message?["model"]?.stringValue
-            parsed.toolNames = (content?.arrayValue ?? []).compactMap { block in
-                block["type"]?.stringValue == "tool_use" ? block["name"]?.stringValue : nil
+            parsed.toolUses = (content?.arrayValue ?? []).compactMap { block in
+                guard block["type"]?.stringValue == "tool_use", let name = block["name"]?.stringValue else { return nil }
+                return ToolUse(id: block["id"]?.stringValue, name: name)
             }
             if let u = message?["usage"] {
                 parsed.usage = TokenUsage(input: u["input_tokens"]?.intValue ?? 0,
@@ -120,6 +149,14 @@ struct ClaudeLine: Equatable {
             parsed.countsAsMessage = true
         case .user:
             let isMeta = json["isMeta"]?.boolValue ?? false
+            parsed.toolResults = (content?.arrayValue ?? []).compactMap { block in
+                guard block["type"]?.stringValue == "tool_result", let id = block["tool_use_id"]?.stringValue else { return nil }
+                return ToolResult(toolUseId: id, isError: block["is_error"]?.boolValue ?? false)
+            }
+            // One interrupted flag cannot be attributed to several results on the same line.
+            parsed.interrupted = parsed.toolResults.count == 1 && (json["toolUseResult"]?["interrupted"]?.boolValue ?? false)
+            parsed.permissionDecision = json["permissionDecision"]?.stringValue
+            parsed.sandboxed = json["sandboxed"]?.boolValue ?? false
             if content?.stringValue != nil {
                 parsed.countsAsMessage = !isMeta
             } else if let blocks = content?.arrayValue {
@@ -152,11 +189,40 @@ struct RecentIDs {
     }
 }
 
+/// A tool_use waiting for its tool_result. Persisted so a restart does not lose in-flight calls.
+struct PendingTool: Equatable {
+    var startedAt: Date
+    var tool: String
+    var project: String
+
+    init(startedAt: Date, tool: String, project: String) {
+        self.startedAt = startedAt
+        self.tool = tool
+        self.project = project
+    }
+
+    init?(json: JSONValue) {
+        guard let seconds = json["t"]?.doubleValue, let tool = json["tool"]?.stringValue,
+              let project = json["project"]?.stringValue else { return nil }
+        self.init(startedAt: Date(timeIntervalSince1970: seconds), tool: tool, project: project)
+    }
+
+    var json: JSONValue {
+        .object(["t": .number(startedAt.timeIntervalSince1970), "tool": .string(tool), "project": .string(project)])
+    }
+}
+
 /// Tails Claude Code session transcripts. Reads only counts, model names,
 /// tool names, timestamps and the working directory; message text is never
 /// examined or stored.
 final class ClaudeCodeCollector: Collector {
     static let projectsDefaults = LabelPolicy(enabled: true, mode: .denylist, maxCardinality: 30)
+    static let defaultToolTimeoutSeconds = 3600.0
+    static let toolDurationBuckets: [Double] = [0.5, 1, 2, 5, 10, 30, 60, 120, 300, 600]
+    static let turnLatencyBuckets: [Double] = [1, 2, 5, 10, 20, 30, 60, 120, 300, 600]
+    static let permissionDecisions: Set<String> = ["allow", "deny", "ask"]
+    static let pendingKey = "pending_tools"
+    static let unknownLabel = "unknown"
     let name = "claude_code"
     let interval: TimeInterval
 
@@ -164,6 +230,8 @@ final class ClaudeCodeCollector: Collector {
         var cwd: String?
         var lastTimestamp: Date?
         var messageIds = RecentIDs()
+        /// Set by a typed prompt, cleared by the next assistant line in this file.
+        var promptAt: Date?
     }
 
     private let projectsDir: String
@@ -178,6 +246,9 @@ final class ClaudeCodeCollector: Collector {
     private let offsets: OffsetTable
     private let tracker: ProjectTracker
     private let startedAt: Date
+    private let toolTimeout: TimeInterval
+    private let now: () -> Date
+    private var pending: [String: PendingTool] = [:]
     private var files: [String: FileState] = [:]
 
     private var sessionsActive: Gauge?
@@ -190,9 +261,16 @@ final class ClaudeCodeCollector: Collector {
     private var subagentMessages: Counter?
     private var prompts: Counter?
     private var duration: Counter?
+    private var toolDuration: Histogram?
+    private var toolUnmatched: Counter?
+    private var toolErrors: Counter?
+    private var turnLatency: Histogram?
+    private var permissionDecisions: Counter?
+    private var sandboxedCalls: Counter?
 
     init(settings: CollectorSettings, stateFolder: URL = Paths.stateFolder,
-         tracker: ProjectTracker = .shared, startedAt: Date = Date()) throws {
+         tracker: ProjectTracker = .shared, startedAt: Date = Date(),
+         now: @escaping () -> Date = { Date() }) throws {
         interval = settings.interval(default: 60)
         projectsDir = Paths.expand(settings.string("projectsDir", default: "~/.claude/projects"))
         historyFile = Paths.expand(settings.string("historyFile", default: "~/.claude/history.jsonl"))
@@ -205,6 +283,11 @@ final class ClaudeCodeCollector: Collector {
         offsets = OffsetTable(store: store)
         self.tracker = tracker
         self.startedAt = startedAt
+        self.now = now
+        toolTimeout = settings.double("toolTimeoutSeconds", default: ClaudeCodeCollector.defaultToolTimeoutSeconds)
+        for (id, value) in store.get(ClaudeCodeCollector.pendingKey)?.objectValue ?? [:] {
+            if let entry = PendingTool(json: value) { pending[id] = entry }
+        }
     }
 
     func start(registry: MetricsRegistry) throws {
@@ -212,9 +295,9 @@ final class ClaudeCodeCollector: Collector {
         sessionsTotal = registry.counter("molly_claude_sessions_total", help: "Session files created since Molly started.")
         sessionsToday = registry.gauge("molly_claude_sessions_today", help: "Session files created today.")
         messages = registry.counter("molly_claude_messages_total", help: "Messages by role; tool results are not counted as user messages.", labels: ["role", "project"])
-        toolCalls = registry.counter("molly_claude_tool_calls_total", help: "Tool invocations.", labels: ["tool", "project"])
-        tokens = registry.counter("molly_claude_tokens_total", help: "Tokens by model and kind.", labels: ["model", "kind"])
-        cost = registry.counter("molly_claude_estimated_cost_usd_total", help: "Token counts at list prices: never a bill, and a list-price equivalent under a subscription.", labels: ["model"])
+        toolCalls = registry.counter("molly_claude_tool_calls_total", help: "Tool invocations. server is the MCP server, or builtin.", labels: ["tool", "server", "project"])
+        tokens = registry.counter("molly_claude_tokens_total", help: "Tokens by model, kind and project.", labels: ["model", "kind", "project"])
+        cost = registry.counter("molly_claude_estimated_cost_usd_total", help: "Token counts at list prices: never a bill, and a list-price equivalent under a subscription.", labels: ["model", "project"])
         let modeGauge = registry.gauge("molly_claude_pricing_mode", help: "1 for the configured pricing mode (list or subscription).", labels: ["mode"])
         for mode in ClaudePricing.Mode.allCases {
             modeGauge.set(mode == pricingMode ? 1 : 0, labels: ["mode": mode.rawValue])
@@ -222,13 +305,21 @@ final class ClaudeCodeCollector: Collector {
         subagentMessages = registry.counter("molly_claude_subagent_messages_total", help: "Messages from subagent (sidechain) conversations; a subset of messages_total.")
         prompts = registry.counter("molly_claude_prompts_total", help: "Prompts typed, from history.jsonl.")
         duration = registry.counter("molly_claude_session_duration_seconds_total", help: "Active wall time of sessions; gaps over sessionGapSeconds are idle.", labels: ["project"])
+        toolDuration = registry.histogram("molly_claude_tool_duration_seconds", help: "Seconds from a tool_use to its tool_result, by transcript timestamps.",
+                                          labels: ["tool", "server", "project"], buckets: ClaudeCodeCollector.toolDurationBuckets)
+        toolUnmatched = registry.counter("molly_claude_tool_calls_unmatched_total", help: "Tool calls that never got a result within toolTimeoutSeconds.", labels: ["tool"])
+        toolErrors = registry.counter("molly_claude_tool_errors_total", help: "Tool results that failed (error) or were interrupted.", labels: ["tool", "server", "project", "kind"])
+        turnLatency = registry.histogram("molly_claude_turn_latency_seconds", help: "Seconds from a typed prompt to the first assistant line.",
+                                         labels: ["project", "model"], buckets: ClaudeCodeCollector.turnLatencyBuckets)
+        permissionDecisions = registry.counter("molly_claude_permission_decisions_total", help: "Tool permission decisions: allow, deny, ask or other.", labels: ["tool", "decision"])
+        sandboxedCalls = registry.counter("molly_claude_sandboxed_tool_calls_total", help: "Tool results from sandboxed runs.", labels: ["tool"])
     }
 
     func collect() throws {
         guard FileManager.default.fileExists(atPath: projectsDir) else {
             throw CollectorUnavailable(reason: "\(projectsDir) does not exist")
         }
-        let now = Date()
+        let now = self.now()
         let midnight = Clock.startOfToday(now: now)
         var live = Set<String>()
         var active = 0
@@ -267,6 +358,8 @@ final class ClaudeCodeCollector: Collector {
         sessionsToday?.set(today)
         files = files.filter { live.contains($0.key) }
         countPrompts(now: now)
+        expirePending(now: now)
+        store.set(ClaudeCodeCollector.pendingKey, .object(pending.mapValues { $0.json }))
         offsets.prune(keeping: live.union([historyFile]))
         offsets.save()
     }
@@ -323,23 +416,74 @@ final class ClaudeCodeCollector: Collector {
             }
             if state.lastTimestamp.map({ time > $0 }) ?? true { state.lastTimestamp = time }
         }
-        for tool in line.toolNames { toolCalls?.inc(labels: ["tool": tool, "project": label]) }
+        for use in line.toolUses {
+            toolCalls?.inc(labels: ["tool": use.name, "server": use.server, "project": label])
+            if let id = use.id, let time = line.timestamp {
+                pending[id] = PendingTool(startedAt: time, tool: use.name, project: project)
+            }
+        }
+        recordResults(of: line, label: label)
+        recordTurn(of: line, state: &state, label: label)
 
         let isNewMessage = line.messageId.map { state.messageIds.insert($0) } ?? true
         guard isNewMessage, line.countsAsMessage else { return }
         messages?.inc(labels: ["role": line.role.rawValue, "project": label])
         if line.isSidechain { subagentMessages?.inc() }
-        if let usage = line.usage, let model = line.model { record(usage, model: model) }
+        if let usage = line.usage, let model = line.model { record(usage, model: model, project: label) }
     }
 
-    private func record(_ usage: TokenUsage, model: String) {
+    private func recordResults(of line: ClaudeLine, label: String) {
+        for result in line.toolResults {
+            let started = pending.removeValue(forKey: result.toolUseId)
+            let tool = started?.tool ?? ClaudeCodeCollector.unknownLabel
+            let server = started.map { ToolUse.server(for: $0.tool) } ?? ClaudeCodeCollector.unknownLabel
+            let project = started.map { projectLimiter.label($0.project) } ?? label
+            if let started, let end = line.timestamp {
+                let seconds = max(0, end.timeIntervalSince(started.startedAt))
+                toolDuration?.observe(seconds, labels: ["tool": tool, "server": server, "project": project])
+            }
+            if let kind = line.interrupted ? "interrupted" : (result.isError ? "error" : nil) {
+                toolErrors?.inc(labels: ["tool": tool, "server": server, "project": project, "kind": kind])
+            }
+            if let decision = line.permissionDecision {
+                let known = decision.lowercased()
+                let value = ClaudeCodeCollector.permissionDecisions.contains(known) ? known : "other"
+                permissionDecisions?.inc(labels: ["tool": tool, "decision": value])
+            }
+            if line.sandboxed { sandboxedCalls?.inc(labels: ["tool": tool]) }
+        }
+    }
+
+    private func recordTurn(of line: ClaudeLine, state: inout FileState, label: String) {
+        guard !line.isSidechain, let time = line.timestamp else { return }
+        switch line.role {
+        case .user:
+            if line.countsAsMessage { state.promptAt = time }
+        case .assistant:
+            guard let start = state.promptAt else { return }
+            state.promptAt = nil
+            guard let model = line.model, !model.hasPrefix("<") else { return }
+            turnLatency?.observe(max(0, time.timeIntervalSince(start)), labels: ["project": label, "model": model])
+        }
+    }
+
+    private func expirePending(now: Date) {
+        let cutoff = now.addingTimeInterval(-toolTimeout)
+        for (id, entry) in pending where entry.startedAt < cutoff {
+            toolUnmatched?.inc(labels: ["tool": entry.tool])
+            pending.removeValue(forKey: id)
+        }
+    }
+
+    private func record(_ usage: TokenUsage, model: String, project: String) {
         guard !model.hasPrefix("<") else { return }
-        tokens?.add(Double(usage.input), labels: ["model": model, "kind": "input"])
-        tokens?.add(Double(usage.output), labels: ["model": model, "kind": "output"])
-        tokens?.add(Double(usage.cacheRead), labels: ["model": model, "kind": "cache_read"])
-        tokens?.add(Double(usage.cacheCreation), labels: ["model": model, "kind": "cache_creation"])
+        let base = ["model": model, "project": project]
+        tokens?.add(Double(usage.input), labels: base.merging(["kind": "input"]) { $1 })
+        tokens?.add(Double(usage.output), labels: base.merging(["kind": "output"]) { $1 })
+        tokens?.add(Double(usage.cacheRead), labels: base.merging(["kind": "cache_read"]) { $1 })
+        tokens?.add(Double(usage.cacheCreation), labels: base.merging(["kind": "cache_creation"]) { $1 })
         let price = ClaudePricing.price(for: model, in: pricing)
         if price == nil, unknownModels.shouldWarn(model) { Log.warn(unknownModels.message(model: model)) }
-        cost?.add(price.map { ClaudePricing.cost(usage, at: $0) } ?? 0, labels: ["model": model])
+        cost?.add(price.map { ClaudePricing.cost(usage, at: $0) } ?? 0, labels: base)
     }
 }

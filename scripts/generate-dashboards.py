@@ -657,6 +657,34 @@ def developer():
     timeseries(d, "Claude messages per hour", [
         ("sum by (role) (increase(" + m("molly_claude_messages_total") + "[1h]))", "{{role}}")],
         w=12, stack=True, bars=True, min_=0)
+    d.row("Claude Code time")
+    dur = "molly_claude_tool_duration_seconds"
+    timeseries(d, "Time in tools by project (per hour)",
+               [("sum by (project) (increase(" + m(dur + "_sum") + "[1h]))", "{{project}}")],
+               unit="s", w=12, stack=True, bars=True, min_=0,
+               desc="Wall time between each tool call and its result, from transcript timestamps. Parallel calls overlap, so this can exceed an hour.")
+    timeseries(d, "Time by MCP server (per hour)",
+               [("sum by (server) (increase(" + m(dur + "_sum", 'server!="builtin"') + "[1h]))", "{{server}}")],
+               unit="s", w=12, stack=True, bars=True, min_=0, desc="Built-in tools are excluded.")
+    table(d, "Slowest tools (selected range)", [
+        "histogram_quantile(0.95, sum by (le, tool) (increase(" + m(dur + "_bucket") + "[$__range])))",
+        "sum by (tool) (increase(" + m(dur + "_count") + "[$__range]))"],
+        {"tool": "Tool", "Value #A": "p95", "Value #B": "Calls"},
+        units={"p95": "s", "Calls": "none"}, sort_by="p95", w=12, h=9,
+        desc="p95 is estimated from fixed histogram buckets, so it is exact only to the bucket edge.")
+    bargauge(d, "Tool error rate by tool (selected range)", [
+        ("topk(10, sum by (tool) (increase(" + m("molly_claude_tool_errors_total") + "[$__range]))"
+         " / sum by (tool) (increase(" + m(dur + "_count") + "[$__range])))", "{{tool}}")],
+        unit="percentunit", w=12, h=9, max_=1, desc="Errors and interruptions divided by completed calls.")
+    timeseries(d, "Turn latency by project",
+               [("histogram_quantile(0.5, sum by (le, project) (rate(" + m("molly_claude_turn_latency_seconds_bucket") + "[" + RI + "])))",
+                 "p50 {{project}}"),
+                ("histogram_quantile(0.95, sum by (le, project) (rate(" + m("molly_claude_turn_latency_seconds_bucket") + "[" + RI + "])))",
+                 "p95 {{project}}")],
+               unit="s", w=12, min_=0, desc="Typed prompt to the first assistant line in the same session file.")
+    timeseries(d, "Tokens by project (per hour)",
+               [("sum by (project) (increase(" + m("molly_claude_tokens_total") + "[1h]))", "{{project}}")],
+               w=12, stack=True, bars=True, min_=0)
     d.row("Agent ROI")
     stat(d, "Cost per commit (24h)", "max(" + m("molly:claude_cost_per_commit:1d") + ")", unit="currencyUSD", w=6, h=5,
          decimals=2, desc="List-price equivalent of Claude usage over the last 24h divided by your commits in that window. " + COST_NOTE)
