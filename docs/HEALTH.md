@@ -171,6 +171,24 @@ next day's work.
 
 ## 4. Build the Shortcut
 
+### The fast way: generate it
+
+```sh
+scripts/generate-health-shortcut.py adams-macbook-pro.tail853834.ts.net
+```
+
+writes a signed `Molly Health.shortcut` to the Desktop with every type from the
+table, the token from your config and the URL for the host you name. Open the
+file on the Mac to import it into Shortcuts (iCloud syncs it to the phone), or
+AirDrop it to the phone. The first run asks for Health read access per type.
+The file contains the token: it is git-ignored, do not share it.
+
+A dozen Health type labels in the generator were not confirmed against a real
+export (the script prints them). If a "Find Health Samples" row shows an empty
+type on the phone, pick the type from its menu once; everything else is wired.
+
+### By hand
+
 I cannot drive the Shortcuts app from here, so treat the action names as a
 guide: Apple renames them between iOS versions. The steps are the same shape in
 every version. Start with `steps` only, check it with `curl`, then add types.
