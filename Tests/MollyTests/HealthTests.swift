@@ -19,7 +19,56 @@ final class HealthPayloadTests: XCTestCase {
     private let now = iso("2026-11-03T12:00:00Z")
 
     private func parse(_ json: String, maxAge: TimeInterval = HealthLimits.defaultMaxAgeSeconds) -> HealthParseResult? {
-        HealthPayloadParser(now: now, maxAge: maxAge, calendar: utc).parse(object(json))
+        try? HealthPayloadParser(now: now, maxAge: maxAge, calendar: utc).parse(object(json)).get()
+    }
+
+    private func parseResult(_ json: String) -> Result<HealthParseResult, HealthPayloadError> {
+        HealthPayloadParser(now: now, maxAge: HealthLimits.defaultMaxAgeSeconds, calendar: utc).parse(object(json))
+    }
+
+    func testDaysFormAcceptsThreeDays() throws {
+        let result = try XCTUnwrap(parse(#"""
+        {"device":"iphone","days":[
+          {"date":"2026-11-01","totals":{"steps":100}},
+          {"date":"2026-11-02","totals":{"steps":200,"stand_hours":8}},
+          {"date":"2026-11-03","totals":{"steps":300}}]}
+        """#))
+        XCTAssertEqual(result.samples.count, 4)
+        XCTAssertEqual(Set(result.samples.map { $0.day }), ["2026-11-01", "2026-11-02", "2026-11-03"])
+        XCTAssertTrue(result.samples.allSatisfy { $0.replacesDay })
+        XCTAssertEqual(result.device, "iphone")
+    }
+
+    func testDaysFormRejectsMoreThanThirtyOneEntries() {
+        let entries = (0..<(HealthLimits.maxDays + 1)).map { _ in #"{"date":"2026-11-02","totals":{"steps":1}}"# }
+        XCTAssertEqual(parseResult(#"{"days":[\#(entries.joined(separator: ","))]}"#), .failure(.tooManyDays))
+        let allowed = entries.dropLast().joined(separator: ",")
+        XCTAssertEqual(try parseResult(#"{"days":[\#(allowed)]}"#).get().samples.count, HealthLimits.maxDays)
+    }
+
+    func testBadDateInOneDayDoesNotFailTheOthers() throws {
+        let result = try XCTUnwrap(parse(#"""
+        {"days":[{"date":"2026-11-02","totals":{"steps":1}},
+                 {"date":"not-a-date","totals":{"steps":2,"stand_hours":3}},
+                 {"date":"2026-11-03","totals":{"steps":4}}]}
+        """#))
+        XCTAssertEqual(result.samples.count, 2)
+        XCTAssertEqual(result.rejected[.badTime], 2)
+    }
+
+    func testDaysCannotBeMixedWithTotalsOrSamples() {
+        XCTAssertEqual(parseResult(#"{"days":[],"totals":{"steps":1}}"#), .failure(.mixedForms))
+        XCTAssertEqual(parseResult(#"{"days":[],"samples":[]}"#), .failure(.mixedForms))
+        XCTAssertEqual(parseResult(#"{"days":"nope"}"#), .failure(.badDays))
+    }
+
+    func testThirtyOneDaysOfEveryTypeFitInTheBodyLimit() {
+        let totals = HealthType.allCases.map { type in
+            #""\#(type.rawValue)":"2026-11-03T23:30:00.000-05:00""#
+        }.joined(separator: ",")
+        let day = #"{"date":"2026-11-03","totals":{\#(totals)}}"#
+        let body = #"{"device":"iphone","days":[\#(Array(repeating: day, count: HealthLimits.maxDays).joined(separator: ","))]}"#
+        XCTAssertLessThan(body.utf8.count, HTTPRequestParser.maxBodyBytes)
     }
 
     func testSampleFormAttributesToStartDayAndSleepToWakeDay() throws {
@@ -117,7 +166,7 @@ final class HealthPayloadTests: XCTestCase {
         var newYork = Calendar(identifier: .gregorian)
         newYork.timeZone = TimeZone(identifier: "America/New_York") ?? .current
         let parser = HealthPayloadParser(now: now, maxAge: HealthLimits.defaultMaxAgeSeconds, calendar: newYork)
-        let result = parser.parse(object(#"{"samples":[{"type":"bedtime","value":"2026-11-03T04:30:00Z"}]}"#))
+        let result = try? parser.parse(object(#"{"samples":[{"type":"bedtime","value":"2026-11-03T04:30:00Z"}]}"#)).get()
         XCTAssertEqual(result?.samples.first?.value, 84600 + 0, "04:30Z is 23:30 the evening before in New York")
         XCTAssertEqual(result?.samples.first?.day, "2026-11-03")
     }
@@ -273,6 +322,39 @@ final class HealthCollectorTests: TempFolderTestCase {
         XCTAssertEqual(post(c, "not json", auth: nil), .unauthorized)
         XCTAssertEqual(post(c, "not json"), .badRequest("body must be a JSON object"))
         XCTAssertEqual(post(c, #"{"device":"x"}"#), .badRequest("samples or totals is required"))
+    }
+
+    func testDaysPostCountsEveryDay() throws {
+        let (c, r) = try make()
+        let body = #"{"days":[{"date":"2026-11-02","totals":{"steps":10,"nope":1}},{"date":"2026-11-03","totals":{"steps":20}}]}"#
+        XCTAssertEqual(post(c, body), .accepted(accepted: 2, rejected: ["bad_type": 1]))
+        XCTAssertEqual(value(r, "molly_health_today", ["type": "steps"]), 20)
+        XCTAssertEqual(value(r, "molly_health_yesterday", ["type": "steps"]), 10)
+        XCTAssertEqual(post(c, #"{"days":[],"totals":{}}"#), .badRequest("days cannot be combined with totals or samples"))
+    }
+
+    func testStatusReportsStoredDaysAndNeverTheToken() throws {
+        let (c, _) = try make()
+        guard case .ok(let empty) = c.status(authorization: "Bearer s3cret") else { return XCTFail("expected ok") }
+        XCTAssertTrue(empty["last_post"] is NSNull)
+        _ = post(c, #"{"device":"iphone","totals":{"steps":812,"bedtime":"23:30"}}"#)
+        guard case .ok(let status) = c.status(authorization: "Bearer s3cret") else { return XCTFail("expected ok") }
+        XCTAssertEqual(status["last_post"] as? Double, clock.timeIntervalSince1970)
+        XCTAssertEqual(status["devices"] as? [String], ["iphone"])
+        XCTAssertEqual((status["today"] as? [String: Double])?["steps"], 812)
+        XCTAssertEqual(status["types"] as? [String], HealthType.allCases.map { $0.rawValue })
+        XCTAssertEqual(status["max_body_bytes"] as? Int, HTTPRequestParser.maxBodyBytes)
+        let text = String(decoding: HTTPResponse.json(status).body, as: UTF8.self)
+        XCTAssertFalse(text.contains("s3cret"))
+    }
+
+    func testStatusNeedsTheHeaderTokenAndAnAllowedBind() throws {
+        let (c, _) = try make()
+        guard case .unauthorized = c.status(authorization: nil) else { return XCTFail("nil header") }
+        guard case .unauthorized = c.status(authorization: "Bearer wrong") else { return XCTFail("wrong token") }
+        let remote = HealthCollector(settings: settings("health", ["token": .string("s3cret")]), binds: ["0.0.0.0"],
+                                     now: { self.clock }, calendar: utc, stateFolder: makeTempFolder())
+        guard case .forbidden = remote.status(authorization: "Bearer s3cret") else { return XCTFail("bind guard") }
     }
 
     func testTokenInTheBodyIsAcceptedToo() throws {

@@ -7,8 +7,12 @@ enum HealthCommand {
     static let exportEntryName = "export.xml"
     static let promtoolImage = "prom/prometheus:v3.7.3"
 
+    static let usage = "usage: molly health import <export.zip or export.xml> [--out file.om] | molly health status"
+    static let statusTimeout: TimeInterval = 3
+
     static func run(_ arguments: [String]) {
-        guard arguments.first == "import" else { fail("usage: molly health import <export.zip or export.xml> [--out file.om]") }
+        if arguments.first == "status" { runStatus() }
+        guard arguments.first == "import" else { fail(usage) }
         var input: String?
         var output = defaultOutput
         var iterator = arguments.dropFirst().makeIterator()
@@ -22,7 +26,7 @@ enum HealthCommand {
                 input = arg
             }
         }
-        guard let input else { fail("usage: molly health import <export.zip or export.xml> [--out file.om]") }
+        guard let input else { fail(usage) }
 
         let config = (try? Config.load()) ?? Config()
         let source = URL(fileURLWithPath: Paths.expand(input))
@@ -40,6 +44,74 @@ enum HealthCommand {
             FileHandle.standardError.write(Data("import failed: \(error)\n".utf8))
             exit(1)
         }
+    }
+
+    /// Asks the running daemon, using the token from the local config.
+    private static func runStatus() -> Never {
+        let config = (try? Config.load()) ?? Config()
+        let token = config.collector("health").string("token", default: "")
+        guard !token.isEmpty else { fail("collectors.health.token is not set in \(Paths.configFile.path)") }
+        guard let url = URL(string: "http://\(config.server.bind):\(config.server.port)/health/status") else {
+            fail("cannot build the status URL from server.bind")
+        }
+        let (code, data) = fetchStatus(url, token: token)
+        switch code {
+        case 200:
+            guard let tree = (try? JSONValue.parse(data))?.objectValue else { fail("unexpected reply from the daemon") }
+            print(statusTable(tree, now: Date()))
+            exit(0)
+        case 0: fail("molly is not running at \(url.host ?? ""):\(config.server.port) (start it with: molly run)", code: 1)
+        case 401: fail("the daemon rejected the token: it differs from collectors.health.token in the config", code: 1)
+        case 403: fail("the daemon refuses health data on this bind: see docs/HEALTH.md (allowRemoteBind)", code: 1)
+        case 503: fail("the health collector is disabled: set collectors.health.enabled to true", code: 1)
+        default: fail("daemon answered HTTP \(code)", code: 1)
+        }
+    }
+
+    private static func fetchStatus(_ url: URL, token: String) -> (Int, Data) {
+        let semaphore = DispatchSemaphore(value: 0)
+        var status = 0
+        var body = Data()
+        var request = URLRequest(url: url)
+        request.timeoutInterval = statusTimeout
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        URLSession.shared.dataTask(with: request) { data, response, _ in
+            status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            body = data ?? Data()
+            semaphore.signal()
+        }.resume()
+        semaphore.wait()
+        return (status, body)
+    }
+
+    static func statusTable(_ tree: [String: JSONValue], now: Date) -> String {
+        var lines: [String] = []
+        if let posted = tree["last_post"]?.doubleValue {
+            let age = Int(now.timeIntervalSince1970 - posted)
+            lines.append("last post   \(age)s ago")
+        } else {
+            lines.append("last post   never")
+        }
+        let devices = (tree["devices"]?.arrayValue ?? []).compactMap { $0.stringValue }
+        lines.append("devices     \(devices.isEmpty ? "none" : devices.joined(separator: ", "))")
+        let today = tree["today"]?.objectValue ?? [:]
+        let yesterday = tree["yesterday"]?.objectValue ?? [:]
+        let names = Set(today.keys).union(yesterday.keys).sorted()
+        lines.append("")
+        lines.append("type".padding(toLength: statusColumnWidth, withPad: " ", startingAt: 0) + "today".padding(toLength: 14, withPad: " ", startingAt: 0) + "yesterday")
+        for name in names {
+            lines.append(name.padding(toLength: statusColumnWidth, withPad: " ", startingAt: 0)
+                + cell(today[name]).padding(toLength: 14, withPad: " ", startingAt: 0) + cell(yesterday[name]))
+        }
+        if names.isEmpty { lines.append("(no values stored for today or yesterday)") }
+        return lines.joined(separator: "\n")
+    }
+
+    private static let statusColumnWidth = 28
+
+    private static func cell(_ value: JSONValue?) -> String {
+        guard let number = value?.doubleValue else { return "-" }
+        return number == number.rounded() ? String(Int(number)) : String(format: "%.2f", number)
     }
 
     static func importExport(at source: URL, user: String, host: String) throws -> (HealthExportParser, String) {
@@ -101,8 +173,8 @@ enum HealthCommand {
         """
     }
 
-    private static func fail(_ message: String) -> Never {
+    private static func fail(_ message: String, code: Int32 = 2) -> Never {
         FileHandle.standardError.write(Data((message + "\n").utf8))
-        exit(2)
+        exit(code)
     }
 }

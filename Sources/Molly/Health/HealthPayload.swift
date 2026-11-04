@@ -8,27 +8,59 @@ struct HealthParseResult: Equatable {
     var rejected: [HealthRejection: Int] = [:]
 }
 
-/// Parses both payload shapes:
+/// Why a body is not a usable payload at all (as opposed to a bad sample in it).
+enum HealthPayloadError: Error, Equatable {
+    case empty
+    case mixedForms
+    case tooManyDays
+    case badDays
+
+    var message: String {
+        switch self {
+        case .empty: return "samples or totals is required"
+        case .mixedForms: return "days cannot be combined with totals or samples"
+        case .tooManyDays: return "days holds at most \(HealthLimits.maxDays) entries"
+        case .badDays: return "days must be an array of {\"date\", \"totals\"} objects"
+        }
+    }
+}
+
+/// Parses three payload shapes:
 ///   {"device": "...", "samples": [{"type","start","end","value","unit"}]}
 ///   {"date": "YYYY-MM-DD", "totals": {"steps": 8120, ...}}
+///   {"device": "...", "days": [{"date": "YYYY-MM-DD", "totals": {...}}, ...]}
 struct HealthPayloadParser {
     let now: Date
     let maxAge: TimeInterval
     let calendar: Calendar
 
-    /// nil when the body carries neither `samples` nor `totals`.
-    func parse(_ object: [String: JSONValue]) -> HealthParseResult? {
+    func parse(_ object: [String: JSONValue]) -> Result<HealthParseResult, HealthPayloadError> {
         let samples = object["samples"]?.arrayValue
         let totals = object["totals"]?.objectValue
-        guard samples != nil || totals != nil else { return nil }
         var result = HealthParseResult(device: object["device"]?.stringValue)
+        if let days = object["days"] {
+            guard samples == nil, totals == nil else { return .failure(.mixedForms) }
+            guard let entries = days.arrayValue else { return .failure(.badDays) }
+            guard entries.count <= HealthLimits.maxDays else { return .failure(.tooManyDays) }
+            for entry in entries { parseDay(entry, into: &result) }
+            return .success(result)
+        }
+        guard samples != nil || totals != nil else { return .failure(.empty) }
         for item in samples ?? [] {
             record(sample(item), into: &result)
         }
         if let totals {
             parseTotals(totals, date: object["date"]?.stringValue, into: &result)
         }
-        return result
+        return .success(result)
+    }
+
+    private func parseDay(_ entry: JSONValue, into result: inout HealthParseResult) {
+        guard let object = entry.objectValue, let totals = object["totals"]?.objectValue else {
+            result.rejected[.badValue, default: 0] += 1
+            return
+        }
+        parseTotals(totals, date: object["date"]?.stringValue, into: &result)
     }
 
     private func record(_ outcome: Result<HealthSample, HealthRejection>, into result: inout HealthParseResult) {

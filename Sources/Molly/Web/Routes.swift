@@ -11,6 +11,7 @@ enum Routes {
             /healthz     liveness
             /event       POST a JSON event (see docs/HOOKS.md)
             /health      POST Apple Health samples from an iPhone Shortcut (see docs/HEALTH.md)
+            /health/status  GET what Molly has stored for health (JSON, Bearer token)
             /collectors  per-collector status (JSON)
             /stats       registry size per family plus collector status (JSON)
             /config      effective configuration (JSON, secrets redacted)
@@ -46,6 +47,16 @@ enum Routes {
             case .unauthorized: return .text("unauthorized\n", status: 401)
             case .forbidden: return .text("health data stays local: see docs/HEALTH.md\n", status: 403)
             case .badRequest(let why): return .text("bad request: \(why)\n", status: 400)
+            }
+        }
+        router.get("/health/status") { request in
+            guard let health = manager.collector(as: HealthCollector.self) else {
+                return .text("health collector disabled\n", status: 503)
+            }
+            switch health.status(authorization: request.headers["authorization"]) {
+            case .ok(let status): return .json(status)
+            case .unauthorized: return .text("unauthorized\n", status: 401)
+            case .forbidden: return .text("health data stays local: see docs/HEALTH.md\n", status: 403)
             }
         }
         router.get("/collectors") { _ in

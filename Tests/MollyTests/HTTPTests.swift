@@ -59,6 +59,26 @@ final class HTTPTests: XCTestCase {
         XCTAssertEqual(collectorsStatus, 200)
     }
 
+    func testHealthStatusRouteNeedsTheToken() throws {
+        let health = HealthCollector(settings: CollectorSettings(name: "health", raw: ["token": .string("s3cret")]),
+                                     binds: ["127.0.0.1"], stateFolder: FileManager.default.temporaryDirectory
+                                        .appendingPathComponent("molly-http-\(UUID().uuidString)"))
+        let registry = MetricsRegistry()
+        try health.start(registry: registry)
+        let router = Router()
+        Routes.register(on: router, manager: CollectorManager(registry: registry, collectors: [health]), config: Config())
+
+        func get(_ authorization: String?) -> HTTPResponse {
+            var headers: [String: String] = [:]
+            if let authorization { headers["authorization"] = authorization }
+            return router.route(HTTPRequest(method: "GET", path: "/health/status", query: [:], headers: headers))
+        }
+        XCTAssertEqual(get("Bearer s3cret").status, 200)
+        XCTAssertTrue(String(decoding: get("Bearer s3cret").body, as: UTF8.self).contains("\"max_body_bytes\""))
+        XCTAssertEqual(get(nil).status, 401)
+        XCTAssertEqual(get("Bearer wrong").status, 401)
+    }
+
     func testSecondListenerOnSamePortReportsFailure() throws {
         let port = Int.random(in: 20000...40000)
         let first = try HTTPServer(bind: "127.0.0.1", port: port, router: Router())

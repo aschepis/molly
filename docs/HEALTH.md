@@ -114,6 +114,27 @@ Two shapes, both `Content-Type: application/json`.
 }
 ```
 
+**Several days of totals** (backfill after the phone was offline; at most 31 entries):
+
+```json
+{
+  "device": "iphone",
+  "days": [
+    {"date": "2026-11-01", "totals": {"steps": 7410, "sleep_minutes": 430}},
+    {"date": "2026-11-02", "totals": {"steps": 9022, "sleep_minutes": 455}},
+    {"date": "2026-11-03", "totals": {"steps": 8120}}
+  ]
+}
+```
+
+Each entry is handled exactly like the single `date` + `totals` form, including
+the `maxAgeSeconds` cut-off, and a bad entry (unparseable date, too old, bad
+value) is counted in `rejected` without failing the others. The response's
+`accepted` and `rejected` cover all days. More than 31 entries, or `days`
+together with `totals` or `samples`, is a `400`. 31 days of all 21 types, with
+a full ISO timestamp for each value, is about 33 KB, so the 64 KiB body limit
+below stays as it is.
+
 Rules:
 
 - Times are ISO 8601 with an offset. Days are your Mac's local days.
@@ -243,6 +264,25 @@ daily totals; hourly gives you `NotStandingEnough` and the live tiles.
 curl -s http://127.0.0.1:9765/metrics | grep molly_health      # on the Mac, if bound there
 molly once --collector health
 ```
+
+Ask the running daemon what it has stored (same token as the POST, in the
+`Authorization` header):
+
+```sh
+curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:9765/health/status
+molly health status        # same thing as a table, token read from config.json
+```
+
+The JSON is `{"ok": true, "last_post": <unix seconds or null>, "devices": [...],
+"today": {"<type>": value}, "yesterday": {...}, "types": [every type Molly
+accepts], "max_age_seconds": N, "max_body_bytes": N}`. Values are the stored
+day values in the units of the Types table; `bedtime` and `wake_time` are
+seconds after local midnight (bedtime after midnight counts past 86400). The
+token is never included. Answers match POST: `401` without or with a wrong
+token (the body `token` field does not apply to a GET), `403` when the bind
+guard refuses, `503` when the collector is disabled. `molly health status`
+exits 1 when the daemon is unreachable, the token is rejected, or the
+collector is disabled.
 
 The Body dashboard's **Pipeline** row shows the age of the last post and what
 was accepted or rejected. `molly_health_samples_rejected_total{reason}` rising

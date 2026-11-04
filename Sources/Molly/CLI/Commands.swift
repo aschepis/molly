@@ -30,6 +30,7 @@ enum Help {
                      (--out DIR | --include-secrets | --restore TARBALL prints the manual restore steps)
       health         import <export.zip|export.xml> [--out file.om]: turn an Apple Health export
                      into an OpenMetrics file for promtool (live data comes from POST /health)
+                     status: show what the running daemon has stored (exit 1 if unreachable or disabled)
       prune          delete Molly samples older than a cutoff from Prometheus
                      (--older-than 30d|12h|2w, --dry-run; needs the admin API)
       config-path    print the config file location

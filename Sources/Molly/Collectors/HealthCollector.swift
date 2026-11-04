@@ -101,7 +101,11 @@ final class HealthCollector: Collector {
         guard isAuthorized(header: authorization, body: object) else { return .unauthorized }
         guard let object else { return .badRequest("body must be a JSON object") }
         let parser = HealthPayloadParser(now: now(), maxAge: maxAge, calendar: calendar)
-        guard let result = parser.parse(object) else { return .badRequest("samples or totals is required") }
+        let result: HealthParseResult
+        switch parser.parse(object) {
+        case .success(let parsed): result = parsed
+        case .failure(let error): return .badRequest(error.message)
+        }
 
         lock.lock()
         defer { lock.unlock() }
@@ -121,6 +125,40 @@ final class HealthCollector: Collector {
         persist()
         let rejected = Dictionary(uniqueKeysWithValues: result.rejected.map { ($0.key.rawValue, $0.value) })
         return .accepted(accepted: result.samples.count, rejected: rejected)
+    }
+
+    enum StatusOutcome {
+        case ok([String: Any])
+        case unauthorized
+        case forbidden
+    }
+
+    /// Header token only: a GET has no body to carry one. The token is never echoed.
+    func status(authorization: String?) -> StatusOutcome {
+        guard bindIsAllowed else { return .forbidden }
+        guard isAuthorized(header: authorization, body: nil) else { return .unauthorized }
+        lock.lock()
+        defer { lock.unlock() }
+        let todayKey = HealthTime.dayKey(now(), calendar: calendar)
+        let yesterdayKey = HealthTime.addingDays(-1, to: todayKey, calendar: calendar) ?? todayKey
+        return .ok([
+            "ok": true,
+            "last_post": lastPostAt.map { $0 as Any } ?? NSNull(),
+            "devices": devices,
+            "today": dayValues(todayKey),
+            "yesterday": dayValues(yesterdayKey),
+            "types": HealthType.allCases.map { $0.rawValue },
+            "max_age_seconds": maxAge,
+            "max_body_bytes": HTTPRequestParser.maxBodyBytes,
+        ])
+    }
+
+    private func dayValues(_ day: String) -> [String: Double] {
+        var values: [String: Double] = [:]
+        for type in HealthType.allCases {
+            if let value = days.value(type, day: day) { values[type.rawValue] = value }
+        }
+        return values
     }
 
     // MARK: auth

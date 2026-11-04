@@ -107,6 +107,7 @@ enum HealthLimits {
     static let futureSlackSeconds = 86_400.0
     static let defaultMaxAgeSeconds = 7 * 86_400.0
     static let maxDevices = 5
+    static let maxDays = 31
     static let maxDeviceLength = 32
     static let otherDevice = "other"
     static let unknownDevice = "unknown"
