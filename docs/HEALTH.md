@@ -1,13 +1,13 @@
 # Apple Health from your iPhone
 
 macOS has no HealthKit, so a Mac cannot read your Health data. Your iPhone can:
-a Shortcut collects the numbers and posts them to Molly over Tailscale (or your home network).
+the Molly Health app (or, as a fallback, a Shortcut) collects the numbers and posts them to Molly over Tailscale (or your home network).
 Molly turns them into `molly_health_*` metrics, a **Body** Grafana dashboard
 ([DASHBOARDS.md](DASHBOARDS.md#body-molly-body)) and, in coarse buckets, your
 insights digest.
 
 ```
-iPhone Shortcut ──POST /health (Bearer token)──▶ Molly (Tailscale) ──▶ /metrics ──▶ Prometheus
+iPhone app ──POST /health (Bearer token)──▶ Molly (Tailscale) ──▶ /metrics ──▶ Prometheus
 ```
 
 This is the most personal data Molly handles. Read "Health data" in
@@ -169,7 +169,72 @@ night belongs to the morning you wake up. `molly_health_sleep_minutes_last_night
 and `molly_health_bedtime_seconds` are the numbers to correlate against the
 next day's work.
 
-## 4. Build the Shortcut
+## 4. Install the iPhone app (recommended)
+
+`ios/` holds **Molly Health**, a small open-source SwiftUI app that reads
+HealthKit directly and posts the daily totals from section 3 to `POST /health`.
+It sends nothing unless a type has data, so an empty type never stops the rest
+(the Shortcut's "Find Health Samples" halts the whole run on one). No analytics,
+no third-party code, and no network calls other than your configured Mac URL.
+
+1. On the Mac, open `ios/MollyHealth.xcodeproj` in Xcode (or `make ios-project`
+   first if you changed `ios/project.yml`).
+2. Select the **MollyHealth** target, then Signing & Capabilities, and pick your
+   team. The project defaults to team `DQR8D2E7KK` and bundle id
+   `com.aschepis.molly.health`; change both if they are not yours.
+3. Plug in the iPhone, trust the Mac, choose the phone as the run destination
+   and press Run. The first time, enable Developer Mode on the phone (Settings >
+   Privacy & Security) and trust the developer profile (Settings > General >
+   VPN & Device Management).
+4. In the app tap **Grant Health access** and allow every type you want. iOS
+   asks once; change it later in Settings > Health > Data Access.
+5. Paste the token. `molly config-path` prints the config file; the value is
+   `collectors.health.token`. The server URL defaults to
+   `http://adams-macbook-pro.tail853834.ts.net:9765`; edit it to your Mac's
+   MagicDNS name (section 2).
+6. Tap **Test connection**. It calls `/healthz` and then `/health/status` with
+   the token. "server does not report status yet" means the Mac is older than the
+   status route (404); "bad token" is a 401; "health collector disabled on the
+   Mac" is a 503.
+7. Tap **Send now**, check the status section (HTTP status, accepted and
+   rejected counts) and the table of today's totals, then look at the Body
+   dashboard.
+8. For background updates leave Background App Refresh on (Settings > General)
+   and open the app once after a reboot. The app registers an hourly HealthKit
+   observer for each enabled type and a background refresh task as a fallback;
+   each posts today, plus yesterday when the date changed since the last post so
+   last night's sleep lands on the wake-up day. Posts are limited to one per five
+   minutes, except Send now. iOS decides when background work really runs, so a
+   phone left locked for hours may deliver late; HealthKit data is protected while
+   the phone is locked, so queries made then can come back empty and the next
+   unlocked delivery fixes the day.
+
+Things to know:
+
+- **Reinstall once a year.** A development build signed with a paid Apple
+  Developer account stops launching after a year (a free account: seven days).
+  Run it from Xcode again to renew it. Your settings and token survive.
+- **Backfill** posts one request per day, oldest first. The Mac rejects days older
+  than `collectors.health.maxAgeSeconds` (7 days by default), so raise it before
+  backfilling a month.
+- A type with no samples is left out of the post, except steps, active energy,
+  walking distance, flights, exercise, daylight, stand hours and mindful minutes,
+  which send `0` when the query ran and found nothing.
+- Sleep is the union of the asleep stages of samples that ended today, so a watch
+  and a phone recording the same night are not counted twice.
+- HealthKit exposes the absolute sleeping wrist temperature, not the change from
+  baseline. The app sends today's average minus the average of the previous 28
+  days as `wrist_temperature_delta_c`; it is omitted until there is a baseline.
+- The app allows plain HTTP to any host because the address is normally a
+  Tailscale name (the tailnet encrypts the traffic). Use `https://` if you front
+  Molly with something that terminates TLS.
+
+See [ios/README.md](../ios/README.md) for the layout and build commands.
+
+## 4b. Fallback: a Shortcut
+
+If you cannot run the app, a Shortcut does the same job, with one weakness: a
+Health type with no samples can halt the run, so some days send nothing.
 
 ### The fast way: generate it
 
