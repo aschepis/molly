@@ -75,11 +75,21 @@ Metrics: `molly_insights_last_generated_timestamp_seconds` and
 
 ## Reading reports
 
-- `GET http://127.0.0.1:9765/insights/latest` returns the newest daily report
-  as Markdown; `/insights/2026-11-03` and `/insights/2026-11-02-week` return a
-  specific one. The Overview dashboard links there.
-- The files are plain Markdown in the data folder; keep, grep or delete them
-  freely.
+- `GET http://127.0.0.1:9765/insights/latest` returns the newest daily report;
+  `/insights/2026-11-03` and `/insights/2026-11-02-week` return a specific one.
+  The Overview dashboard links there.
+- Four formats. A suffix wins: `.html`, `.md`, `.json`, `.yaml` (or `.yml`).
+  Without one the `Accept` header decides (`text/html`, `text/markdown`,
+  `application/json`, `application/yaml`; highest q wins, ties go in that
+  order). No header, `*/*` or anything unparseable gives HTML, so a browser
+  just shows the report. An `Accept` that lists only types Molly does not
+  serve gets `406`. Responses carry `Vary: Accept`.
+- JSON and YAML have `kind`, `date`, `generated`, `markdown` and `digest`.
+  The digest is the numbers the narrative was written from, saved beside the
+  report as `<date>.json` / `<date>-week.json`; reports written before that
+  have `digest: null`.
+- The files are plain Markdown (plus the digest JSON) in the data folder;
+  keep, grep or delete them freely. `molly insights` still prints Markdown.
 
 ## Privacy
 

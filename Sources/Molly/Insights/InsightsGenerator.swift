@@ -50,6 +50,37 @@ struct InsightsStore {
         try text.write(to: url(kind: kind, date: date), atomically: true, encoding: .utf8)
     }
 
+    func digestURL(kind: InsightsDigest.Kind, date: String) -> URL {
+        folder.appendingPathComponent(kind == .day ? "\(date).json" : "\(date)-week.json")
+    }
+
+    func writeDigest(_ digest: InsightsDigest, kind: InsightsDigest.Kind, date: String) throws {
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try digest.json().write(to: digestURL(kind: kind, date: date), options: .atomic)
+    }
+
+    /// Reports written before digests were saved have none.
+    func readDigest(kind: InsightsDigest.Kind, date: String) -> JSONValue? {
+        guard let data = try? Data(contentsOf: digestURL(kind: kind, date: date)) else { return nil }
+        return try? JSONValue.parse(data)
+    }
+
+    func modified(kind: InsightsDigest.Kind, date: String) -> Date? {
+        let attributes = try? FileManager.default.attributesOfItem(atPath: url(kind: kind, date: date).path)
+        return attributes?[.modificationDate] as? Date
+    }
+
+    /// Every report date of this kind, oldest first.
+    func dates(kind: InsightsDigest.Kind) -> [String] {
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path) else { return [] }
+        let suffix = kind == .day ? ".md" : "-week.md"
+        return names.compactMap { name -> String? in
+            guard name.hasSuffix(suffix) else { return nil }
+            let date = String(name.dropLast(suffix.count))
+            return DigestBuilder.parseDate(date) == nil ? nil : date
+        }.sorted()
+    }
+
     /// The newest daily report by file name (dates sort lexically).
     func latest(kind: InsightsDigest.Kind = .day) -> (date: String, text: String)? {
         guard let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path) else { return nil }
@@ -173,6 +204,7 @@ final class InsightsGenerator {
         }
         let markdown = Self.render(narrative: narrative, digest: digest, backend: completer.name)
         try store.write(markdown, kind: kind, date: window.label)
+        try store.writeDigest(digest, kind: kind, date: window.label)
         generations?.inc(labels: ["kind": kind.rawValue, "status": "ok"])
         lastGenerated?.set(now.timeIntervalSince1970)
         return Result(date: window.label, kind: kind, markdown: markdown, digest: digest, cached: false, backend: completer.name)
