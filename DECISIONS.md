@@ -255,3 +255,21 @@ launchd restarts Molly, as before. The others retry every 30 s and never exit:
 Tailscale often starts after Molly, and its address does not exist until then.
 Exiting would turn a missing VPN into a restart loop that also takes down
 loopback and the scrape. Their state is `molly_server_listening{bind}`.
+
+## Insights reports in four formats (suffix beats Accept, HTML default)
+
+`/insights/latest` and the dated paths serve HTML, Markdown, JSON and YAML.
+A suffix (`.json`) beats the `Accept` header because it is explicit and
+survives places that cannot set headers: a pasted link, a Shortcut, a browser
+address bar. `Accept` is only a hint, and clients such as curl and some HTTP
+libraries send defaults the user never chose. HTML is the default because the
+main reader is a person following the menu-bar link in a browser; scripts that
+want data ask for it. A 406 is reserved for an `Accept` that names only types
+we do not serve; anything vague falls back to HTML rather than failing.
+
+The digest is stored beside the report (`<date>.json`) as it was passed to the
+narrative backend. The report's Markdown holds the digest only as rendered
+prose, and re-querying Prometheus later would give different numbers once the
+data is edited, retained away or re-labelled. Saving it keeps the JSON and
+YAML outputs faithful to what the narrative actually saw. Older reports have
+no digest and return null rather than a reconstruction.

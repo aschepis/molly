@@ -2,7 +2,8 @@ import Foundation
 
 /// The endpoints Molly serves: /metrics for Prometheus plus a few for humans.
 enum Routes {
-    static func register(on router: Router, manager: CollectorManager, config: Config, server: HTTPServer? = nil) {
+    static func register(on router: Router, manager: CollectorManager, config: Config, server: HTTPServer? = nil,
+                         insights: InsightsStore = InsightsStore()) {
         router.get("/") { _ in
             .text("""
             Molly \(Version.current)
@@ -14,27 +15,13 @@ enum Routes {
             /stats       registry size per family plus collector status (JSON)
             /config      effective configuration (JSON, secrets redacted)
             /privacy     every sensitive label dimension, its policy, and decision counts (JSON)
-            /insights/latest        newest daily insights report (Markdown)
+            /insights/latest        newest daily insights report
             /insights/<YYYY-MM-DD>  that day's report; add -week for a week
+                                    format: suffix .html .md .json .yaml (.yml), else Accept header, else HTML
 
             """)
         }
-        let insights = InsightsStore()
-        router.get("/insights/latest") { _ in
-            guard let latest = insights.latest() else {
-                return .text("no insights yet: run `molly insights` or enable the insights collector\n", status: 404)
-            }
-            return .text(latest.text, contentType: "text/markdown; charset=utf-8")
-        }
-        router.get(prefix: "/insights/") { request in
-            var name = String(request.path.dropFirst("/insights/".count))
-            let kind: InsightsDigest.Kind = name.hasSuffix("-week") ? .week : .day
-            if kind == .week { name = String(name.dropLast("-week".count)) }
-            guard DigestBuilder.parseDate(name) != nil, let text = insights.read(kind: kind, date: name) else {
-                return .notFound()
-            }
-            return .text(text, contentType: "text/markdown; charset=utf-8")
-        }
+        router.get(prefix: "/insights/") { request in InsightsRoute.handle(request, store: insights) }
         router.get("/metrics") { _ in
             .text(manager.registry.render(), contentType: "text/plain; version=0.0.4; charset=utf-8")
         }

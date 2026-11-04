@@ -106,7 +106,7 @@ Tailscale starts) is logged once and retried every 30 s; its state is the
 | `/privacy` | every label policy, its settings and decision counts (see [PRIVACY.md](PRIVACY.md)) |
 | `POST /event` | JSON event intake for `molly hook` and scripts; 204 on success, see [HOOKS.md](HOOKS.md) |
 | `POST /health` | Apple Health samples from an iPhone Shortcut; token required, loopback bind unless allowed, see [HEALTH.md](HEALTH.md) |
-| `GET /insights/latest`, `/insights/<date>[-week]` | Markdown reports written by `molly insights`, see [INSIGHTS.md](INSIGHTS.md) |
+| `GET /insights/latest`, `/insights/<date>[-week]` | Reports written by `molly insights` as HTML, Markdown, JSON or YAML (`.html` `.md` `.json` `.yaml` suffix, else `Accept`, default HTML), see [INSIGHTS.md](INSIGHTS.md) |
 | `/` | index |
 
 ## Menu bar

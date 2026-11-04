@@ -23,6 +23,12 @@ struct InsightsDigest: Codable, Equatable {
     /// Query keys that failed, with the error.
     var errors: [String: String] = [:]
 
+    /// Snake_case on disk and over HTTP, matching metric names.
+    enum CodingKeys: String, CodingKey {
+        case kind, date, user, host, from, to, scalars, breakdowns, missing, errors
+        case generatedAt = "generated_at"
+    }
+
     var isEmpty: Bool { scalars.isEmpty && breakdowns.isEmpty }
 
     /// True when the user pays a flat subscription, so Claude cost is not spend.
