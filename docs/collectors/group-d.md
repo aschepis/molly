@@ -12,8 +12,10 @@ reads them but never advances them.
 **Measures** sleep, dark wake, full wake and boot events, the latest wake
 reason, and awake and asleep time since local midnight.
 
-**Source.** `pmset -g log` (about two seconds to run, so the interval is 300s)
-and `sysctl kern.boottime`. Only `Sleep`, `Wake` and `DarkWake` lines are
+**Source.** `pmset -g log` and the `kern.boottime` sysctl. The log is about
+10 MB and takes two seconds to dump, so it is read at startup, after each
+`NSWorkspace.didWakeNotification`, and at least hourly; runs in between
+recompute the day totals from the cached events. Only `Sleep`, `Wake` and `DarkWake` lines are
 parsed; the thousands of `Assertions` lines are skipped. Timestamps are
 pmset's local format with an offset, for example `2026-11-03 08:41:12 -0500`.
 

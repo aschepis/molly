@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 // MARK: - Pure parsers (unit-tested)
@@ -76,13 +77,6 @@ enum PowerParse {
         return reasonOther
     }
 
-    /// `kern.boottime: { sec = 1789156556, usec = 652 } Fri Sep 11 15:55:56 2026`
-    static func bootTime(sysctl text: String) -> Date? {
-        guard let secRange = text.range(of: "sec = ") else { return nil }
-        let digits = text[secRange.upperBound...].prefix { $0.isNumber }
-        return Double(digits).map { Date(timeIntervalSince1970: $0) }
-    }
-
     /// A boot is new when it is later than the last one seen; with nothing seen,
     /// only boots after the backfill floor count.
     static func isNewBoot(_ boot: Double, lastSeen: Double?, floor: Double) -> Bool {
@@ -114,23 +108,60 @@ enum PowerParse {
     }
 }
 
+// MARK: - Read schedule
+
+/// New sleep and wake events can only appear across a sleep, so the power log is
+/// re-read after a wake; `maxAge` bounds the staleness if a wake notification is missed.
+final class PowerLogSchedule {
+    private let maxAge: TimeInterval
+    private let lock = NSLock()
+    private var lastRead: Date?
+    private var woke = false
+
+    init(maxAge: TimeInterval) {
+        self.maxAge = maxAge
+    }
+
+    func markWoke() {
+        lock.lock()
+        defer { lock.unlock() }
+        woke = true
+    }
+
+    /// True when a read is due; the caller is expected to read, so this resets the schedule.
+    func shouldRead(now: Date) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let due = woke || lastRead.map { now.timeIntervalSince($0) >= maxAge } ?? true
+        if due {
+            woke = false
+            lastRead = now
+        }
+        return due
+    }
+}
+
 // MARK: - Collector
 
 /// Sleep, wake and boot history from `pmset -g log`. The first run backfills
 /// `backfillSeconds` so a fresh install explains the last day; after that a
-/// cursor on the newest parsed event keeps counters incremental.
+/// cursor on the newest parsed event keeps counters incremental. The log is
+/// about 10 MB, so it is only re-read after a wake and the events are cached.
 final class PowerCollector: Collector {
     let name = "power"
     let interval: TimeInterval
 
     private static let pmsetTimeout: TimeInterval = 30
-    private static let sysctlTimeout: TimeInterval = 5
+    private static let logMaxAge: TimeInterval = 3600
     private static let cursorKey = "cursor"
     private static let bootKey = "boot"
 
     private let backfillSeconds: Double
     private let store: StateStore
     private let startedAt: Date
+    private let schedule = PowerLogSchedule(maxAge: PowerCollector.logMaxAge)
+    private var events: [PowerEvent] = []
+    private var wakeObserver: NSObjectProtocol?
 
     private var sleepEvents: Counter?
     private var lastSleep: Gauge?
@@ -159,9 +190,31 @@ final class PowerCollector: Collector {
         sleepToday = registry.gauge("molly_power_sleep_seconds_today", help: "Seconds asleep, including dark wakes, since local midnight.")
         for kind in PowerEventKind.allCases { sleepEvents?.touch(labels: ["kind": kind.rawValue]) }
         boots?.touch()
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: nil
+        ) { [schedule] _ in schedule.markWoke() }
+    }
+
+    deinit {
+        if let wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver) }
     }
 
     func collect() throws {
+        let floor = startedAt.timeIntervalSince1970 - backfillSeconds
+        if schedule.shouldRead(now: Date()) {
+            events = try readLog()
+            let cursor = store.double(Self.cursorKey) ?? floor
+            let fresh = events.filter { $0.time.timeIntervalSince1970 > cursor }
+            for event in fresh { sleepEvents?.inc(labels: ["kind": event.kind.rawValue]) }
+            store.set(Self.cursorKey, fresh.last?.time.timeIntervalSince1970 ?? cursor)
+            publishLatest(events)
+        }
+        publishDay(events)
+        collectBoot(floor: floor)
+        do { try store.save() } catch { Log.warn("power: cannot save state: \(error)") }
+    }
+
+    private func readLog() throws -> [PowerEvent] {
         let result: ShellResult
         do {
             result = try Shell.run("/usr/bin/pmset", ["-g", "log"], timeout: Self.pmsetTimeout)
@@ -169,18 +222,7 @@ final class PowerCollector: Collector {
             throw CollectorUnavailable(reason: "pmset unavailable: \(error)")
         }
         guard result.succeeded else { throw CollectorUnavailable(reason: "pmset -g log exited \(result.status)") }
-
-        let events = PowerParse.events(result.stdout)
-        let floor = startedAt.timeIntervalSince1970 - backfillSeconds
-        let cursor = store.double(Self.cursorKey) ?? floor
-        let fresh = events.filter { $0.time.timeIntervalSince1970 > cursor }
-        for event in fresh { sleepEvents?.inc(labels: ["kind": event.kind.rawValue]) }
-        store.set(Self.cursorKey, fresh.last?.time.timeIntervalSince1970 ?? cursor)
-
-        publishLatest(events)
-        publishDay(events)
-        collectBoot(floor: floor)
-        do { try store.save() } catch { Log.warn("power: cannot save state: \(error)") }
+        return PowerParse.events(result.stdout)
     }
 
     private func publishLatest(_ events: [PowerEvent]) {
@@ -201,9 +243,16 @@ final class PowerCollector: Collector {
         sleepToday?.set(totals.asleep)
     }
 
+    static func bootTime() -> Date? {
+        var mib: [Int32] = [CTL_KERN, KERN_BOOTTIME]
+        var boot = timeval()
+        var size = MemoryLayout<timeval>.size
+        guard sysctl(&mib, u_int(mib.count), &boot, &size, nil, 0) == 0 else { return nil }
+        return Date(timeIntervalSince1970: Double(boot.tv_sec))
+    }
+
     private func collectBoot(floor: Double) {
-        guard let result = try? Shell.run("/usr/sbin/sysctl", ["kern.boottime"], timeout: Self.sysctlTimeout), result.succeeded,
-              let boot = PowerParse.bootTime(sysctl: result.stdout) else { return }
+        guard let boot = Self.bootTime() else { return }
         let seconds = boot.timeIntervalSince1970
         if PowerParse.isNewBoot(seconds, lastSeen: store.double(Self.bootKey), floor: floor) { boots?.inc() }
         store.set(Self.bootKey, seconds)

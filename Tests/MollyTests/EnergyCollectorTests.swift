@@ -39,6 +39,11 @@ final class EnergyCollectorTests: XCTestCase {
         XCTAssertEqual(EnergyMath.top(sums, n: 2), ["a": 3, "b": 2.5])
     }
 
+    func testDefaultIntervalIsFiveMinutes() throws {
+        let collector = try EnergyCollector(settings: CollectorSettings(name: "energy", raw: [:]))
+        XCTAssertEqual(collector.interval, 300)
+    }
+
     func testCollectPublishesMetricFamilies() throws {
         guard FileManager.default.isExecutableFile(atPath: "/usr/bin/top") else { throw XCTSkip("top not present") }
         let collector = try EnergyCollector(settings: CollectorSettings(name: "energy", raw: [:]))

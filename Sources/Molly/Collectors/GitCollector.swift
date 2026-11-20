@@ -117,6 +117,7 @@ final class GitCollector: Collector {
     private var lastScan: Date = .distantPast
     private var repoNames: [String: String] = [:]
     private var dirtySignatures: [String: String] = [:]
+    private var snapshots: [String: RefSnapshot] = [:]
     private var myEmails: Set<String>?
     private let commitLimiter: LabelLimiter
 
@@ -196,9 +197,10 @@ final class GitCollector: Collector {
         if myEmails == nil { myEmails = Set(configuredEmails + globalEmail(gitPath)) }
 
         // Reads run in parallel and touch no shared state; results are applied serially.
-        let fetched = fetchAll(git: gitPath, now: now)
+        let inspections = inspectAll(git: gitPath, now: now)
+        snapshots = inspections.reduce(into: [:]) { cache, entry in cache[entry.path] = entry.inspection.snapshot }
         var observations: [Observation] = []
-        for repo in fetched {
+        for repo in inspections.compactMap(\.inspection.fetched) {
             repoNames[repo.observation.path] = repo.observation.name
             apply(repo)
             observations.append(repo.observation)
@@ -230,6 +232,35 @@ final class GitCollector: Collector {
         return found
     }
 
+    // MARK: - Ref fingerprint
+
+    private static let refFiles = ["HEAD", "index", "packed-refs", "FETCH_HEAD"]
+
+    /// Changes whenever a commit, checkout, stage, fetch, push or stash touches `.git`,
+    /// and at midnight so "today" metrics roll over. Nil for linked worktrees, whose `.git` is a file.
+    static func refFingerprint(repo: String, day: Date) -> String? {
+        let gitDir = repo + "/.git"
+        let fm = FileManager.default
+        var isDirectory: ObjCBool = false
+        guard fm.fileExists(atPath: gitDir, isDirectory: &isDirectory), isDirectory.boolValue else { return nil }
+
+        var newest = 0.0
+        var entries = 0
+        func note(_ path: String) {
+            guard let modified = (try? fm.attributesOfItem(atPath: path))?[.modificationDate] as? Date else { return }
+            newest = max(newest, modified.timeIntervalSince1970)
+            entries += 1
+        }
+        for file in refFiles { note(gitDir + "/" + file) }
+        let refs = gitDir + "/refs"
+        note(refs)
+        for case let relative as String in fm.enumerator(atPath: refs) ?? NSEnumerator() {
+            note(refs + "/" + relative)
+        }
+        let dayStart = Int(Clock.startOfToday(now: day).timeIntervalSince1970)
+        return "\(dayStart)|\(newest)|\(entries)"
+    }
+
     // MARK: - Per-repo inspection
 
     private func git(_ gitPath: String, _ arguments: [String], in directory: String?) throws -> String? {
@@ -256,11 +287,24 @@ final class GitCollector: Collector {
         var freshCommits: [GitParsing.Commit]
     }
 
+    /// What the last full inspection learned; reused while the ref fingerprint is unchanged.
+    private struct RefSnapshot {
+        let fingerprint: String
+        /// Nil when the repo was inactive.
+        let observation: Observation?
+    }
+
+    private struct Inspection {
+        var snapshot: RefSnapshot?
+        var fetched: Fetched?
+    }
+
     private static let maxParallelRepos = 4
 
-    private func fetchAll(git gitPath: String, now: Date) -> [Fetched] {
+    private func inspectAll(git gitPath: String, now: Date) -> [(path: String, inspection: Inspection)] {
         let paths = repoPaths
-        var results = [Fetched?](repeating: nil, count: paths.count)
+        let previous = snapshots
+        var results = [Inspection?](repeating: nil, count: paths.count)
         var next = 0
         let lock = NSLock()
         DispatchQueue.concurrentPerform(iterations: min(GitCollector.maxParallelRepos, max(1, paths.count))) { _ in
@@ -270,18 +314,18 @@ final class GitCollector: Collector {
                 next += 1
                 lock.unlock()
                 guard index < paths.count else { return }
-                let fetched = fetch(paths[index], git: gitPath, now: now)
+                let inspection = inspectSafely(paths[index], previous: previous[paths[index]], git: gitPath, now: now)
                 lock.lock()
-                results[index] = fetched
+                results[index] = inspection
                 lock.unlock()
             }
         }
-        return results.compactMap { $0 }
+        return zip(paths, results).compactMap { path, inspection in inspection.map { (path, $0) } }
     }
 
-    private func fetch(_ path: String, git gitPath: String, now: Date) -> Fetched? {
+    private func inspectSafely(_ path: String, previous: RefSnapshot?, git gitPath: String, now: Date) -> Inspection? {
         do {
-            return try inspect(path, git: gitPath, now: now)
+            return try inspect(path, previous: previous, git: gitPath, now: now)
         } catch ShellError.timedOut {
             Log.debug("git: \(path) timed out, skipped")
         } catch {
@@ -290,14 +334,32 @@ final class GitCollector: Collector {
         return nil
     }
 
-    private func inspect(_ path: String, git gitPath: String, now: Date) throws -> Fetched? {
-        let activeSince = Int(now.timeIntervalSince1970) - activeDays * 86400
-        let newest = try git(gitPath, ["log", "-1", "--all", "--format=%at"], in: path)
-            .flatMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) } ?? 0
+    /// `git status` always runs because working-tree edits never touch `.git`; the
+    /// other commands only depend on refs, so they rerun only when the fingerprint moves.
+    private func inspect(_ path: String, previous: RefSnapshot?, git gitPath: String, now: Date) throws -> Inspection? {
+        let fingerprint = GitCollector.refFingerprint(repo: path, day: now)
         guard let statusText = try git(gitPath, ["status", "--porcelain=v2", "--branch"], in: path) else { return nil }
         let status = GitParsing.parseStatus(statusText)
         let isDirty = status.dirty + status.untracked > 0
-        guard newest >= activeSince || isDirty else { return nil }
+
+        if let previous, previous.fingerprint == fingerprint {
+            if var observation = previous.observation {
+                observation.branch = status.branch
+                observation.dirty = status.dirty
+                observation.untracked = status.untracked
+                let cursor = store.int(cursorKey(path)) ?? Int(startedAt.timeIntervalSince1970)
+                return Inspection(snapshot: previous,
+                                  fetched: Fetched(observation: observation, cursor: cursor, freshCommits: []))
+            }
+            if !isDirty { return Inspection(snapshot: previous, fetched: nil) }
+        }
+
+        let activeSince = Int(now.timeIntervalSince1970) - activeDays * 86400
+        let newest = try git(gitPath, ["log", "-1", "--all", "--format=%at"], in: path)
+            .flatMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) } ?? 0
+        guard newest >= activeSince || isDirty else {
+            return Inspection(snapshot: fingerprint.map { RefSnapshot(fingerprint: $0, observation: nil) }, fetched: nil)
+        }
 
         var observation = Observation(path: path, name: try name(of: path, git: gitPath))
         observation.branch = status.branch
@@ -316,7 +378,8 @@ final class GitCollector: Collector {
         let cursor = store.int(cursorKey(path)) ?? Int(startedAt.timeIntervalSince1970)
         let fresh = try newCommits(path, newest: newest, cursor: cursor, git: gitPath)
         try measureToday(&observation, now: now, git: gitPath)
-        return Fetched(observation: observation, cursor: cursor, freshCommits: fresh)
+        let snapshot = fingerprint.map { RefSnapshot(fingerprint: $0, observation: observation) }
+        return Inspection(snapshot: snapshot, fetched: Fetched(observation: observation, cursor: cursor, freshCommits: fresh))
     }
 
     private func cursorKey(_ path: String) -> String { "cursor:" + path }

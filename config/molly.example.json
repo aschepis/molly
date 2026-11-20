@@ -50,7 +50,7 @@
     },
     "energy": {
       "enabled": true,
-      "interval": 30,
+      "interval": 300,
       "topN": 15,
       "processes": {
         "enabled": true,

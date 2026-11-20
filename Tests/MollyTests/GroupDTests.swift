@@ -54,9 +54,9 @@ final class PowerParseTests: XCTestCase {
     }
 
     func testBootTimeAndNewBoot() throws {
-        let boot = try XCTUnwrap(PowerParse.bootTime(sysctl: "kern.boottime: { sec = 1789156556, usec = 652 } Fri Sep 11 15:55:56 2026"))
-        XCTAssertEqual(boot.timeIntervalSince1970, 1_789_156_556)
-        XCTAssertNil(PowerParse.bootTime(sysctl: "garbage"))
+        let boot = try XCTUnwrap(PowerCollector.bootTime())
+        XCTAssertLessThan(boot, Date())
+        XCTAssertGreaterThan(boot, try date("2020-01-01 00:00:00 +0000"))
         XCTAssertTrue(PowerParse.isNewBoot(100, lastSeen: nil, floor: 50))
         XCTAssertFalse(PowerParse.isNewBoot(40, lastSeen: nil, floor: 50))
         XCTAssertFalse(PowerParse.isNewBoot(100, lastSeen: 100, floor: 50))
@@ -102,6 +102,21 @@ final class PowerParseTests: XCTestCase {
                                                         dayStart: date("2026-11-03 00:00:00 +0000")))
         XCTAssertEqual(totals.awake, 8 * 3600)
         XCTAssertEqual(totals.asleep, 1800)
+    }
+}
+
+final class PowerLogScheduleTests: XCTestCase {
+    func testReadsFirstThenOnlyAfterWakeOrMaxAge() {
+        let schedule = PowerLogSchedule(maxAge: 3600)
+        let start = Date(timeIntervalSince1970: 1_000_000)
+        XCTAssertTrue(schedule.shouldRead(now: start), "first run reads")
+        XCTAssertFalse(schedule.shouldRead(now: start.addingTimeInterval(300)))
+
+        schedule.markWoke()
+        XCTAssertTrue(schedule.shouldRead(now: start.addingTimeInterval(600)))
+        XCTAssertFalse(schedule.shouldRead(now: start.addingTimeInterval(900)))
+
+        XCTAssertTrue(schedule.shouldRead(now: start.addingTimeInterval(600 + 3600)), "a missed wake is caught within maxAge")
     }
 }
 

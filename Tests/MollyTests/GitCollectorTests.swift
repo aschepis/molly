@@ -176,6 +176,59 @@ final class GitCollectorTests: TempFolderTestCase {
         XCTAssertFalse(registry.render().contains("widgets"))
     }
 
+    func testRefFingerprintTracksRefsAndDayButNotWorkingTree() throws {
+        let root = makeTempFolder()
+        let repo = try makeRepo(in: root)
+        let today = Date()
+        let before = GitCollector.refFingerprint(repo: repo.path, day: today)
+        XCTAssertNotNil(before)
+
+        try "edit\n".write(to: repo.appendingPathComponent("seed.txt"), atomically: true, encoding: .utf8)
+        XCTAssertEqual(GitCollector.refFingerprint(repo: repo.path, day: today), before)
+        XCTAssertNotEqual(GitCollector.refFingerprint(repo: repo.path, day: today.addingTimeInterval(86400)), before)
+
+        try run(["commit", "-q", "--allow-empty", "-m", "x"], in: repo, date: Date())
+        XCTAssertNotEqual(GitCollector.refFingerprint(repo: repo.path, day: today), before)
+    }
+
+    func testRefFingerprintIsNilForLinkedWorktree() throws {
+        let worktree = makeTempFolder()
+        try "gitdir: /elsewhere\n".write(to: worktree.appendingPathComponent(".git"), atomically: true, encoding: .utf8)
+        XCTAssertNil(GitCollector.refFingerprint(repo: worktree.path, day: Date()))
+    }
+
+    func testUnchangedRefsStillRefreshWorkingTreeCounts() throws {
+        let root = makeTempFolder()
+        let repo = try makeRepo(in: root)
+        try run(["commit", "-q", "--allow-empty", "-m", "recent"], in: repo, date: Date())
+        let (collector, registry) = try makeCollector(root: root, state: makeTempFolder())
+        try collector.collect()
+        XCTAssertEqual(value(registry, "molly_git_untracked_files", ["repo": "widgets"]), 0)
+
+        try "new\n".write(to: repo.appendingPathComponent("u.txt"), atomically: true, encoding: .utf8)
+        try collector.collect()
+        XCTAssertEqual(value(registry, "molly_git_untracked_files", ["repo": "widgets"]), 1)
+    }
+
+    func testPushedUpstreamRefRefreshesAheadCount() throws {
+        let root = makeTempFolder()
+        let repo = try makeRepo(in: root)
+        let base = try run(["rev-parse", "HEAD"], in: repo).trimmingCharacters(in: .whitespacesAndNewlines)
+        try run(["remote", "add", "origin", "git@github.com:acme/widgets.git"], in: repo)
+        try run(["update-ref", "refs/remotes/origin/main", base], in: repo)
+        try run(["config", "branch.main.remote", "origin"], in: repo)
+        try run(["config", "branch.main.merge", "refs/heads/main"], in: repo)
+        try run(["commit", "-q", "--allow-empty", "-m", "unpushed"], in: repo, date: Date())
+        let (collector, registry) = try makeCollector(root: root, state: makeTempFolder())
+        try collector.collect()
+        XCTAssertEqual(value(registry, "molly_git_ahead", ["repo": "acme/widgets"]), 1)
+
+        // A push moves only the remote-tracking ref, not HEAD or the index.
+        try run(["update-ref", "refs/remotes/origin/main", "HEAD"], in: repo)
+        try collector.collect()
+        XCTAssertEqual(value(registry, "molly_git_ahead", ["repo": "acme/widgets"]), 0)
+    }
+
     func testNewCommitReportsProjectActivity() throws {
         let root = makeTempFolder()
         let repo = try makeRepo(in: root)

@@ -251,14 +251,15 @@ resource use only. Command lines, arguments, paths and environment are never rea
 
 ### energy
 
-Interval 30s, enabled by default. Energy impact per process from `top`.
+Interval 300s, enabled by default. Energy impact per process from `top`.
 
 | key | type | default | meaning |
 |---|---|---|---|
 | `topN` | int | `15` | processes and apps kept per metric, minimum 1 |
 | `processes` | policy | enabled, denylist, 25 | process and app names. When disabled only the total is published |
 
-Permissions: none. Runs `top -l 2 -s 1`, about two seconds per run. Privacy:
+Permissions: none. Runs `top -l 2 -s 1`, about two seconds and 1.5s of CPU per
+run, which is why the interval is long; shorter intervals cost real battery. Privacy:
 names and a number; command lines and arguments are never read.
 
 ### focus
@@ -429,6 +430,9 @@ Interval 120s, enabled by default.
 | `repos` | policy | enabled, denylist, 50 | the `repo` label (`owner/name` from `origin`, else the directory name) |
 | `branches` | policy | enabled, denylist, 0 | the `branch` label of `molly_git_branch_info` |
 
+Each run does a `git status` per repo; the other commands rerun only when a
+repo's `.git` refs, index or `FETCH_HEAD` changed, or at midnight.
+
 Permissions: read access to the roots and `git` on the PATH. Privacy: runs only
 read-only git commands without locks. Commit messages, file names, diffs and
 author emails are never exported. Emails are compared in memory only.
@@ -546,7 +550,8 @@ Interval 300s, enabled by default.
 |---|---|---|---|
 | `backfillSeconds` | number | `86400` | on the first run, events this far before Molly started are counted, so a fresh install explains the last day |
 
-Permissions: none. Runs `pmset -g log` and `sysctl kern.boottime`. Privacy:
+Permissions: none. Runs `pmset -g log` at startup, after each wake, and at least
+hourly; other runs reuse the parsed events. Reads `kern.boottime` directly. Privacy:
 only sleep, wake and dark wake lines are read. Wake reasons are mapped to a
 fixed set (lid, power button, user activity, scheduled, notification, other);
 raw reason text is never exported. Details: [group D](collectors/group-d.md#power).
@@ -560,7 +565,7 @@ Interval 300s, enabled by default.
 | `backfillSeconds` | number | `86400` | on the first run, shutdowns and reports this far before Molly started are counted; boots are never backfilled |
 | `processes` | policy | enabled, denylist, 30 | the `process` label of `molly_crash_reports_by_process_total` |
 
-Permissions: none. Runs `sysctl -n kern.boottime` and `last -y shutdown`, and
+Permissions: none. Reads `kern.boottime` directly, runs `last -y shutdown`, and
 lists `~/Library/Logs/DiagnosticReports` and `/Library/Logs/DiagnosticReports`
 by filename and modification time. Only the first line of an `.ips` file (its
 JSON header) is read, and only for its process name.

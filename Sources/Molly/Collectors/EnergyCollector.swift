@@ -67,9 +67,11 @@ final class EnergyCollector: Collector {
     private static let topPath = "/usr/bin/top"
     private static let timeout: TimeInterval = 15
     private static let sampleDelaySeconds = "1"
+    /// Each `top` run costs about 1.5s of CPU, so sampling more often drains the battery.
+    static let defaultInterval: TimeInterval = 300
 
     init(settings: CollectorSettings) throws {
-        interval = settings.interval(default: 30)
+        interval = settings.interval(default: Self.defaultInterval)
         filter = try settings.filter("processes", defaults: EnergyCollector.processesDefaults)
         topN = max(1, settings.int("topN", default: 15))
     }

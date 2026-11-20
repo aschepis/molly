@@ -124,7 +124,7 @@ Details: [group A](collectors/group-a.md#processes-interval-30s).
 | `molly_agent_processes` | gauge | `agent` | count | running processes per configured agent, 0 when none |
 | `molly_agent_process_cpu_ratio` | gauge | `agent` | cores | summed CPU of an agent's processes; absent on the first run |
 
-## energy (interval 30s)
+## energy (interval 300s)
 
 Policy `processes` governs `process` and `app`. When it is disabled only the total is published.
 Values are the "energy impact" `top` reports, a unitless score; sort order matters, not the absolute number.
@@ -429,7 +429,7 @@ Details: [group C](collectors/group-c.md#projects).
 
 ## forensics (interval 300s)
 
-Policy `processes` (default enabled, denylist, 30) governs the `process` label. Sources: `sysctl -n kern.boottime`, `last -y shutdown`, and report filenames in the two DiagnosticReports folders. `kind` is `crash`, `hang`, `spin` or `panic`; kernel panics report process `kernel`.
+Policy `processes` (default enabled, denylist, 30) governs the `process` label. Sources: `kern.boottime`, `last -y shutdown`, and report filenames in the two DiagnosticReports folders. `kind` is `crash`, `hang`, `spin` or `panic`; kernel panics report process `kernel`.
 
 | metric | type | labels | unit | meaning |
 |---|---|---|---|---|

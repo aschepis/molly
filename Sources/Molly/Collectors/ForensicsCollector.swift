@@ -167,8 +167,7 @@ final class ForensicsCollector: Collector {
     }
 
     private func currentBoot() -> Date? {
-        if let result = try? Shell.run("/usr/sbin/sysctl", ["-n", "kern.boottime"], timeout: Self.commandTimeout), result.succeeded,
-           let boot = PowerParse.bootTime(sysctl: result.stdout) { return boot }
+        if let boot = PowerCollector.bootTime() { return boot }
         return lastOutput("reboot").flatMap { ForensicsParse.lastEntries($0, command: "reboot").last?.time }
     }
 
